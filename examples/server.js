@@ -3,10 +3,10 @@
 require.paths.unshift(__dirname + "/../lib");
 
 var http   = require('http');
-var client = require('nack/client');
+var server = require('nack/server');
 
-var sock = __dirname + "/nack.sock";
+var app = server.createServer(__dirname + "/config.ru");
 
 http.createServer(function (req, res) {
-  client.request(sock, req, res);
+  app.request(req, res);
 }).listen(8124, "127.0.0.1");
