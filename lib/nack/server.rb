@@ -5,6 +5,8 @@ require 'yajl'
 
 module Nack
   class Server
+    CRLF = "\r\n"
+
     def self.run(*args)
       new(*args).start
     end
@@ -17,6 +19,7 @@ module Nack
     end
 
     def start
+      File.unlink(path) if File.exist?(path)
       server = UNIXServer.open(path)
 
       loop do
@@ -47,9 +50,17 @@ module Nack
         status, headers, body = app.call(env)
 
         encoder = Yajl::Encoder.new
+
         encoder.encode(status.to_s, sock)
+        sock.write(CRLF)
+
         encoder.encode(headers, sock)
-        body.each { |part| encoder.encode(part, sock) }
+        sock.write(CRLF)
+
+        body.each do |part|
+          encoder.encode(part, sock)
+          sock.write(CRLF)
+        end
 
         sock.close_write
       end

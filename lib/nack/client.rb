@@ -3,18 +3,27 @@ require 'yajl'
 
 module Nack
   class Client
+    CRLF = "\r\n"
+
     attr_accessor :path
 
     def initialize(path)
       self.path = path
     end
 
-    def request(env = {}, body = "")
+    def request(env = {}, body = nil)
       sock = UNIXSocket.open(path)
 
       encoder = Yajl::Encoder.new
+
       encoder.encode(env, sock)
-      encoder.encode(body, sock)
+      sock.write(CRLF)
+
+      if body
+        encoder.encode(body, sock)
+        sock.write(CRLF)
+      end
+
       sock.close_write
 
       status, headers, body = nil, nil, []
