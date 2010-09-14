@@ -11,17 +11,36 @@ module Nack
       new(*args).start
     end
 
-    attr_accessor :app, :path
+    attr_accessor :app, :host, :port, :file
 
-    def initialize(app, path)
-      self.app  = app
-      self.path = path
+    def initialize(app, options = {})
+      self.app    = app
+
+      self.host = options[:host]
+      self.port = options[:port]
+
+      self.file = options[:file]
+    end
+
+    def server
+       @_server ||= open_server
+     end
+
+    def open_server
+      if file
+        File.unlink(file) if File.exist?(file)
+
+        at_exit do
+          File.unlink(file)
+        end
+
+        UNIXServer.open(file)
+      elsif port
+        TCPServer.open(port)
+      end
     end
 
     def start
-      File.unlink(path) if File.exist?(path)
-      server = UNIXServer.open(path)
-
       loop do
         sock = server.accept
 

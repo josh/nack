@@ -5,30 +5,49 @@ module Nack
   class Client
     CRLF = "\r\n"
 
-    attr_accessor :path
+    def self.open(*args)
+      new(*args)
+    end
 
-    def initialize(path)
-      self.path = path
+    attr_accessor :file, :host, :port,
+                  :socket
+
+    def initialize(*args)
+      case args.length
+      when 1
+        self.file = args[0]
+      when 2
+        self.host = args[0]
+        self.port = args[1]
+      end
+
+      self.socket = open_socket
+    end
+
+    def open_socket
+      if file
+        UNIXSocket.open(file)
+      elsif host && port
+        TCPSocket.open(host, port)
+      end
     end
 
     def request(env = {}, body = nil)
-      sock = UNIXSocket.open(path)
-
       encoder = Yajl::Encoder.new
 
-      encoder.encode(env, sock)
-      sock.write(CRLF)
+      encoder.encode(env, socket)
+      socket.write(CRLF)
 
       if body
-        encoder.encode(body, sock)
-        sock.write(CRLF)
+        encoder.encode(body, socket)
+        socket.write(CRLF)
       end
 
-      sock.close_write
+      socket.close_write
 
       status, headers, body = nil, nil, []
 
-      Yajl::Parser.parse(sock) do |obj|
+      Yajl::Parser.parse(socket) do |obj|
         if status.nil?
           status = obj.to_i
         elsif headers.nil?
