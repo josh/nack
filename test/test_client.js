@@ -1,3 +1,5 @@
+// ./bin/nackup -f test/nack.sock examples/config.ru
+
 require.paths.unshift(__dirname + "/../lib");
 
 var http   = require('http');

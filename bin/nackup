@@ -1,0 +1,30 @@
+#!/usr/bin/env ruby
+
+require 'nack'
+require 'rack/builder'
+
+require 'optparse'
+
+options = {}
+
+opts = OptionParser.new("", 24, '  ') { |opts|
+  opts.banner = "Usage: nackup [options] [rackup config]"
+
+  opts.on("-f", "--file SOCKET", "listen on SOCKET") { |file|
+    options[:file] = file
+  }
+
+  opts.parse! ARGV
+}
+
+config = ARGV[0] || "config.ru"
+
+if !File.exist?(config)
+  abort "configuration #{config} not found"
+end
+
+cfgfile = File.read(config)
+app = eval "Rack::Builder.new {( " + cfgfile + "\n )}.to_app",
+                 nil, config
+
+Nack::Server.run(app, options)
