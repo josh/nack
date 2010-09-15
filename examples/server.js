@@ -1,9 +1,10 @@
 require.paths.unshift(__dirname + "/../lib");
+process.env['PATH'] = __dirname + "/../bin:" + process.env['PATH']
 
-var http    = require('http');
-var process = require('nack/process');
+var http = require('http');
+var proc = require('nack/process');
 
-var app = process.createProcess(__dirname + "/config.ru");
+var app = proc.createProcess(__dirname + "/config.ru");
 
 http.createServer(function (req, res) {
   app.proxyRequest(req, res);

@@ -37,6 +37,8 @@ module Nack
         UNIXServer.open(file)
       elsif port
         TCPServer.open(port)
+      else
+        raise "no socket given"
       end
     end
 
