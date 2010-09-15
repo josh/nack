@@ -1,46 +1,120 @@
 net        = require 'net'
+url        = require 'url'
 jsonParser = require 'nack/json_parser'
 
+{EventEmitter} = require 'events'
+
 CRLF = "\r\n"
+
+class ClientRequest extends EventEmitter
+  constructor: (@socket, method, path, headers) ->
+    @connected = false
+    @ended     = false
+
+    @headers = @parseRequest method, path, headers
+
+    @buffer = []
+    @buffer.push new Buffer(JSON.stringify(@headers))
+    @buffer.push new Buffer(CRLF)
+
+    @connect()
+
+  parseRequest: (method, path, request_headers) ->
+    headers = {}
+
+    headers["REQUEST_METHOD"] = method
+
+    {pathname, query} = url.parse path
+    headers["PATH_INFO"]    = pathname
+    headers["QUERY_STRING"] = query
+    headers["SCRIPT_NAME"]  = ""
+
+    for key, value of request_headers
+      key = key.toUpperCase().replace('-', '_')
+      key = "HTTP_#{key}" unless key == 'CONTENT_TYPE' or key == 'CONTENT_LENGTH'
+      headers[key] = value
+
+    headers
+
+  connect: () ->
+    @socket.setEncoding "utf8"
+
+    @socket.addListener "connect", () =>
+      @connected = true
+      @flush()
+      @socket.end() if @ended
+
+    response = new ClientResponse @socket
+    stream   = new jsonParser.Stream @socket
+
+    stream.addListener "obj", (obj) =>
+      if !response.statusCode
+        response.statusCode = obj
+      else if !response.headers
+        response.headers = obj
+      else
+        chunk = obj
+
+      if response.statusCode? && response.headers? && !chunk?
+        @emit "response", response
+      else if chunk?
+        response.emit "data", chunk
+
+    @socket.addListener "end", () ->
+      response.emit "end"
+
+  flush: () ->
+    if @connected
+      while @buffer.length > 0
+        @socket.write @buffer.shift()
+
+  write: (chunk) ->
+    @buffer.push new Buffer(JSON.stringify(chunk))
+    @buffer.push new Buffer(CRLF)
+    @flush()
+
+  end: ->
+    @ended = true
+
+    if @connected
+      @flush()
+      @socket.end()
+
+exports.ClientRequest = ClientRequest
+
+class ClientResponse extends EventEmitter
+  constructor: (@socket) ->
+    @statusCode = null
+    @headers = null
+
+exports.ClientResponse = ClientResponse
 
 class Client
   connect: (port, host) ->
     @socket = net.createConnection port, host
 
+  request: (method, path, headers) ->
+    request = new ClientRequest(@socket, method, path, headers)
+    request.connect
+    request
+
   proxyRequest: (req, res) ->
-    @socket.setEncoding "utf8"
+    clientRequest = @request req.method, req.url, req.headers
 
-    @socket.addListener "connect", () =>
-      @socket.write JSON.stringify(req.headers)
-      @socket.write CRLF
+    req.addListener "data", (chunk) =>
+      clientRequest.write chunk
 
-      @socket.end()
+    req.addListener "end", (chunk) =>
+      clientRequest.end()
 
-      # req.addListener "data", (chunk) =>
-      #   @socket.write JSON.stringify(chunk)
-      #   @socket.write CRLF
+    clientRequest.on "response", (clientResponse) ->
+      res.writeHead clientResponse.statusCode, clientResponse.headers
 
-      # req.addListener "end", (chunk) =>
-      #   @socket.end()
+      clientResponse.on "data", (chunk) ->
+        res.write chunk
 
-    jsonStream = new jsonParser.Stream @socket
-
-    [status, headers, part] = [null, null, null]
-    jsonStream.addListener "obj", (obj) ->
-      if !status?
-        status = obj
-      else if !headers?
-        headers = obj
-      else
-        part = obj
-
-      if status? && headers? && !part?
-        res.writeHead status, headers
-      else if part?
-        res.write part
-
-    @socket.addListener "end", (obj) ->
-      res.end()
+      clientResponse.addListener "end", () ->
+        res.end()
 
 exports.Client = Client
 

@@ -65,6 +65,7 @@ module Nack
           "rack.multithread" => false,
           "rack.multiprocess" => true,
           "rack.run_once" => false,
+          "rack.url_scheme" => ["yes", "on", "1"].include?(env["HTTPS"]) ? "https" : "http"
         })
 
         body = ""
