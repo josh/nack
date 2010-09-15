@@ -4,6 +4,8 @@ task :default => :test
 
 task :default => [:test_ruby, :test_node]
 
+ENV['PATH'] = "#{File.expand_path("../bin", __FILE__)}:#{ENV['PATH']}"
+
 Rake::TestTask.new(:test_ruby) do |t|
   t.warning = true
 end

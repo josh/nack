@@ -19,6 +19,12 @@ module ServerTests
     status, headers, body = client.request
     assert_equal 200, status
   end
+
+  def tmp_sock
+    pid  = Process.pid
+    rand = (rand() * 10000000000).floor
+    "/tmp/nack.#{pid}.#{rand}.sock"
+  end
 end
 
 class TestUnixServer < Test::Unit::TestCase
@@ -29,13 +35,14 @@ class TestUnixServer < Test::Unit::TestCase
     body = env["rack.input"].read
     [200, {"Content-Type" => "text/plain"}, [body]]
   end
-  SOCK = File.expand_path("../nack.sock", __FILE__)
 
-  attr_accessor :pid
+  attr_accessor :sock, :pid
 
   def setup
+    self.sock = tmp_sock
+
     self.pid = fork do
-      Server.run(APP, :file => SOCK)
+      Server.run(APP, :file => sock)
     end
   end
 
@@ -43,15 +50,15 @@ class TestUnixServer < Test::Unit::TestCase
     Process.kill('KILL', pid)
     Process.wait(pid)
 
-    File.unlink(SOCK) if File.exist?(SOCK)
+    File.unlink(sock) if File.exist?(sock)
   end
 
   def client
-    until File.exist?(SOCK)
+    until File.exist?(sock)
       sleep 0.1
     end
 
-    Client.open(SOCK)
+    Client.open(sock)
   end
 end
 
@@ -94,13 +101,14 @@ class TestNackup < Test::Unit::TestCase
   include ServerTests
 
   CONFIG = File.expand_path("../fixtures/echo.ru", __FILE__)
-  SOCK = File.expand_path("../nack.sock", __FILE__)
 
-  attr_accessor :pid
+  attr_accessor :sock, :pid
 
   def setup
+    self.sock = tmp_sock
+
     self.pid = fork do
-      exec File.expand_path("../../bin/nackup", __FILE__), "--file", SOCK, CONFIG
+      exec "nackup", "--file", sock, CONFIG
     end
   end
 
@@ -108,14 +116,14 @@ class TestNackup < Test::Unit::TestCase
     Process.kill('KILL', pid)
     Process.wait(pid)
 
-    File.unlink(SOCK) if File.exist?(SOCK)
+    File.unlink(sock) if File.exist?(sock)
   end
 
   def client
-    until File.exist?(SOCK)
+    until File.exist?(sock)
       sleep 0.1
     end
 
-    Client.open(SOCK)
+    Client.open(sock)
   end
 end
