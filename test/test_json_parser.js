@@ -1,7 +1,7 @@
 var events     = require('events');
 var jsonParser = require('nack/json_parser');
 
-exports.testJsonParse = function(test){
+exports.testJsonParse = function(test) {
   test.expect(3);
 
   var rawStream = new events.EventEmitter();
