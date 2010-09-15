@@ -1,6 +1,6 @@
 var process = require('nack/process');
 
-var config = __dirname + "/fixtures/config.ru";
+var config = __dirname + "/fixtures/hello.ru";
 
 exports.testCreateProcess = function(test) {
   test.expect(4);

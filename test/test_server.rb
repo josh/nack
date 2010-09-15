@@ -88,3 +88,34 @@ class TestTCPServer < Test::Unit::TestCase
     end
   end
 end
+
+class TestNackup < Test::Unit::TestCase
+  include Nack
+  include ServerTests
+
+  CONFIG = File.expand_path("../fixtures/echo.ru", __FILE__)
+  SOCK = File.expand_path("../nack.sock", __FILE__)
+
+  attr_accessor :pid
+
+  def setup
+    self.pid = fork do
+      exec File.expand_path("../../bin/nackup", __FILE__), "--file", SOCK, CONFIG
+    end
+  end
+
+  def teardown
+    Process.kill('KILL', pid)
+    Process.wait(pid)
+
+    File.unlink(SOCK) if File.exist?(SOCK)
+  end
+
+  def client
+    until File.exist?(SOCK)
+      sleep 0.1
+    end
+
+    Client.open(SOCK)
+  end
+end
