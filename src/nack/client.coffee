@@ -1,3 +1,4 @@
+sys = require 'sys'
 url = require 'url'
 
 {Stream}         = require 'net'
@@ -74,21 +75,11 @@ exports.Client = class Client extends Stream
 
   proxyRequest: (req, res) ->
     clientRequest = @request req.method, req.url, req.headers
-
-    req.on "data", (chunk) =>
-      clientRequest.write chunk
-
-    req.on "end", (chunk) =>
-      clientRequest.end()
+    sys.pump req, clientRequest
 
     clientRequest.on "response", (clientResponse) ->
       res.writeHead clientResponse.statusCode, clientResponse.headers
-
-      clientResponse.on "data", (chunk) ->
-        res.write chunk
-
-      clientResponse.on "end", () ->
-        res.end()
+      sys.pump clientResponse, res
 
 exports.createConnection = (port, host) ->
   client = new Client
