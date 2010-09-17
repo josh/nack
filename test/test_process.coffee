@@ -6,7 +6,7 @@ exports.testCreateProcess = (test) ->
   test.expect 5
 
   p = process.createProcess config
-  test.ok p.sock
+  test.ok p.sockPath
   test.ok p.child
 
   p.on 'ready', () ->
@@ -14,7 +14,7 @@ exports.testCreateProcess = (test) ->
 
     p.quit()
     p.on 'exit', () ->
-      test.ok !p.sock
+      test.ok !p.sockPath
       test.ok !p.child
 
       test.done()

@@ -8,7 +8,7 @@ exports.testClientRequest = (test) ->
 
   p = process.createProcess config
   p.on 'ready', () ->
-    c = client.createConnection p.sock
+    c = client.createConnection p.sockPath
     test.ok c
 
     request = c.request 'GET', '/foo', {}
