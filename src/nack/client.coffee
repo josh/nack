@@ -6,7 +6,7 @@ jsonParser = require 'nack/json_parser'
 
 CRLF = "\r\n"
 
-class ClientRequest extends EventEmitter
+exports.ClientRequest = class ClientRequest extends EventEmitter
   constructor: (@socket, method, path, headers) ->
     @connected = false
     @ended     = false
@@ -80,16 +80,12 @@ class ClientRequest extends EventEmitter
       @flush()
       @socket.end()
 
-exports.ClientRequest = ClientRequest
-
-class ClientResponse extends EventEmitter
+exports.ClientResponse = class ClientResponse extends EventEmitter
   constructor: (@socket) ->
     @statusCode = null
     @headers = null
 
-exports.ClientResponse = ClientResponse
-
-class Client
+exports.Client = class Client
   connect: (port, host) ->
     @socket = net.createConnection port, host
 
@@ -115,8 +111,6 @@ class Client
 
       clientResponse.addListener "end", () ->
         res.end()
-
-exports.Client = Client
 
 exports.createConnection = (port, host) ->
   client = new Client()
