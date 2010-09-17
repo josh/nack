@@ -11,6 +11,8 @@ exports.testClientRequest = (test) ->
   test.expect 14
 
   process = createProcess config
+  process.spawn()
+
   process.on 'ready', () ->
     client = createConnection process.sockPath
     test.ok client
@@ -51,6 +53,7 @@ exports.testProxyRequest = (test) ->
   test.expect 8
 
   process = createProcess config
+  process.spawn()
 
   server = http.createServer (req, res) ->
     test.ok req

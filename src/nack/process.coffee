@@ -10,9 +10,10 @@ tmpSock = () ->
 
 exports.Process = class Process extends EventEmitter
   constructor: (@config) ->
-    @spawn();
 
   spawn: ->
+    return if @child
+
     @sockPath = tmpSock()
     @child = spawn "nackup", ['--file', @sockPath, @config]
 

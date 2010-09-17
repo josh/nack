@@ -1,20 +1,22 @@
-process = require 'nack/process'
+{createProcess} = require 'nack/process'
 
 config = __dirname + "/fixtures/hello.ru"
 
 exports.testCreateProcess = (test) ->
   test.expect 5
 
-  p = process.createProcess config
-  test.ok p.sockPath
-  test.ok p.child
+  process = createProcess config
+  process.spawn()
 
-  p.on 'ready', () ->
+  test.ok process.sockPath
+  test.ok process.child
+
+  process.on 'ready', () ->
     test.ok true
 
-    p.quit()
-    p.on 'exit', () ->
-      test.ok !p.sockPath
-      test.ok !p.child
+    process.quit()
+    process.on 'exit', () ->
+      test.ok !process.sockPath
+      test.ok !process.child
 
       test.done()
