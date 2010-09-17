@@ -1,10 +1,10 @@
 client  = require 'nack/client'
 process = require 'nack/process'
 
-config = __dirname + "/fixtures/echo.ru"
+config = __dirname + "/fixtures/hello.ru"
 
 exports.testClientRequest = (test) ->
-  test.expect 10
+  test.expect 14
 
   p = process.createProcess config
   p.on 'ready', () ->
@@ -27,8 +27,17 @@ exports.testClientRequest = (test) ->
     request.on 'response', (response) ->
       test.ok response
       test.same 200, response.statusCode
+      test.equals c, response.client
 
-      p.quit()
-      p.on 'exit', () ->
+      body = ""
+      response.on 'data', (chunk) ->
         test.ok true
-        test.done()
+        body += chunk
+
+      response.on 'end', () ->
+        test.same "Hello World\n", body
+
+        p.quit()
+        p.on 'exit', () ->
+          test.ok true
+          test.done()

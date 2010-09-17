@@ -56,6 +56,7 @@ exports.ClientRequest = class ClientRequest extends BufferedStream
 
 exports.ClientResponse = class ClientResponse extends EventEmitter
   constructor: (@socket) ->
+    @client = @socket
     @statusCode = null
     @headers = null
 
