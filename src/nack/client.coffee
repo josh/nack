@@ -73,13 +73,19 @@ exports.Client = class Client extends Stream
     request = new ClientRequest @, method, path, headers
     request
 
-  proxyRequest: (req, res) ->
-    clientRequest = @request req.method, req.url, req.headers
-    sys.pump req, clientRequest
+  proxyRequest: (serverRequest, serverResponse) ->
+    clientRequest = @request serverRequest.method, serverRequest.url, serverRequest.headers
+
+    # sys.pump serverRequest, clientRequest
+    serverRequest.on "data", (chunk) => clientRequest.write chunk
+    serverRequest.on "end", (chunk) => clientRequest.end()
 
     clientRequest.on "response", (clientResponse) ->
-      res.writeHead clientResponse.statusCode, clientResponse.headers
-      sys.pump clientResponse, res
+      serverResponse.writeHead clientResponse.statusCode, clientResponse.headers
+
+      # sys.pump clientResponse, serverResponse, callback
+      clientResponse.on "data", (chunk) -> serverResponse.write chunk
+      clientResponse.on "end", () -> serverResponse.end()
 
 exports.createConnection = (port, host) ->
   client = new Client
