@@ -1,14 +1,14 @@
-events     = require 'events'
-jsonParser = require 'nack/json_parser'
+{EventEmitter} = require 'events'
+{StreamParser} = require 'nack/json'
 
-exports.testJsonParse = (test) ->
+exports.testJsonStreamParser = (test) ->
   test.expect 3
 
-  rawStream  = new events.EventEmitter
-  jsonStream = new jsonParser.Stream rawStream
+  rawStream  = new EventEmitter
+  jsonStream = new StreamParser rawStream
 
   count = 0
-  jsonStream.on "obj", (obj) ->
+  jsonStream.on 'obj', (obj) ->
     if count == 0
       test.same "200", obj
     else if count == 1

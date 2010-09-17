@@ -1,9 +1,9 @@
-url        = require 'url'
-jsonParser = require 'nack/json_parser'
+url = require 'url'
 
 {Stream}         = require 'net'
 {EventEmitter}   = require 'events'
 {BufferedStream} = require 'nack/buffered_stream'
+{StreamParser}   = require 'nack/json'
 
 CRLF = "\r\n"
 
@@ -11,6 +11,14 @@ exports.ClientRequest = class ClientRequest extends BufferedStream
   constructor: (@socket, @method, @path, headers) ->
     super @socket
 
+    @_parseHeaders headers
+    @write @headers
+
+    @socket.on 'connect', () => @flush()
+
+    @_initParser()
+
+  _parseHeaders: (headers) ->
     @headers = {}
     @headers["REQUEST_METHOD"] = @method
 
@@ -24,17 +32,11 @@ exports.ClientRequest = class ClientRequest extends BufferedStream
       key = "HTTP_#{key}" unless key == 'CONTENT_TYPE' or key == 'CONTENT_LENGTH'
       @headers[key] = value
 
-    @write @headers
+  _initParser: () ->
+    response     = new ClientResponse @socket
+    streamParser = new StreamParser @socket
 
-
-    @socket.on 'connect', () =>
-      @flush()
-
-
-    response   = new ClientResponse @socket
-    jsonStream = new jsonParser.Stream @socket
-
-    jsonStream.on "obj", (obj) =>
+    streamParser.on "obj", (obj) =>
       if !response.statusCode
         response.statusCode = obj
       else if !response.headers
