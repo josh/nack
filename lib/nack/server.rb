@@ -1,11 +1,14 @@
 require 'rack'
 require 'socket'
 require 'stringio'
+require 'thread'
 require 'yajl'
 
 module Nack
   class Server
     CRLF = "\r\n"
+
+    SERVER_ERROR = [500, { "Content-Type" => "text/html" }, ["Internal Server Error"]]
 
     def self.run(*args)
       new(*args).start
@@ -81,8 +84,17 @@ module Nack
           "rack.url_scheme" => ["yes", "on", "1"].include?(env["HTTPS"]) ? "https" : "http"
         })
 
-        body = ""
-        status, headers, body = app.call(env)
+        thread = Thread.new do
+          begin
+            app.call(env)
+          rescue Exception => e
+            warn "#{e.class}: #{e.message}"
+            warn e.backtrace.join("\n")
+            SERVER_ERROR
+          end
+        end
+        thread.join
+        status, headers, body = thread.value
 
         encoder = Yajl::Encoder.new
 
