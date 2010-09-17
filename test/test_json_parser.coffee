@@ -8,7 +8,7 @@ exports.testJsonParse = (test) ->
   jsonStream = new jsonParser.Stream rawStream
 
   count = 0
-  jsonStream.addListener "obj", (obj) ->
+  jsonStream.on "obj", (obj) ->
     if count == 0
       test.same "200", obj
     else if count == 1

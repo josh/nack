@@ -39,7 +39,7 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
   connect: () ->
     @socket.setEncoding "utf8"
 
-    @socket.addListener "connect", () =>
+    @socket.on "connect", () =>
       @connected = true
       @flush()
       @socket.end() if @ended
@@ -47,7 +47,7 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
     response = new ClientResponse @socket
     stream   = new jsonParser.Stream @socket
 
-    stream.addListener "obj", (obj) =>
+    stream.on "obj", (obj) =>
       if !response.statusCode
         response.statusCode = obj
       else if !response.headers
@@ -60,7 +60,7 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
       else if chunk?
         response.emit "data", chunk
 
-    @socket.addListener "end", () ->
+    @socket.on "end", () ->
       response.emit "end"
 
   flush: () ->
@@ -97,10 +97,10 @@ exports.Client = class Client
   proxyRequest: (req, res) ->
     clientRequest = @request req.method, req.url, req.headers
 
-    req.addListener "data", (chunk) =>
+    req.on "data", (chunk) =>
       clientRequest.write chunk
 
-    req.addListener "end", (chunk) =>
+    req.on "end", (chunk) =>
       clientRequest.end()
 
     clientRequest.on "response", (clientResponse) ->
@@ -109,7 +109,7 @@ exports.Client = class Client
       clientResponse.on "data", (chunk) ->
         res.write chunk
 
-      clientResponse.addListener "end", () ->
+      clientResponse.on "end", () ->
         res.end()
 
 exports.createConnection = (port, host) ->

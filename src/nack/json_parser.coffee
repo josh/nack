@@ -6,7 +6,7 @@ exports.Stream = (client) ->
   stream = new EventEmitter()
   buffer = ""
 
-  client.addListener "data", (chunk) ->
+  client.on "data", (chunk) ->
     buffer += chunk
 
     while (index = buffer.indexOf(CRLF)) != -1
