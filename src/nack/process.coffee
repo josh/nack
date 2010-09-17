@@ -24,7 +24,6 @@ exports.Process = class Process extends EventEmitter
 
     @child.stderr.on 'data',(data) =>
       if !@ready && data.toString() is "ready\n"
-        @state = 'ready'
         @emit 'ready'
       else
         log data
