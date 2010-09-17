@@ -4,7 +4,7 @@ process = require 'nack/process'
 config = __dirname + "/fixtures/echo.ru"
 
 exports.testClientRequest = (test) ->
-  test.expect 5
+  test.expect 8
 
   p = process.createProcess config
   p.on 'ready', () ->
@@ -13,6 +13,9 @@ exports.testClientRequest = (test) ->
 
     request = c.request 'GET', '/foo', {}
     test.ok request
+    test.same "GET", request.method
+    test.same "/foo", request.path
+    test.same "/foo", request.headers['PATH_INFO']
 
     request.end()
 

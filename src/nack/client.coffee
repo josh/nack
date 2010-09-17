@@ -1,53 +1,40 @@
-net        = require 'net'
 url        = require 'url'
 jsonParser = require 'nack/json_parser'
 
-{EventEmitter} = require 'events'
+{Stream}         = require 'net'
+{EventEmitter}   = require 'events'
+{BufferedStream} = require 'nack/buffered_stream'
 
 CRLF = "\r\n"
 
-exports.ClientRequest = class ClientRequest extends EventEmitter
-  constructor: (@socket, method, path, headers) ->
-    @connected = false
-    @ended     = false
+exports.ClientRequest = class ClientRequest extends BufferedStream
+  constructor: (@socket, @method, @path, headers) ->
+    super @socket
 
-    @headers = @parseRequest method, path, headers
+    @headers = {}
+    @headers["REQUEST_METHOD"] = @method
 
-    @buffer = []
-    @buffer.push new Buffer(JSON.stringify(@headers))
-    @buffer.push new Buffer(CRLF)
+    {pathname, query} = url.parse @path
+    @headers["PATH_INFO"]    = pathname
+    @headers["QUERY_STRING"] = query
+    @headers["SCRIPT_NAME"]  = ""
 
-    @connect()
-
-  parseRequest: (method, path, request_headers) ->
-    headers = {}
-
-    headers["REQUEST_METHOD"] = method
-
-    {pathname, query} = url.parse path
-    headers["PATH_INFO"]    = pathname
-    headers["QUERY_STRING"] = query
-    headers["SCRIPT_NAME"]  = ""
-
-    for key, value of request_headers
+    for key, value of headers
       key = key.toUpperCase().replace('-', '_')
       key = "HTTP_#{key}" unless key == 'CONTENT_TYPE' or key == 'CONTENT_LENGTH'
-      headers[key] = value
+      @headers[key] = value
 
-    headers
+    @write @headers
 
-  connect: () ->
-    @socket.setEncoding "utf8"
 
-    @socket.on "connect", () =>
-      @connected = true
+    @socket.on 'connect', () =>
       @flush()
-      @socket.end() if @ended
 
-    response = new ClientResponse @socket
-    stream   = new jsonParser.Stream @socket
 
-    stream.on "obj", (obj) =>
+    response   = new ClientResponse @socket
+    jsonStream = new jsonParser.Stream @socket
+
+    jsonStream.on "obj", (obj) =>
       if !response.statusCode
         response.statusCode = obj
       else if !response.headers
@@ -56,42 +43,30 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
         chunk = obj
 
       if response.statusCode? && response.headers? && !chunk?
-        @emit "response", response
+        @emit 'response', response
       else if chunk?
-        response.emit "data", chunk
+        response.emit 'data', chunk
 
-    @socket.on "end", () ->
-      response.emit "end"
-
-  flush: () ->
-    if @connected
-      while @buffer.length > 0
-        @socket.write @buffer.shift()
+    @socket.on 'end', () ->
+      response.emit 'end'
 
   write: (chunk) ->
-    @buffer.push new Buffer(JSON.stringify(chunk))
-    @buffer.push new Buffer(CRLF)
-    @flush()
-
-  end: ->
-    @ended = true
-
-    if @connected
-      @flush()
-      @socket.end()
+    super new Buffer(JSON.stringify(chunk))
+    super new Buffer(CRLF)
 
 exports.ClientResponse = class ClientResponse extends EventEmitter
   constructor: (@socket) ->
     @statusCode = null
     @headers = null
 
-exports.Client = class Client
-  connect: (port, host) ->
-    @socket = net.createConnection port, host
+exports.Client = class Client extends Stream
+  reconnect: () ->
+    if @readyState is 'closed'
+      @connect @port, @host
 
   request: (method, path, headers) ->
-    request = new ClientRequest(@socket, method, path, headers)
-    request.connect
+    @reconnect()
+    request = new ClientRequest @, method, path, headers
     request
 
   proxyRequest: (req, res) ->
@@ -113,6 +88,7 @@ exports.Client = class Client
         res.end()
 
 exports.createConnection = (port, host) ->
-  client = new Client()
-  client.connect port, host
+  client = new Client
+  client.port = port
+  client.host = host
   client
