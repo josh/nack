@@ -7,31 +7,47 @@ tmpSock = () ->
   rand = Math.floor Math.random() * 10000000000
   "/tmp/nack." + pid + "." + rand + ".sock"
 
-class Process
-  constructor: (config) ->
+exports.Process = class Process
+  constructor: (@config) ->
+    @state = null
+    @listeners = {}
+
     @sock  = tmpSock()
-    @child = spawn "nackup", ['--file', @sock, config]
+    @child = spawn "nackup", ['--file', @sock, @config]
 
-    @child.stdout.on 'data', (data) ->
-      sys.log config + ': ' + data
+    log = (message) =>
+      sys.log @config + ': ' + message
 
-    @child.stderr.on 'data', (data) ->
-      sys.log config + ': ' + data
+    setReady = () =>
+      @state = 'ready'
+      if onready = @listeners['ready']
+        onready @
+
+    @child.stdout.on 'data', (data) =>
+      log data
+
+    @child.stderr.on 'data',(data) =>
+      if !@ready && data.toString() is "ready\n"
+        setReady()
+      else
+        log data
 
     @child.on 'exit', (code, signal) =>
       @sock  = null
       @child = null
-      @onexit() if @onexit
+
+      if onexit = @listeners['exit']
+        onexit()
+
+  on: (event, callback) ->
+    @listeners[event] = callback
 
   proxyRequest: (req, res) ->
     sock = client.createConnection @sock
     sock.proxyRequest req, res
 
-  quit: (callback) ->
+  quit: () ->
     @child.kill 'SIGQUIT'
-    @onexit = callback
-
-exports.Process = Process
 
 exports.createProcess = (config) ->
   new Process config

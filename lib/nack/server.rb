@@ -11,15 +11,24 @@ module Nack
       new(*args).start
     end
 
-    attr_accessor :app, :host, :port, :file
+    attr_accessor :state, :app, :host, :port, :file, :onready
 
     def initialize(app, options = {})
+      self.state  = :starting
       self.app    = app
 
       self.host = options[:host]
       self.port = options[:port]
 
       self.file = options[:file]
+
+      self.onready = options[:onready]
+    end
+
+    def ready!
+      self.state = :ready
+      onready.call if onready
+      nil
     end
 
     def server
@@ -27,7 +36,7 @@ module Nack
      end
 
     def open_server
-      if file
+      server = if file
         File.unlink(file) if File.exist?(file)
 
         at_exit do
@@ -40,6 +49,10 @@ module Nack
       else
         raise "no socket given"
       end
+
+      ready!
+
+      server
     end
 
     def start

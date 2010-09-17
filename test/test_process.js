@@ -3,16 +3,21 @@ var process = require('nack/process');
 var config = __dirname + "/fixtures/hello.ru";
 
 exports.testCreateProcess = function(test) {
-  test.expect(4);
+  test.expect(5);
 
   var p = process.createProcess(config);
   test.ok(p.sock);
   test.ok(p.child);
 
-  p.quit(function () {
-    test.ok(!p.sock);
-    test.ok(!p.child);
+  p.on('ready', function() {
+    test.ok(true);
 
-    test.done();
+    p.quit();
+    p.on('exit', function () {
+      test.ok(!p.sock);
+      test.ok(!p.child);
+
+      test.done();
+    });
   });
 };

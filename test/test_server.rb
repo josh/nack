@@ -108,6 +108,7 @@ class TestNackup < Test::Unit::TestCase
     self.sock = tmp_sock
 
     self.pid = fork do
+      $stderr.reopen("/dev/null")
       exec "nackup", "--file", sock, CONFIG
     end
   end
