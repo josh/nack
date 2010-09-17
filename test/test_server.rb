@@ -41,23 +41,24 @@ class TestUnixServer < Test::Unit::TestCase
   def setup
     self.sock = tmp_sock
 
+    rd, wr = IO.pipe
+
     self.pid = fork do
-      Server.run(APP, :file => sock)
+      $stdout.reopen(wr)
+      $stderr.reopen(wr)
+
+      Server.run(APP, :file => sock, :onready => proc { warn "ready" })
     end
+
+    assert_equal 'ready', rd.readline.chomp
   end
 
   def teardown
     Process.kill('KILL', pid)
     Process.wait(pid)
-
-    File.unlink(sock) if File.exist?(sock)
   end
 
   def client
-    until File.exist?(sock)
-      sleep 0.1
-    end
-
     Client.open(sock)
   end
 end
@@ -76,9 +77,16 @@ class TestTCPServer < Test::Unit::TestCase
   attr_accessor :pid
 
   def setup
+    rd, wr = IO.pipe
+
     self.pid = fork do
-      Server.run(APP, :host => HOST, :port => PORT)
+      $stdout.reopen(wr)
+      $stderr.reopen(wr)
+
+      Server.run(APP, :host => HOST, :port => PORT, :onready => proc { warn "ready" })
     end
+
+    assert_equal 'ready', rd.readline.chomp
   end
 
   def teardown
@@ -87,12 +95,7 @@ class TestTCPServer < Test::Unit::TestCase
   end
 
   def client
-    begin
-      Client.open(HOST, PORT)
-    rescue Errno::ECONNREFUSED
-      sleep 0.1
-      retry
-    end
+    Client.open(HOST, PORT)
   end
 end
 
@@ -107,24 +110,24 @@ class TestNackup < Test::Unit::TestCase
   def setup
     self.sock = tmp_sock
 
+    rd, wr = IO.pipe
+
     self.pid = fork do
-      $stderr.reopen("/dev/null")
+      $stdout.reopen(wr)
+      $stderr.reopen(wr)
+
       exec "nackup", "--file", sock, CONFIG
     end
+
+    assert_equal 'ready', rd.readline.chomp
   end
 
   def teardown
     Process.kill('KILL', pid)
     Process.wait(pid)
-
-    File.unlink(sock) if File.exist?(sock)
   end
 
   def client
-    until File.exist?(sock)
-      sleep 0.1
-    end
-
     Client.open(sock)
   end
 end
