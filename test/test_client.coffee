@@ -1,17 +1,21 @@
-client  = require 'nack/client'
-process = require 'nack/process'
+http = require 'http'
+
+{createProcess}    = require 'nack/process'
+{createConnection} = require 'nack/client'
 
 config = __dirname + "/fixtures/hello.ru"
+
+PORT = 8080
 
 exports.testClientRequest = (test) ->
   test.expect 14
 
-  p = process.createProcess config
-  p.on 'ready', () ->
-    c = client.createConnection p.sockPath
-    test.ok c
+  process = createProcess config
+  process.on 'ready', () ->
+    client = createConnection process.sockPath
+    test.ok client
 
-    request = c.request 'GET', '/foo', {}
+    request = client.request 'GET', '/foo', {}
     test.ok request
     test.same "GET", request.method
     test.same "/foo", request.path
@@ -27,7 +31,7 @@ exports.testClientRequest = (test) ->
     request.on 'response', (response) ->
       test.ok response
       test.same 200, response.statusCode
-      test.equals c, response.client
+      test.equals client, response.client
 
       body = ""
       response.on 'data', (chunk) ->
@@ -37,7 +41,39 @@ exports.testClientRequest = (test) ->
       response.on 'end', () ->
         test.same "Hello World\n", body
 
-        p.quit()
-        p.on 'exit', () ->
-          test.ok true
-          test.done()
+        process.quit()
+
+  process.on 'exit', () ->
+    test.ok true
+    test.done()
+
+exports.testProxyRequest = (test) ->
+  test.expect 8
+
+  process = createProcess config
+
+  server = http.createServer (req, res) ->
+    test.ok req
+    test.ok res
+
+    client = createConnection process.sockPath
+    test.ok client
+
+    client.proxyRequest req, res, () ->
+      test.ok true
+      process.quit()
+
+  server.on 'close', () ->
+    test.ok true
+
+  process.on 'ready', () ->
+    server.listen PORT
+    server.on 'listening', () ->
+      http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+        test.ok !err
+        test.same "Hello World\n", data
+        server.close()
+
+  process.on 'exit', () ->
+    test.ok true
+    test.done()

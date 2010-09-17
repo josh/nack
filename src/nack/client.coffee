@@ -8,14 +8,18 @@ url = require 'url'
 
 CRLF = "\r\n"
 
-exports.ClientRequest = class ClientRequest extends BufferedStream
+exports.ClientRequest = class ClientRequest extends EventEmitter
   constructor: (@socket, @method, @path, headers) ->
-    super @socket
+    @bufferedSocket = new BufferedStream @socket
+    @writeable = true
 
     @_parseHeaders headers
-    @write @headers
+    @writeObj @headers
 
-    @socket.on 'connect', () => @flush()
+    @socket.on 'connect', () => @bufferedSocket.flush()
+
+    @bufferedSocket.on 'drain', () => @emit 'drain'
+    @bufferedSocket.on 'close', () => @emit 'close'
 
     @_initParser()
 
@@ -53,9 +57,15 @@ exports.ClientRequest = class ClientRequest extends BufferedStream
     @socket.on 'end', () ->
       response.emit 'end'
 
+  writeObj: (obj) ->
+    @bufferedSocket.write JSON.stringify(obj)
+    @bufferedSocket.write CRLF
+
   write: (chunk) ->
-    super new Buffer(JSON.stringify(chunk))
-    super new Buffer(CRLF)
+    @writeObj chunk.toString()
+
+  end: () ->
+    @bufferedSocket.end()
 
 exports.ClientResponse = class ClientResponse extends EventEmitter
   constructor: (@socket) ->
@@ -73,19 +83,16 @@ exports.Client = class Client extends Stream
     request = new ClientRequest @, method, path, headers
     request
 
-  proxyRequest: (serverRequest, serverResponse) ->
+  proxyRequest: (serverRequest, serverResponse, callback) ->
     clientRequest = @request serverRequest.method, serverRequest.url, serverRequest.headers
-
-    # sys.pump serverRequest, clientRequest
-    serverRequest.on "data", (chunk) => clientRequest.write chunk
-    serverRequest.on "end", (chunk) => clientRequest.end()
+    sys.pump serverRequest, clientRequest
 
     clientRequest.on "response", (clientResponse) ->
       serverResponse.writeHead clientResponse.statusCode, clientResponse.headers
+      sys.pump clientResponse, serverResponse, callback
 
-      # sys.pump clientResponse, serverResponse, callback
-      clientResponse.on "data", (chunk) -> serverResponse.write chunk
-      clientResponse.on "end", () -> serverResponse.end()
+      if callback?
+        clientResponse.on "end", callback
 
 exports.createConnection = (port, host) ->
   client = new Client
