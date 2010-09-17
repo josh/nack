@@ -10,10 +10,12 @@ tmpSock = () ->
 
 exports.Process = class Process extends EventEmitter
   constructor: (@config) ->
+    @state = null
 
   spawn: ->
-    return if @child
+    return if @state
 
+    @state = 'spawning'
     @sockPath = tmpSock()
     @child = spawn "nackup", ['--file', @sockPath, @config]
 
@@ -25,17 +27,26 @@ exports.Process = class Process extends EventEmitter
 
     @child.stderr.on 'data',(data) =>
       if !@ready && data.toString() is "ready\n"
+        @state = 'ready'
         @emit 'ready'
       else
         log data
 
     @child.on 'exit', (code, signal) =>
-      @sockPath = @child = null
+      @state = @sockPath = @child = null
       @emit 'exit'
 
-  proxyRequest: (req, res) ->
-    connection = client.createConnection @sockPath
-    connection.proxyRequest req, res
+  whenReady: (callback) ->
+    if @child and @state is 'ready'
+      callback()
+    else
+      @spawn()
+      @on 'ready', callback
+
+  proxyRequest: (req, res, callback) ->
+    @whenReady () =>
+      connection = client.createConnection @sockPath
+      connection.proxyRequest req, res, callback
 
   quit: () ->
     @child.kill 'SIGQUIT'
