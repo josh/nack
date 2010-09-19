@@ -34,6 +34,10 @@ exports.Process = class Process extends EventEmitter
       @state = @sockPath = @child = null
       @emit 'exit'
 
+    @emit 'spawn'
+
+    this
+
   whenReady: (callback) ->
     if @child and @state is 'ready'
       callback()
