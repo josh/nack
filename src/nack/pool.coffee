@@ -69,7 +69,7 @@ exports.Pool = class Pool extends EventEmitter
     worker = @workers.shift()
     worker.proxyRequest req, res, () =>
       callback() if callback?
-      @workers.push worker
+      @workers.unshift worker
 
   quit: () ->
     for worker in @workers
