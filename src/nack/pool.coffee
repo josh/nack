@@ -1,11 +1,28 @@
 {EventEmitter}  = require 'events'
 {createProcess} = require 'nack/process'
 
+class AggregateStream extends EventEmitter
+  add: (stream, process) ->
+    stream.on 'data', (data) =>
+      @emit 'data', data, process
+
+    stream.on 'error', (exception) =>
+      @emit 'error', exception, process
+
+    stream.on 'end', () =>
+      @emit 'end', process
+
+    stream.on 'close', () =>
+      @emit 'close', process
+
 exports.Pool = class Pool extends EventEmitter
   constructor: (@config, size) ->
     @size         = 0
     @workers      = []
     @readyWorkers = 0
+
+    @stdout = new AggregateStream
+    @stderr = new AggregateStream
 
     for n in [1..size]
       @increment()
@@ -43,6 +60,9 @@ exports.Pool = class Pool extends EventEmitter
   spawn: () ->
     for worker in @workers
       worker.spawn()
+
+      @stdout.add worker.stdout, worker
+      @stderr.add worker.stderr, worker
 
   proxyRequest: (req, res, callback) ->
     worker = @workers.shift()

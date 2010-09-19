@@ -3,13 +3,19 @@
 config = __dirname + "/fixtures/hello.ru"
 
 exports.testCreateProcess = (test) ->
-  test.expect 5
+  test.expect 8
 
   process = createProcess config
   process.spawn()
 
   test.ok process.sockPath
   test.ok process.child
+
+  test.ok process.stdout
+  test.ok process.stderr
+
+  process.stderr.on 'data', () ->
+    test.ok true
 
   process.on 'ready', () ->
     test.ok true
