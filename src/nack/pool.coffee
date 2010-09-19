@@ -44,6 +44,10 @@ exports.Pool = class Pool extends EventEmitter
 
     process = createProcess @config
 
+    process.on 'spawn', () =>
+      @stdout.add process.stdout, process
+      @stderr.add process.stderr, process
+
     process.on 'ready', () =>
       @emit 'worker:ready'
 
@@ -60,9 +64,6 @@ exports.Pool = class Pool extends EventEmitter
   spawn: () ->
     for worker in @workers
       worker.spawn()
-
-      @stdout.add worker.stdout, worker
-      @stderr.add worker.stderr, worker
 
   proxyRequest: (req, res, callback) ->
     worker = @workers.shift()
