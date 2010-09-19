@@ -1,6 +1,49 @@
 {EventEmitter} = require 'events'
 
-exports.WriteStream = class WriteStream extends EventEmitter
+exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
+  constructor: (@stream) ->
+    @readable = true
+    @_queue = []
+    @_flushed = false
+
+    queueEvent = (event, args...) =>
+      if @_flushed
+        @emit args...
+      else
+        @_queue.push ['emit', event, args...]
+
+    @stream.on 'data',  (args...) -> queueEvent 'data', args...
+    @stream.on 'end',   (args...) -> queueEvent 'end', args...
+    @stream.on 'error', (args...) -> queueEvent 'error', args...
+    @stream.on 'close', (args...) -> queueEvent 'close', args...
+    @stream.on 'fd',    (args...) -> queueEvent 'fd', args...
+
+    @pause()
+
+  setEncoding: (args...) ->
+    @stream.setEncoding args...
+
+  pause: () ->
+    @stream.pause()
+
+  resume: () ->
+    @stream.resume()
+
+  destroy: () ->
+    @stream.destroy()
+
+  flush: () ->
+    @resume()
+
+    for [fun, args...] in @_queue
+      switch fun
+        when 'emit'
+          @emit args...
+
+    @_flushed = true
+    @emit 'drain'
+
+exports.BufferedWriteStream = class BufferedWriteStream extends EventEmitter
   constructor: (@stream) ->
     @writeable = true
     @_queue = []
@@ -24,11 +67,11 @@ exports.WriteStream = class WriteStream extends EventEmitter
       @_queue.push ['end', args...]
       false
 
-  destroy: (args...) ->
+  destroy: () ->
     if @_flushed
-      @stream.destroy
+      @stream.destroy()
     else
-      @_queue.push ['destroy', args...]
+      @_queue.push ['destroy']
       false
 
   flush: () ->

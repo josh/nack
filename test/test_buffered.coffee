@@ -1,5 +1,18 @@
 {EventEmitter} = require 'events'
-{WriteStream}  = require 'nack/buffered'
+{BufferedReadStream, BufferedWriteStream} = require 'nack/buffered'
+
+class MockReadBuffer extends EventEmitter
+  constructor: () ->
+    @readable = true
+    @paused = false
+
+  pause: () ->
+    @paused = true
+
+  resume: () ->
+    @paused = false
+
+  destroy: () ->
 
 class MockWriteBuffer extends EventEmitter
   constructor: () ->
@@ -21,12 +34,34 @@ class MockWriteBuffer extends EventEmitter
   getSize: () ->
     @buffer.length
 
+exports.testBufferedReadStream = (test) ->
+  test.expect 4
+
+  buffer = new MockReadBuffer
+
+  stream = new BufferedReadStream buffer
+  test.ok stream.readable
+
+  buffer.emit 'data', new Buffer("foo")
+  buffer.emit 'data', new Buffer("bar")
+  buffer.emit 'end'
+
+  stream.on 'data', (chunk) ->
+    test.ok chunk
+
+  stream.on 'end', () ->
+    test.ok true
+
+  stream.flush()
+
+  test.done()
+
 exports.testBufferedWriteStream = (test) ->
   test.expect 9
 
   buffer = new MockWriteBuffer
 
-  stream = new WriteStream buffer
+  stream = new BufferedWriteStream buffer
   test.ok stream.writeable
 
   test.same false, stream.write 'foo', 'utf8'
@@ -54,7 +89,7 @@ exports.testBufferedWriteStreamEndBeforeFlush = (test) ->
 
   buffer = new MockWriteBuffer
 
-  stream = new WriteStream buffer
+  stream = new BufferedWriteStream buffer
   test.ok stream.writeable
 
   stream.on 'drain', () ->
