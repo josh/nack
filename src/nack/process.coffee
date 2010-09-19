@@ -1,7 +1,9 @@
 sys            = require 'sys'
 client         = require 'nack/client'
 {spawn}        = require 'child_process'
-{EventEmitter} = require 'events'
+
+{EventEmitter}       = require 'events'
+{BufferedReadStream} = require 'nack/buffered'
 
 tmpSock = () ->
   pid  = process.pid
@@ -46,9 +48,11 @@ exports.Process = class Process extends EventEmitter
       @on 'ready', callback
 
   proxyRequest: (req, res, callback) ->
+    reqBuf = new BufferedReadStream req
     @whenReady () =>
       connection = client.createConnection @sockPath
-      connection.proxyRequest req, res, callback
+      connection.proxyRequest reqBuf, res, callback
+      reqBuf.flush()
 
   quit: () ->
     @child.kill 'SIGQUIT'
