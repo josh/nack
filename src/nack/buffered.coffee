@@ -1,6 +1,6 @@
 {EventEmitter} = require 'events'
 
-exports.BufferedStream = class BufferedStream extends EventEmitter
+exports.WriteStream = class WriteStream extends EventEmitter
   constructor: (@stream) ->
     @writeable = true
     @_queue = []

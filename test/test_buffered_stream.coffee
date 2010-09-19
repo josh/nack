@@ -1,5 +1,5 @@
-{EventEmitter}   = require 'events'
-{BufferedStream} = require 'nack/buffered_stream'
+{EventEmitter} = require 'events'
+{WriteStream}  = require 'nack/buffered'
 
 class MockWriteBuffer extends EventEmitter
   constructor: () ->
@@ -21,12 +21,12 @@ class MockWriteBuffer extends EventEmitter
   getSize: () ->
     @buffer.length
 
-exports.testBufferedStream = (test) ->
+exports.testBufferedWriteStream = (test) ->
   test.expect 9
 
   buffer = new MockWriteBuffer
 
-  stream = new BufferedStream buffer
+  stream = new WriteStream buffer
   test.ok stream.writeable
 
   test.same false, stream.write 'foo', 'utf8'
@@ -49,12 +49,12 @@ exports.testBufferedStream = (test) ->
 
   test.done()
 
-exports.testBufferedStreamEndBeforeFlush = (test) ->
+exports.testBufferedWriteStreamEndBeforeFlush = (test) ->
   test.expect 5
 
   buffer = new MockWriteBuffer
 
-  stream = new BufferedStream buffer
+  stream = new WriteStream buffer
   test.ok stream.writeable
 
   stream.on 'drain', () ->

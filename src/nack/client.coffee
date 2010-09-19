@@ -1,16 +1,16 @@
 sys = require 'sys'
 url = require 'url'
 
-{Stream}         = require 'net'
-{EventEmitter}   = require 'events'
-{BufferedStream} = require 'nack/buffered_stream'
-{StreamParser}   = require 'nack/json'
+{Stream}       = require 'net'
+{EventEmitter} = require 'events'
+{WriteStream}  = require 'nack/buffered'
+{StreamParser} = require 'nack/json'
 
 CRLF = "\r\n"
 
 exports.ClientRequest = class ClientRequest extends EventEmitter
   constructor: (@socket, @method, @path, headers) ->
-    @bufferedSocket = new BufferedStream @socket
+    @bufferedSocket = new WriteStream @socket
     @writeable = true
 
     @_parseHeaders headers
