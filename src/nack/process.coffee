@@ -20,17 +20,17 @@ exports.Process = class Process extends EventEmitter
     @child = spawn "nackup", ['--file', @sockPath, @config]
 
     log = (message) =>
-      sys.log @config + ': ' + message
+      sys.log @child.pid + ': ' + message
 
     @child.stdout.on 'data', (data) =>
       log data
 
     @child.stderr.on 'data',(data) =>
-      if !@ready && data.toString() is "ready\n"
+      if !@ready
         @state = 'ready'
         @emit 'ready'
-      else
-        log data
+
+      log data
 
     @child.on 'exit', (code, signal) =>
       @state = @sockPath = @child = null
