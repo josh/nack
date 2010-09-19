@@ -2,7 +2,6 @@
 
 exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
   constructor: (@stream) ->
-    @readable = true
     @_queue = []
     @_flushed = false
 
@@ -18,22 +17,13 @@ exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
     @stream.on 'close', (args...) -> queueEvent 'close', args...
     @stream.on 'fd',    (args...) -> queueEvent 'fd', args...
 
-    @pause()
-
-  setEncoding: (args...) ->
-    @stream.setEncoding args...
-
-  pause: () ->
     @stream.pause()
 
-  resume: () ->
-    @stream.resume()
-
-  destroy: () ->
-    @stream.destroy()
+    for all name, fun of @stream when !this[name]
+      @__defineGetter__ name, (args...) -> @stream[name]
 
   flush: () ->
-    @resume()
+    @stream.resume()
 
     for [fun, args...] in @_queue
       switch fun
