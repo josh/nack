@@ -11,7 +11,9 @@ tmpSock = () ->
   "/tmp/nack." + pid + "." + rand + ".sock"
 
 exports.Process = class Process extends EventEmitter
-  constructor: (@config) ->
+  constructor: (@config, options) ->
+    options ?= {}
+    @timeout = options.timeout
     @state = null
 
   spawn: ->
@@ -33,8 +35,13 @@ exports.Process = class Process extends EventEmitter
     @stderr.on 'data', ready
 
     @child.on 'exit', (code, signal) =>
+      @clearTimeout()
       @state = @sockPath = @child = null
+      @stdout = @stderr = null
       @emit 'exit'
+
+    @child.on 'ready', () =>
+      @deferTimeout()
 
     @emit 'spawn'
 
@@ -47,7 +54,22 @@ exports.Process = class Process extends EventEmitter
       @spawn()
       @on 'ready', callback
 
+  clearTimeout: () ->
+    if @_timeoutId
+      clearTimeout @_timeoutId
+
+  deferTimeout: () ->
+    if @timeout
+      @clearTimeout()
+
+      callback = () =>
+        @emit 'timeout'
+        @quit()
+      @_timeoutId = setTimeout callback, @timeout
+
   proxyRequest: (req, res, callback) ->
+    @deferTimeout()
+
     reqBuf = new BufferedReadStream req
     @whenReady () =>
       connection = client.createConnection @sockPath
@@ -55,7 +77,8 @@ exports.Process = class Process extends EventEmitter
       reqBuf.flush()
 
   quit: () ->
-    @child.kill 'SIGQUIT'
+    if @child
+      @child.kill 'SIGQUIT'
 
-exports.createProcess = (config) ->
-  new Process config
+exports.createProcess = (args...) ->
+  new Process args...

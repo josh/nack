@@ -16,15 +16,19 @@ class AggregateStream extends EventEmitter
       @emit 'close', process
 
 exports.Pool = class Pool extends EventEmitter
-  constructor: (@config, size) ->
+  constructor: (@config, options) ->
+    options ?= {}
+
     @size         = 0
     @workers      = []
     @readyWorkers = 0
 
+    @timeout = options.timeout
+
     @stdout = new AggregateStream
     @stderr = new AggregateStream
 
-    for n in [1..size]
+    for n in [1..options.size]
       @increment()
 
     @on 'worker:ready', () =>
@@ -42,7 +46,7 @@ exports.Pool = class Pool extends EventEmitter
   increment: () ->
     @size++
 
-    process = createProcess @config
+    process = createProcess @config, timeout: @timeout
 
     process.on 'spawn', () =>
       @stdout.add process.stdout, process

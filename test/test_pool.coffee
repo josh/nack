@@ -5,7 +5,7 @@ config = __dirname + "/fixtures/hello.ru"
 exports.testCreatePool = (test) ->
   test.expect 4
 
-  pool = createPool config, 3
+  pool = createPool config, size: 3
   test.same 3, pool.size
   test.same 3, pool.workers.length
 
@@ -22,7 +22,7 @@ exports.testCreatePool = (test) ->
 exports.testPoolIncrement = (test) ->
   test.expect 6
 
-  pool = createPool config, 3
+  pool = createPool config, size: 3
   test.same 3, pool.size
   test.same 3, pool.workers.length
 

@@ -2,6 +2,7 @@
 
 exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
   constructor: (@stream) ->
+    @readable = true
     @_queue = []
     @_flushed = false
 
@@ -22,8 +23,15 @@ exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
     for all name, fun of @stream when !this[name]
       @__defineGetter__ name, (args...) -> @stream[name]
 
+  resume: () ->
+
+  pause: () ->
+
   flush: () ->
-    @stream.resume()
+    try
+      @stream.resume()
+    catch error
+      # Stream is probably closed now
 
     for [fun, args...] in @_queue
       switch fun
