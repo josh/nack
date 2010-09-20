@@ -19,7 +19,7 @@ The ruby server is available on RubyGems.
 Dependencies
 ------------
 
-* node >= v0.2.3
+* node >= 0.2.3
 * rack
 * yajl-ruby
 
