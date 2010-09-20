@@ -82,8 +82,11 @@ exports.Process = class Process extends EventEmitter
     reqBuf = new BufferedReadStream req
     @spawn()
     @onState 'ready', () =>
+      @changeState 'processing'
       connection = client.createConnection @sockPath
-      connection.proxyRequest reqBuf, res, callback
+      connection.proxyRequest reqBuf, res, () =>
+        callback() if callback
+        @changeState 'ready'
       reqBuf.flush()
 
   quit: () ->

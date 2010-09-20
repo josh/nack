@@ -38,7 +38,7 @@ exports.testCreateProcess = (test) ->
       test.done()
 
 exports.testProxyRequest = (test) ->
-  test.expect 5
+  test.expect 7
 
   process = createProcess config
 
@@ -50,6 +50,12 @@ exports.testProxyRequest = (test) ->
     test.done()
 
   server = http.createServer (req, res) ->
+    process.onNext 'processing', () ->
+      test.ok true
+
+    process.onNext 'ready', () ->
+      test.ok true
+
     process.proxyRequest req, res, () ->
       test.ok true
       process.quit()
