@@ -31,16 +31,6 @@ exports.Pool = class Pool extends EventEmitter
     for n in [1..options.size]
       @increment()
 
-    @on 'worker:ready', () =>
-      @readyWorkers++
-      if @readyWorkers is 1
-        @emit 'ready'
-
-    @on 'worker:exit', () =>
-      @readyWorkers-- if @readyWorkers > 0
-      if @readyWorkers is 0
-        @emit 'exit'
-
   onNext: (event, listener) ->
     callback = (args...) =>
       @removeListener event, callback
@@ -57,31 +47,47 @@ exports.Pool = class Pool extends EventEmitter
       @stderr.add process.stderr, process
 
     process.on 'ready', () =>
+      previousReadyWorkers = @readyWorkers
+      @readyWorkers++
+
+      if previousReadyWorkers is 0 and @readyWorkers is 1
+        @emit 'ready'
+
       @emit 'worker:ready'
 
+    process.on 'busy', () =>
+      @readyWorkers-- if @readyWorkers > 0
+      @emit 'worker:busy'
+
     process.on 'exit', () =>
+      @readyWorkers-- if @readyWorkers > 0
+
+      if @readyWorkers is 0
+        @emit 'exit'
+
       @emit 'worker:exit'
 
     @workers.push process
     process
 
   decrement: () ->
-    @size--
-    @workers.shift()
+    if worker = @workers.shift()
+      @size--
+      worker.quit()
+      worker
 
   spawn: () ->
     for worker in @workers
       worker.spawn()
+
+  quit: () ->
+    true while @decrement()
 
   proxyRequest: (req, res, callback) ->
     worker = @workers.shift()
     worker.proxyRequest req, res, () =>
       callback() if callback?
       @workers.unshift worker
-
-  quit: () ->
-    for worker in @workers
-      worker.quit()
 
 exports.createPool = (args...) ->
   new Pool args...
