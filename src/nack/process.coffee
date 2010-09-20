@@ -47,7 +47,7 @@ exports.Process = class Process extends EventEmitter
 
     this
 
-  onceOn: (event, listener) ->
+  onNext: (event, listener) ->
     callback = (args...) =>
       @removeListener event, callback
       listener args...
@@ -58,7 +58,7 @@ exports.Process = class Process extends EventEmitter
       callback()
     else
       @spawn()
-      @onceOn 'ready', callback
+      @onNext 'ready', callback
 
   clearTimeout: () ->
     if @_timeoutId
