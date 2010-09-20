@@ -27,6 +27,10 @@ if !File.exist?(config)
   abort "configuration #{config} not found"
 end
 
+if !options[:port] && !options[:file]
+  abort "need a port number or socket path"
+end
+
 cfgfile = File.read(config)
 app = eval "Rack::Builder.new {( " + cfgfile + "\n )}.to_app",
                  nil, config
