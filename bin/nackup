@@ -35,5 +35,7 @@ cfgfile = File.read(config)
 app = eval "Rack::Builder.new {( " + cfgfile + "\n )}.to_app",
                  nil, config
 
-options[:onready] = proc { warn "ready" }
+$stdout.sync = true
+options[:onready] = proc { puts "ready" }
+
 Nack::Server.run(app, options)

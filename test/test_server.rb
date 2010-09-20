@@ -47,7 +47,7 @@ class TestUnixServer < Test::Unit::TestCase
       $stdout.reopen(wr)
       $stderr.reopen(wr)
 
-      Server.run(APP, :file => sock, :onready => proc { warn "ready" })
+      Server.run(APP, :file => sock, :onready => proc { puts "ready" })
     end
 
     assert_equal 'ready', rd.readline.chomp
@@ -83,7 +83,7 @@ class TestTCPServer < Test::Unit::TestCase
       $stdout.reopen(wr)
       $stderr.reopen(wr)
 
-      Server.run(APP, :host => HOST, :port => PORT, :onready => proc { warn "ready" })
+      Server.run(APP, :host => HOST, :port => PORT, :onready => proc { puts "ready" })
     end
 
     assert_equal 'ready', rd.readline.chomp

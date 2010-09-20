@@ -17,7 +17,7 @@ exports.testCreateProcess = (test) ->
   test.ok process.stdout
   test.ok process.stderr
 
-  process.stderr.on 'data', () ->
+  process.stdout.on 'data', () ->
     test.ok true
 
   process.on 'ready', () ->
