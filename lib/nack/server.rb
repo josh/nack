@@ -45,6 +45,14 @@ module Nack
       state == :ready && !server.closed?
     end
 
+    def on_shutdown(&block)
+      if block_given?
+        @on_shutdown = block
+      else
+        @on_shutdown
+      end
+    end
+
     def server
       @_server ||= open_server
     end
@@ -57,7 +65,7 @@ module Nack
       server = if file
         File.unlink(file) if File.exist?(file)
 
-        at_exit do
+        on_shutdown do
           File.unlink(file)
         end
 
@@ -105,7 +113,8 @@ module Nack
     end
 
     def shutdown!
-      exit
+      on_shutdown.call if on_shutdown
+      exit! 0
     end
 
     def handle(sock)
