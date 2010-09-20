@@ -61,59 +61,64 @@ module Nack
 
     def start
       loop do
-        sock = server.accept
-
-        env, input = nil, StringIO.new
-        Yajl::Parser.parse(sock) do |obj|
-          if env.nil?
-            env = obj
-          else
-            input.write(obj)
-          end
-        end
-
-        sock.close_read
-        input.rewind
-
-        env = env.merge({
-          "rack.version" => Rack::VERSION,
-          "rack.input" => input,
-          "rack.errors" => $stderr,
-          "rack.multithread" => false,
-          "rack.multiprocess" => true,
-          "rack.run_once" => false,
-          "rack.url_scheme" => ["yes", "on", "1"].include?(env["HTTPS"]) ? "https" : "http"
-        })
-
-        thread = Thread.new do
-          begin
-            app.call(env)
-          rescue Exception => e
-            warn "#{e.class}: #{e.message}"
-            warn e.backtrace.join("\n")
-            SERVER_ERROR
-          end
-        end
-        thread.join
-        status, headers, body = thread.value
-
-        encoder = Yajl::Encoder.new
-
-        encoder.encode(status.to_s, sock)
-        sock.write(CRLF)
-
-        encoder.encode(headers, sock)
-        sock.write(CRLF)
-
-        body.each do |part|
-          encoder.encode(part, sock)
-          sock.write(CRLF)
-        end
-
-        sock.close_write
+        handle server.accept
       end
 
       nil
+    end
+
+    def handle(sock)
+      env, input = nil, StringIO.new
+      Yajl::Parser.parse(sock) do |obj|
+        if env.nil?
+          env = obj
+        else
+          input.write(obj)
+        end
+      end
+
+      sock.close_read
+      input.rewind
+
+      env = env.merge({
+        "rack.version" => Rack::VERSION,
+        "rack.input" => input,
+        "rack.errors" => $stderr,
+        "rack.multithread" => false,
+        "rack.multiprocess" => true,
+        "rack.run_once" => false,
+        "rack.url_scheme" => ["yes", "on", "1"].include?(env["HTTPS"]) ? "https" : "http"
+      })
+
+      thread = Thread.new do
+        begin
+          app.call(env)
+        rescue Exception => e
+          warn "#{e.class}: #{e.message}"
+          warn e.backtrace.join("\n")
+          SERVER_ERROR
+        end
+      end
+      thread.join
+      status, headers, body = thread.value
+
+      encoder = Yajl::Encoder.new
+
+      encoder.encode(status.to_s, sock)
+      sock.write(CRLF)
+
+      encoder.encode(headers, sock)
+      sock.write(CRLF)
+
+      body.each do |part|
+        encoder.encode(part, sock)
+        sock.write(CRLF)
+      end
+    rescue Exception => e
+      warn "#{e.class}: #{e.message}"
+      warn e.backtrace.join("\n")
+    ensure
+      sock.close_write
     end
   end
 end
