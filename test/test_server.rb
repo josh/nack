@@ -9,6 +9,8 @@ module ServerTests
     status, headers, body = client.request({}, "foo=bar")
 
     assert_equal 200, status
+    assert_equal "text/plain", headers['Content-Type']
+    assert_equal ["foo=1", "bar=2"], headers['Set-Cookie']
     assert_equal ["foo=bar"], body
   end
 
@@ -33,7 +35,7 @@ class TestUnixServer < Test::Unit::TestCase
 
   APP = lambda do |env|
     body = env["rack.input"].read
-    [200, {"Content-Type" => "text/plain"}, [body]]
+    [200, {"Content-Type" => "text/plain", "Set-Cookie" => "foo=1\nbar=2"}, [body]]
   end
 
   attr_accessor :sock, :pid
@@ -69,7 +71,7 @@ class TestTCPServer < Test::Unit::TestCase
 
   APP = lambda do |env|
     body = env["rack.input"].read
-    [200, {"Content-Type" => "text/plain"}, [body]]
+    [200, {"Content-Type" => "text/plain", "Set-Cookie" => "foo=1\nbar=2"}, [body]]
   end
   HOST = "localhost"
   PORT = 8080
