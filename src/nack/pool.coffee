@@ -23,7 +23,7 @@ exports.Pool = class Pool extends EventEmitter
     @workers      = []
     @readyWorkers = 0
 
-    @timeout = options.timeout
+    @idle = options.idle
 
     @stdout = new AggregateStream
     @stderr = new AggregateStream
@@ -46,7 +46,7 @@ exports.Pool = class Pool extends EventEmitter
   increment: () ->
     @size++
 
-    process = createProcess @config, timeout: @timeout
+    process = createProcess @config, idle: @idle
 
     process.on 'spawn', () =>
       @stdout.add process.stdout, process

@@ -13,7 +13,7 @@ tmpSock = () ->
 exports.Process = class Process extends EventEmitter
   constructor: (@config, options) ->
     options ?= {}
-    @timeout = options.timeout
+    @idle  = options.idle
     @state = null
 
   spawn: ->
@@ -59,13 +59,13 @@ exports.Process = class Process extends EventEmitter
       clearTimeout @_timeoutId
 
   deferTimeout: () ->
-    if @timeout
+    if @idle
       @clearTimeout()
 
       callback = () =>
-        @emit 'timeout'
+        @emit 'idle'
         @quit()
-      @_timeoutId = setTimeout callback, @timeout
+      @_timeoutId = setTimeout callback, @idle
 
   proxyRequest: (req, res, callback) ->
     @deferTimeout()
