@@ -20,7 +20,7 @@ exports.testCreateProcess = (test) ->
   process.stdout.on 'data', () ->
     test.ok true
 
-  process.on 'ready', () ->
+  process.onNext 'ready', () ->
     test.ok true
 
     process.quit()

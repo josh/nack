@@ -40,7 +40,7 @@ exports.Process = class Process extends EventEmitter
       @stdout = @stderr = null
       @emit 'exit'
 
-    @child.on 'ready', () =>
+    @on 'ready', () =>
       @deferTimeout()
 
     @emit 'spawn'

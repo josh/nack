@@ -13,7 +13,7 @@ exports.testClientRequest = (test) ->
   process = createProcess config
   process.spawn()
 
-  process.on 'ready', () ->
+  process.onNext 'ready', () ->
     client = createConnection process.sockPath
     test.ok client
 
@@ -69,7 +69,7 @@ exports.testProxyRequest = (test) ->
   server.on 'close', () ->
     test.ok true
 
-  process.on 'ready', () ->
+  process.onNext 'ready', () ->
     server.listen PORT
     server.on 'listening', () ->
       http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->

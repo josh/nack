@@ -11,7 +11,7 @@ exports.testCreatePool = (test) ->
 
   pool.spawn()
 
-  pool.on 'ready', () ->
+  pool.onNext 'ready', () ->
     test.ok pool.readyWorkers > 0
 
   pool.on 'worker:ready', () ->

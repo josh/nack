@@ -41,6 +41,12 @@ exports.Pool = class Pool extends EventEmitter
       if @readyWorkers is 0
         @emit 'exit'
 
+  onNext: (event, listener) ->
+    callback = (args...) =>
+      @removeListener event, callback
+      listener args...
+    @on event, callback
+
   increment: () ->
     @size++
 
