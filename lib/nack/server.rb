@@ -3,6 +3,7 @@ require 'socket'
 require 'stringio'
 require 'thread'
 require 'yajl'
+require 'nack/error'
 
 module Nack
   class Server
@@ -50,7 +51,7 @@ module Nack
       elsif port
         TCPServer.open(port)
       else
-        raise "no socket given"
+        raise Error, "no socket given"
       end
 
       ready!
