@@ -16,8 +16,17 @@ The ruby server is available on RubyGems.
 
     gem install nack
 
+Dependencies
+------------
+
+* node >= v0.2.3
+* rack
+* yajl-ruby
+
 Example
 -------
+
+Simple proxy
 
     var http = require('http');
     var nack = require('nack/process');
@@ -27,3 +36,25 @@ Example
     http.createServer(function (req, res) {
       app.proxyRequest(req, res);
     }).listen(8124, "127.0.0.1");
+
+You can spawn up a pool of workers with:
+
+    var nack = require('nack/pool');
+    nack.createPool("/path/to/app/config.ru", { size: 3 });
+
+Workers can idle out after a period of inactivity:
+
+    // Timeout after 15m
+    nack.createPool("/path/to/app/config.ru", { idle: 15 * 60 * 1000 });
+
+"Roadmap"
+--------
+
+* Robustification
+* JSGI / Connect adapters
+* Binary protocol for IPC
+
+Caveats
+-------
+
+nack was design to be used as a local development proxy. You probably don't wanna try running a production app on it. I'm sure its slow too so don't send me any benchmarks.
