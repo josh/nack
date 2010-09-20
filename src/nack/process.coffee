@@ -19,7 +19,8 @@ exports.Process = class Process extends EventEmitter
   spawn: ->
     return if @state
 
-    @state = 'spawning'
+    @changeState 'spawning'
+
     @sockPath = tmpSock()
     @child = spawn "nackup", ['--file', @sockPath, @config]
 
@@ -27,9 +28,7 @@ exports.Process = class Process extends EventEmitter
     @stderr = @child.stderr
 
     ready = () =>
-      if !@ready
-        @state = 'ready'
-        @emit 'ready'
+      @changeState 'ready'
 
     @stdout.on 'data', ready
     @stderr.on 'data', ready
@@ -53,12 +52,16 @@ exports.Process = class Process extends EventEmitter
       listener args...
     @on event, callback
 
-  whenReady: (callback) ->
-    if @child and @state is 'ready'
+  changeState: (state) ->
+    if @state != state
+      @state = state
+      @emit state
+
+  onState: (state, callback) ->
+    if @state == state
       callback()
     else
-      @spawn()
-      @onNext 'ready', callback
+      @onNext state, callback
 
   clearTimeout: () ->
     if @_timeoutId
@@ -77,7 +80,8 @@ exports.Process = class Process extends EventEmitter
     @deferTimeout()
 
     reqBuf = new BufferedReadStream req
-    @whenReady () =>
+    @spawn()
+    @onState 'ready', () =>
       connection = client.createConnection @sockPath
       connection.proxyRequest reqBuf, res, callback
       reqBuf.flush()
