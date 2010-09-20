@@ -3,7 +3,7 @@
 config = __dirname + "/fixtures/hello.ru"
 
 exports.testCreatePool = (test) ->
-  test.expect 4
+  test.expect 7
 
   pool = createPool config, size: 3
   test.same 3, pool.size
@@ -11,13 +11,18 @@ exports.testCreatePool = (test) ->
 
   pool.spawn()
 
-  pool.on 'allready', () ->
+  pool.on 'ready', () ->
     test.ok pool.readyWorkers > 0
 
-    pool.quit()
-    pool.on 'exit', () ->
-      test.same 0, pool.readyWorkers
-      test.done()
+  pool.on 'worker:ready', () ->
+    test.ok pool.readyWorkers > 0
+
+    if pool.readyWorkers == 3
+      pool.quit()
+
+  pool.on 'exit', () ->
+    test.same 0, pool.readyWorkers
+    test.done()
 
 exports.testPoolIncrement = (test) ->
   test.expect 6

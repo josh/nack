@@ -35,8 +35,6 @@ exports.Pool = class Pool extends EventEmitter
       @readyWorkers++
       if @readyWorkers is 1
         @emit 'ready'
-      if @readyWorkers is @size
-        @emit 'allready'
 
     @on 'worker:exit', () =>
       @readyWorkers-- if @readyWorkers > 0
