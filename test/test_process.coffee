@@ -50,7 +50,7 @@ exports.testProxyRequest = (test) ->
     test.done()
 
   server = http.createServer (req, res) ->
-    process.onNext 'processing', () ->
+    process.onNext 'busy', () ->
       test.ok true
 
     process.onNext 'ready', () ->
