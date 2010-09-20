@@ -20,7 +20,7 @@ exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
 
     @stream.pause()
 
-    for all name, fun of @stream when !this[name]
+    for all name, fun of @stream when !this[name] and name[0] != '_'
       @__defineGetter__ name, (args...) -> @stream[name]
 
   resume: () ->
