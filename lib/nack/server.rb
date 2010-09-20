@@ -35,9 +35,23 @@ module Nack
       nil
     end
 
+    def quit!
+      self.state = :quit
+      server.close
+      nil
+    end
+
+    def accept?
+      state == :ready && !server.closed?
+    end
+
     def server
-       @_server ||= open_server
-     end
+      @_server ||= open_server
+    end
+
+    def start_server!
+      server
+    end
 
     def open_server
       server = if file
@@ -59,12 +73,39 @@ module Nack
       server
     end
 
+    def install_handlers!
+      trap('TERM') { shutdown! }
+      trap('INT')  { shutdown! }
+      trap('QUIT') { quit! }
+    end
+
+    def accept!
+      if accept?
+        server.accept
+      else
+        shutdown!
+      end
+    rescue Errno::EBADF
+      shutdown!
+    rescue Exception => e
+      warn "#{e.class}: #{e.message}"
+      warn e.backtrace.join("\n")
+      shutdown!
+    end
+
     def start
+      start_server!
+      install_handlers!
+
       loop do
-        handle server.accept
+        handle accept!
       end
 
       nil
+    end
+
+    def shutdown!
+      exit
     end
 
     def handle(sock)
