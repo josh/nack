@@ -2,20 +2,20 @@
 {BufferedReadStream, BufferedWriteStream} = require 'nack/buffered'
 
 class MockReadBuffer extends EventEmitter
-  constructor: () ->
+  constructor: ->
     @readable = true
     @paused = false
 
-  pause: () ->
+  pause: ->
     @paused = true
 
-  resume: () ->
+  resume: ->
     @paused = false
 
-  destroy: () ->
+  destroy: ->
 
 class MockWriteBuffer extends EventEmitter
-  constructor: () ->
+  constructor: ->
     @writeable = true
     @buffer = []
     @ended = false
@@ -29,9 +29,9 @@ class MockWriteBuffer extends EventEmitter
     @ended = true
     true
 
-  destroy: () ->
+  destroy: ->
 
-  getSize: () ->
+  getSize: ->
     @buffer.length
 
 exports.testBufferedReadStream = (test) ->
@@ -49,7 +49,7 @@ exports.testBufferedReadStream = (test) ->
   stream.on 'data', (chunk) ->
     test.ok chunk
 
-  stream.on 'end', () ->
+  stream.on 'end', ->
     test.ok true
 
   stream.flush()
@@ -68,13 +68,13 @@ exports.testBufferedWriteStream = (test) ->
   test.same false, stream.write new Buffer('bar')
   test.same 0, buffer.getSize()
 
-  stream.on 'drain', () ->
+  stream.on 'drain', ->
     test.ok true
 
   stream.flush()
   test.same 2, buffer.getSize()
 
-  stream.on 'drain', () ->
+  stream.on 'drain', ->
     test.ok false
 
   test.same true, stream.write 'baz'
@@ -92,7 +92,7 @@ exports.testBufferedWriteStreamEndBeforeFlush = (test) ->
   stream = new BufferedWriteStream buffer
   test.ok stream.writeable
 
-  stream.on 'drain', () ->
+  stream.on 'drain', ->
     test.ok true
 
   test.same false, stream.end('foo')

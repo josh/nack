@@ -23,11 +23,11 @@ exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
     for all name, fun of @stream when !this[name] and name[0] != '_'
       @__defineGetter__ name, (args...) -> @stream[name]
 
-  resume: () ->
+  resume: ->
 
-  pause: () ->
+  pause: ->
 
-  flush: () ->
+  flush: ->
     try
       @stream.resume()
     catch error
@@ -47,9 +47,9 @@ exports.BufferedWriteStream = class BufferedWriteStream extends EventEmitter
     @_queue = []
     @_flushed = false
 
-    @stream.on 'drain', () => @emit 'drain'
+    @stream.on 'drain', => @emit 'drain'
     @stream.on 'error', (exception) => @emit 'error', exception
-    @stream.on 'close', () => @emit 'close'
+    @stream.on 'close', => @emit 'close'
 
   write: (args...) ->
     if @_flushed
@@ -65,14 +65,14 @@ exports.BufferedWriteStream = class BufferedWriteStream extends EventEmitter
       @_queue.push ['end', args...]
       false
 
-  destroy: () ->
+  destroy: ->
     if @_flushed
       @stream.destroy()
     else
       @_queue.push ['destroy']
       false
 
-  flush: () ->
+  flush: ->
     for [fun, args...] in @_queue
       switch fun
         when 'write'

@@ -10,10 +10,10 @@ exports.testCreateProcess = (test) ->
   test.expect 10
 
   process = createProcess config
-  process.on 'spawn', () ->
+  process.on 'spawn', ->
     test.ok true
 
-  process.on 'spawning', () ->
+  process.on 'spawning', ->
     test.ok true
 
   process.spawn()
@@ -24,14 +24,14 @@ exports.testCreateProcess = (test) ->
   test.ok process.stdout
   test.ok process.stderr
 
-  process.stdout.on 'data', () ->
+  process.stdout.on 'data', ->
     test.ok true
 
-  process.onNext 'ready', () ->
+  process.onNext 'ready', ->
     test.ok true
 
     process.quit()
-    process.on 'exit', () ->
+    process.on 'exit', ->
       test.ok !process.sockPath
       test.ok !process.child
 
@@ -42,29 +42,29 @@ exports.testProxyRequest = (test) ->
 
   process = createProcess config
 
-  process.onNext 'ready', () ->
+  process.onNext 'ready', ->
     test.ok true
 
-  process.on 'exit', () ->
+  process.on 'exit', ->
     test.ok true
     test.done()
 
   server = http.createServer (req, res) ->
-    process.onNext 'busy', () ->
+    process.onNext 'busy', ->
       test.ok true
 
-    process.onNext 'ready', () ->
+    process.onNext 'ready', ->
       test.ok true
 
-    process.proxyRequest req, res, () ->
+    process.proxyRequest req, res, ->
       test.ok true
       process.quit()
 
-  server.on 'close', () ->
+  server.on 'close', ->
     test.ok true
 
   server.listen PORT
-  server.on 'listening', () ->
+  server.on 'listening', ->
     http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
       test.ok !err
       server.close()

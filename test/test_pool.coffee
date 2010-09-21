@@ -11,33 +11,33 @@ exports.testCreatePool = (test) ->
 
   pool.spawn()
 
-  pool.onNext 'ready', () ->
+  pool.onNext 'ready', ->
     test.same 1, pool.readyWorkers
 
-  pool.onNext 'worker:ready', () ->
+  pool.onNext 'worker:ready', ->
     test.same 1, pool.readyWorkers
 
-    pool.onNext 'worker:ready', () ->
+    pool.onNext 'worker:ready', ->
       test.same 2, pool.readyWorkers
 
-      pool.onNext 'worker:ready', () ->
+      pool.onNext 'worker:ready', ->
         test.same 3, pool.readyWorkers
 
-  pool.on 'worker:ready', () ->
+  pool.on 'worker:ready', ->
     if pool.readyWorkers == 3
       pool.quit()
 
-  pool.onNext 'worker:exit', () ->
+  pool.onNext 'worker:exit', ->
     test.same 2, pool.readyWorkers
 
-    pool.onNext 'worker:exit', () ->
+    pool.onNext 'worker:exit', ->
       test.same 1, pool.readyWorkers
 
-      pool.onNext 'worker:exit', () ->
+      pool.onNext 'worker:exit', ->
         test.same 0, pool.readyWorkers
         test.done()
 
-  pool.onNext 'exit', () ->
+  pool.onNext 'exit', ->
     test.same 0, pool.readyWorkers
 
 exports.testPoolIncrement = (test) ->

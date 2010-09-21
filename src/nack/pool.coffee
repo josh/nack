@@ -9,10 +9,10 @@ class AggregateStream extends EventEmitter
     stream.on 'error', (exception) =>
       @emit 'error', exception, process
 
-    stream.on 'end', () =>
+    stream.on 'end', =>
       @emit 'end', process
 
-    stream.on 'close', () =>
+    stream.on 'close', =>
       @emit 'close', process
 
 exports.Pool = class Pool extends EventEmitter
@@ -37,16 +37,16 @@ exports.Pool = class Pool extends EventEmitter
       listener args...
     @on event, callback
 
-  increment: () ->
+  increment: ->
     @size++
 
     process = createProcess @config, idle: @idle
 
-    process.on 'spawn', () =>
+    process.on 'spawn', =>
       @stdout.add process.stdout, process
       @stderr.add process.stderr, process
 
-    process.on 'ready', () =>
+    process.on 'ready', =>
       previousReadyWorkers = @readyWorkers
       @readyWorkers++
 
@@ -55,11 +55,11 @@ exports.Pool = class Pool extends EventEmitter
 
       @emit 'worker:ready'
 
-    process.on 'busy', () =>
+    process.on 'busy', =>
       @readyWorkers-- if @readyWorkers > 0
       @emit 'worker:busy'
 
-    process.on 'exit', () =>
+    process.on 'exit', =>
       @readyWorkers-- if @readyWorkers > 0
 
       if @readyWorkers is 0
@@ -70,22 +70,22 @@ exports.Pool = class Pool extends EventEmitter
     @workers.push process
     process
 
-  decrement: () ->
+  decrement: ->
     if worker = @workers.shift()
       @size--
       worker.quit()
       worker
 
-  spawn: () ->
+  spawn: ->
     for worker in @workers
       worker.spawn()
 
-  quit: () ->
+  quit: ->
     true while @decrement()
 
   proxyRequest: (req, res, callback) ->
     worker = @workers.shift()
-    worker.proxyRequest req, res, () =>
+    worker.proxyRequest req, res, =>
       callback() if callback?
       @workers.unshift worker
 

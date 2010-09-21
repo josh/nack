@@ -13,7 +13,7 @@ exports.testClientRequest = (test) ->
   process = createProcess config
   process.spawn()
 
-  process.onNext 'ready', () ->
+  process.onNext 'ready', ->
     client = createConnection process.sockPath
     test.ok client
 
@@ -27,7 +27,7 @@ exports.testClientRequest = (test) ->
 
     request.end()
 
-    request.on 'close', () ->
+    request.on 'close', ->
       test.ok true
 
     request.on 'response', (response) ->
@@ -40,12 +40,12 @@ exports.testClientRequest = (test) ->
         test.ok true
         body += chunk
 
-      response.on 'end', () ->
+      response.on 'end', ->
         test.same "Hello World\n", body
 
         process.quit()
 
-  process.on 'exit', () ->
+  process.on 'exit', ->
     test.ok true
     test.done()
 
@@ -62,21 +62,21 @@ exports.testProxyRequest = (test) ->
     client = createConnection process.sockPath
     test.ok client
 
-    client.proxyRequest req, res, () ->
+    client.proxyRequest req, res, ->
       test.ok true
       process.quit()
 
-  server.on 'close', () ->
+  server.on 'close', ->
     test.ok true
 
-  process.onNext 'ready', () ->
+  process.onNext 'ready', ->
     server.listen PORT
-    server.on 'listening', () ->
+    server.on 'listening', ->
       http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
         test.ok !err
         test.same "Hello World\n", data
         server.close()
 
-  process.on 'exit', () ->
+  process.on 'exit', ->
     test.ok true
     test.done()

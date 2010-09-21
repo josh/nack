@@ -16,10 +16,10 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
     @_parseHeaders headers
     @writeObj @headers
 
-    @socket.on 'connect', () => @bufferedSocket.flush()
+    @socket.on 'connect', => @bufferedSocket.flush()
 
-    @bufferedSocket.on 'drain', () => @emit 'drain'
-    @bufferedSocket.on 'close', () => @emit 'close'
+    @bufferedSocket.on 'drain', => @emit 'drain'
+    @bufferedSocket.on 'close', => @emit 'close'
 
     @_initParser()
 
@@ -37,7 +37,7 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
       key = "HTTP_#{key}" unless key == 'CONTENT_TYPE' or key == 'CONTENT_LENGTH'
       @headers[key] = value
 
-  _initParser: () ->
+  _initParser: ->
     response     = new ClientResponse @socket
     streamParser = new StreamParser @socket
 
@@ -54,7 +54,7 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
       else if chunk?
         response.emit 'data', chunk
 
-    @socket.on 'end', () ->
+    @socket.on 'end', ->
       response.emit 'end'
 
   writeObj: (obj) ->
@@ -64,7 +64,7 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
   write: (chunk) ->
     @writeObj chunk.toString()
 
-  end: () ->
+  end: ->
     @bufferedSocket.end()
 
 exports.ClientResponse = class ClientResponse extends EventEmitter
@@ -74,7 +74,7 @@ exports.ClientResponse = class ClientResponse extends EventEmitter
     @headers = null
 
 exports.Client = class Client extends Stream
-  reconnect: () ->
+  reconnect: ->
     if @readyState is 'closed'
       @connect @port, @host
 

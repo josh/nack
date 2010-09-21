@@ -5,7 +5,7 @@ client         = require 'nack/client'
 {EventEmitter}       = require 'events'
 {BufferedReadStream} = require 'nack/buffered'
 
-tmpSock = () ->
+tmpSock = ->
   pid  = process.pid
   rand = Math.floor Math.random() * 10000000000
   "/tmp/nack." + pid + "." + rand + ".sock"
@@ -27,7 +27,7 @@ exports.Process = class Process extends EventEmitter
     @stdout = @child.stdout
     @stderr = @child.stderr
 
-    ready = () =>
+    ready = =>
       @changeState 'ready'
 
     @stdout.on 'data', ready
@@ -39,7 +39,7 @@ exports.Process = class Process extends EventEmitter
       @stdout = @stderr = null
       @emit 'exit'
 
-    @on 'ready', () =>
+    @on 'ready', =>
       @deferTimeout()
 
     @emit 'spawn'
@@ -63,15 +63,15 @@ exports.Process = class Process extends EventEmitter
     else
       @onNext state, callback
 
-  clearTimeout: () ->
+  clearTimeout: ->
     if @_timeoutId
       clearTimeout @_timeoutId
 
-  deferTimeout: () ->
+  deferTimeout: ->
     if @idle
       @clearTimeout()
 
-      callback = () =>
+      callback = =>
         @emit 'idle'
         @quit()
       @_timeoutId = setTimeout callback, @idle
@@ -81,15 +81,15 @@ exports.Process = class Process extends EventEmitter
 
     reqBuf = new BufferedReadStream req
     @spawn()
-    @onState 'ready', () =>
+    @onState 'ready', =>
       @changeState 'busy'
       connection = client.createConnection @sockPath
-      connection.proxyRequest reqBuf, res, () =>
+      connection.proxyRequest reqBuf, res, =>
         callback() if callback
         @changeState 'ready'
       reqBuf.flush()
 
-  quit: () ->
+  quit: ->
     if @child
       @child.kill 'SIGQUIT'
 
