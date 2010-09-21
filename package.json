@@ -11,7 +11,7 @@
   { "mail" : "npm-@googlegroups.com"
   , "web" : "http://github.com/josh/nack/issues"
   }
-, "directories": { "lib": "./lib" }
+, "directories": { "lib": "./lib/nack" }
 , "main": "./lib/nack"
 , "repository":
   { "type": "git"
