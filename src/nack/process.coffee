@@ -6,13 +6,18 @@ client        = require 'nack/client'
 {EventEmitter}       = require 'events'
 {BufferedReadStream} = require 'nack/buffered'
 
+randomId = ->
+  Math.floor Math.random() * 10000000000
+
 tmpSock = ->
   pid  = process.pid
-  rand = Math.floor Math.random() * 10000000000
+  rand = randomId()
   "/tmp/nack." + pid + "." + rand + ".sock"
 
 exports.Process = class Process extends EventEmitter
   constructor: (@config, options) ->
+    @id = randomId()
+
     options ?= {}
     @idle  = options.idle
     @state = null
@@ -51,8 +56,11 @@ exports.Process = class Process extends EventEmitter
       @stdout = @child.stdout
       @stderr = @child.stderr
 
-      ready = =>
-        @changeState 'ready'
+      ready = (data) =>
+        if data.toString() is "ready\n"
+          @stdout.removeListener 'data', ready
+          @stderr.removeListener 'data', ready
+          @changeState 'ready'
 
       @stdout.on 'data', ready
       @stderr.on 'data', ready
@@ -116,6 +124,8 @@ exports.Process = class Process extends EventEmitter
   quit: ->
     if @child
       @child.kill 'SIGQUIT'
+    else
+      process.nextTick => @emit 'exit'
 
 exports.createProcess = (args...) ->
   new Process args...

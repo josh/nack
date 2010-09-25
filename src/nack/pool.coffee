@@ -1,6 +1,18 @@
 {EventEmitter}  = require 'events'
 {createProcess} = require 'nack/process'
 
+{BufferedReadStream} = require 'nack/buffered'
+
+removeWorkerFromList = (workers, workerToRemove) ->
+  index = 0
+  for worker in workers
+    if worker.id is workerToRemove.id
+      workers.splice index, 1
+      return workerToRemove
+    index++
+
+  false
+
 class AggregateStream extends EventEmitter
   add: (stream, process) ->
     stream.on 'data', (data) =>
@@ -18,10 +30,10 @@ class AggregateStream extends EventEmitter
 exports.Pool = class Pool extends EventEmitter
   constructor: (@config, options) ->
     options ?= {}
+    options.size ?= 1
 
-    @size         = 0
     @workers      = []
-    @readyWorkers = 0
+    @readyWorkers = []
 
     @idle = options.idle
 
@@ -38,8 +50,6 @@ exports.Pool = class Pool extends EventEmitter
     @on event, callback
 
   increment: ->
-    @size++
-
     process = createProcess @config, idle: @idle
 
     process.on 'spawn', =>
@@ -47,47 +57,61 @@ exports.Pool = class Pool extends EventEmitter
       @stderr.add process.stderr, process
 
     process.on 'ready', =>
-      previousReadyWorkers = @readyWorkers
-      @readyWorkers++
+      previousCount = @readyWorkers.length
+      @readyWorkers.push process
 
-      if previousReadyWorkers is 0 and @readyWorkers is 1
-        @emit 'ready'
+      @emit 'worker:ready', process
 
-      @emit 'worker:ready'
+      if previousCount is 0 and @readyWorkers.length > 0
+         @emit 'ready'
 
     process.on 'busy', =>
-      @readyWorkers-- if @readyWorkers > 0
-      @emit 'worker:busy'
+      removeWorkerFromList @readyWorkers, process
+      @emit 'worker:busy', process
 
     process.on 'exit', =>
-      @readyWorkers-- if @readyWorkers > 0
+      removeWorkerFromList @workers, process
+      removeWorkerFromList @readyWorkers, process
 
-      if @readyWorkers is 0
+      @emit 'worker:exit', process
+
+      if @workers.length is 0
         @emit 'exit'
-
-      @emit 'worker:exit'
 
     @workers.push process
     process
 
   decrement: ->
     if worker = @workers.shift()
-      @size--
       worker.quit()
-      worker
+
+  announceReadyWorkers: ->
+    oneReady = false
+    for worker in @workers
+      if worker.state is 'ready'
+        oneReady = true
+        process.nextTick =>
+          @emit 'worker:ready', worker
+      else if oneReady is false and !worker.state
+        oneReady = true
+        process.nextTick -> worker.spawn()
 
   spawn: ->
     for worker in @workers
       worker.spawn()
 
   quit: ->
-    true while @decrement()
+    for worker in @workers
+      worker.quit()
 
   proxyRequest: (req, res, callback) ->
-    worker = @workers.shift()
-    worker.proxyRequest req, res, =>
-      callback() if callback?
-      @workers.unshift worker
+    reqBuf = new BufferedReadStream req
+
+    @onNext 'worker:ready', (worker) ->
+      worker.proxyRequest reqBuf, res, ->
+        callback() if callback?
+
+    @announceReadyWorkers()
 
 exports.createPool = (args...) ->
   new Pool args...

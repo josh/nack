@@ -69,3 +69,32 @@ exports.testProxyRequest = (test) ->
     http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
       test.ok !err
       server.close()
+
+exports.testQuitSpawned = (test) ->
+  test.expect 3
+
+  process = createProcess config
+  process.on 'spawn', ->
+    test.ok true
+
+  process.onNext 'ready', ->
+    test.ok true
+
+    process.on 'exit', ->
+      test.ok true
+      test.done()
+
+    process.quit()
+
+  process.spawn()
+
+exports.testQuitUnspawned = (test) ->
+  test.expect 1
+
+  process = createProcess config
+
+  process.on 'exit', ->
+    test.ok true
+    test.done()
+
+  process.quit()
