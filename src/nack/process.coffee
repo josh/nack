@@ -86,9 +86,10 @@ exports.Process = class Process extends EventEmitter
 
   onState: (state, callback) ->
     if @state == state
-      process.nextTick callback
+      callback()
     else
-      @onNext state, callback
+      @onNext state, =>
+        @onState state, callback
 
   clearTimeout: ->
     if @_timeoutId
@@ -108,7 +109,11 @@ exports.Process = class Process extends EventEmitter
 
     reqBuf = new BufferedReadStream req
     @spawn()
+
     @onState 'ready', =>
+      if @state isnt 'ready'
+        @emit 'error', new Error "process said it was ready but wasn't"
+
       @changeState 'busy'
       connection = client.createConnection @sockPath
       connection.proxyRequest reqBuf, res, =>

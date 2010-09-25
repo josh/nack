@@ -8,7 +8,7 @@ var port   = process.argv[3] || 3000;
 var sys = require('sys');
 
 var nack = require('nack');
-var pool = nack.createPool(config, {size: 10, idle: 15 * 60 * 1000});
+var pool = nack.createPool(config, {size: 3, idle: 15 * 60 * 1000});
 
 pool.on('spawn', function() {
   nack.logStream(pool.stdout);
