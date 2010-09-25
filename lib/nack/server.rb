@@ -106,6 +106,7 @@ module Nack
       install_handlers!
 
       loop do
+        debug "Waiting for connection"
         handle accept!
       end
 
@@ -118,6 +119,8 @@ module Nack
     end
 
     def handle(sock)
+      debug "Accepted connection"
+
       env, input = nil, StringIO.new
       Yajl::Parser.parse(sock) do |obj|
         if env.nil?
@@ -129,6 +132,8 @@ module Nack
 
       sock.close_read
       input.rewind
+
+      debug "Received request: #{env['REQUEST_METHOD']} #{env['PATH_INFO']}"
 
       env = env.merge({
         "rack.version" => Rack::VERSION,
@@ -151,6 +156,8 @@ module Nack
       end
       thread.join
       status, headers, body = thread.value
+
+      debug "Sending response: #{status}"
 
       encoder = Yajl::Encoder.new
 
@@ -179,6 +186,10 @@ module Nack
       warn e.backtrace.join("\n")
     ensure
       sock.close_write
+    end
+
+    def debug(msg)
+      warn msg if $DEBUG
     end
   end
 end
