@@ -7,18 +7,17 @@ var port   = process.argv[3] || 3000;
 
 var sys = require('sys');
 
-var createPool = require('nack/pool').createPool;
-var nackPool = createPool(config, {size: 10, idle: 15 * 60 * 1000});
+var nack = require('nack');
+var pool = nack.createPool(config, {size: 10, idle: 15 * 60 * 1000});
 
-var logStream = require('nack/logger').logStream;
-nackPool.on('spawn', function() {
-  logStream(nackPool.stdout);
-  logStream(nackPool.stderr);
+pool.on('spawn', function() {
+  nack.logStream(pool.stdout);
+  nack.logStream(pool.stderr);
 });
 
 var http = require('http');
 var server = http.createServer(function (req, res) {
-  nackPool.proxyRequest(req, res);
+  pool.proxyRequest(req, res);
 });
 
 server.listen(port, "127.0.0.1");
