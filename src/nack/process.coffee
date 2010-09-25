@@ -1,6 +1,7 @@
 sys           = require 'sys'
 client        = require 'nack/client'
 {spawn, exec} = require 'child_process'
+{exists}      = require 'path'
 
 {EventEmitter}       = require 'events'
 {BufferedReadStream} = require 'nack/buffered'
@@ -15,6 +16,16 @@ exports.Process = class Process extends EventEmitter
     options ?= {}
     @idle  = options.idle
     @state = null
+
+    raiseConfigError = =>
+      @emit 'error', new Error "configuration \"#{@config}\" doesn't exist"
+
+    if @config?
+      exists @config, (ok) =>
+        raiseConfigError() if !ok
+    else
+      raiseConfigError()
+
 
   getNackupPath: (callback) ->
     if @nackupPath?
