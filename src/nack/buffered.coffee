@@ -8,7 +8,7 @@ exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
 
     queueEvent = (event, args...) =>
       if @_flushed
-        @emit args...
+        @emit event, args...
       else
         @_queue.push ['emit', event, args...]
 

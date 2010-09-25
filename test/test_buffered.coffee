@@ -43,6 +43,29 @@ exports.testBufferedReadStream = (test) ->
   test.ok stream.readable
 
   buffer.emit 'data', new Buffer("foo")
+
+  stream.on 'data', (chunk) ->
+    test.ok chunk
+
+  stream.on 'end', ->
+    test.ok true
+
+  stream.flush()
+
+  buffer.emit 'data', new Buffer("bar")
+  buffer.emit 'end'
+
+  test.done()
+
+exports.testBufferedReadStreamEndsBeforeFlush = (test) ->
+  test.expect 4
+
+  buffer = new MockReadBuffer
+
+  stream = new BufferedReadStream buffer
+  test.ok stream.readable
+
+  buffer.emit 'data', new Buffer("foo")
   buffer.emit 'data', new Buffer("bar")
   buffer.emit 'end'
 

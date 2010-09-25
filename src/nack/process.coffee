@@ -26,7 +26,6 @@ exports.Process = class Process extends EventEmitter
     else
       raiseConfigError()
 
-
   getNackupPath: (callback) ->
     if @nackupPath?
       callback null, @nackupPath
