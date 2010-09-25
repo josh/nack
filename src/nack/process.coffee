@@ -1,6 +1,6 @@
-sys            = require 'sys'
-client         = require 'nack/client'
-{spawn}        = require 'child_process'
+sys           = require 'sys'
+client        = require 'nack/client'
+{spawn, exec} = require 'child_process'
 
 {EventEmitter}       = require 'events'
 {BufferedReadStream} = require 'nack/buffered'
@@ -16,33 +16,47 @@ exports.Process = class Process extends EventEmitter
     @idle  = options.idle
     @state = null
 
-  spawn: ->
+  getNackupPath: (callback) ->
+    if @nackupPath?
+      callback null, @nackupPath
+    else
+      exec 'which nackup', (error, stdout, stderr) =>
+        if error
+          callback new Error "Couldn't find `nackup` in PATH"
+        else
+          @nackupPath = stdout.replace /(\n|\r)+$/, ''
+          callback error, @nackupPath
+
+  spawn: () ->
     return if @state
 
     @changeState 'spawning'
 
-    @sockPath = tmpSock()
-    @child = spawn "nackup", ['--file', @sockPath, @config]
+    @getNackupPath (err, nackup) =>
+      return @emit 'error', err if err
 
-    @stdout = @child.stdout
-    @stderr = @child.stderr
+      @sockPath = tmpSock()
+      @child = spawn "nackup", ['--file', @sockPath, @config]
 
-    ready = =>
-      @changeState 'ready'
+      @stdout = @child.stdout
+      @stderr = @child.stderr
 
-    @stdout.on 'data', ready
-    @stderr.on 'data', ready
+      ready = =>
+        @changeState 'ready'
 
-    @child.on 'exit', (code, signal) =>
-      @clearTimeout()
-      @state = @sockPath = @child = null
-      @stdout = @stderr = null
-      @emit 'exit'
+      @stdout.on 'data', ready
+      @stderr.on 'data', ready
 
-    @on 'ready', =>
-      @deferTimeout()
+      @child.on 'exit', (code, signal) =>
+        @clearTimeout()
+        @state = @sockPath = @child = null
+        @stdout = @stderr = null
+        @emit 'exit'
 
-    @emit 'spawn'
+      @on 'ready', =>
+        @deferTimeout()
+
+      @emit 'spawn'
 
     this
 

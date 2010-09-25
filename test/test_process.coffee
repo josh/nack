@@ -16,16 +16,15 @@ exports.testCreateProcess = (test) ->
   process.on 'spawning', ->
     test.ok true
 
-  process.spawn()
+  process.on 'spawn', ->
+    test.ok process.sockPath
+    test.ok process.child
 
-  test.ok process.sockPath
-  test.ok process.child
+    test.ok process.stdout
+    test.ok process.stderr
 
-  test.ok process.stdout
-  test.ok process.stderr
-
-  process.stdout.on 'data', ->
-    test.ok true
+    process.stdout.on 'data', ->
+      test.ok true
 
   process.onNext 'ready', ->
     test.ok true
@@ -36,6 +35,8 @@ exports.testCreateProcess = (test) ->
       test.ok !process.child
 
       test.done()
+
+  process.spawn()
 
 exports.testProxyRequest = (test) ->
   test.expect 7
