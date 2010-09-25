@@ -45,7 +45,10 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
       if !response.statusCode
         response.statusCode = obj
       else if !response.headers
-        response.headers = obj
+        response.headers = []
+        for k, vs of obj
+          for v in vs.split "\n"
+            response.headers.push [k, v]
       else
         chunk = obj
 

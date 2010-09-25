@@ -10,7 +10,7 @@ module ServerTests
 
     assert_equal 200, status
     assert_equal "text/plain", headers['Content-Type']
-    assert_equal ["foo=1", "bar=2"], headers['Set-Cookie']
+    assert_equal "foo=1\nbar=2", headers['Set-Cookie']
     assert_equal ["foo=bar"], body
   end
 

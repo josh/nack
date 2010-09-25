@@ -164,17 +164,7 @@ module Nack
       encoder.encode(status.to_s, sock)
       sock.write(CRLF)
 
-      header = {}
-      headers.each do |k, vs|
-        vs = vs.split("\n")
-        if vs.length == 1
-          header[k] = vs[0]
-        else
-          header[k] = vs
-        end
-      end
-
-      encoder.encode(header, sock)
+      encoder.encode(headers, sock)
       sock.write(CRLF)
 
       body.each do |part|
