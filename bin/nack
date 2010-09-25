@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+
+require.paths.unshift("/Users/josh/Dropbox/nack/lib")
+
+var config = process.argv[2];
+var port   = process.argv[3] || 3000;
+
+var sys = require('sys');
+
+var createPool = require('nack/pool').createPool;
+var nackPool = createPool(config, {size: 10, idle: 15 * 60 * 1000});
+
+var logStream = require('nack/logger').logStream;
+nackPool.on('spawn', function() {
+  logStream(nackPool.stdout);
+  logStream(nackPool.stderr);
+});
+
+var http = require('http');
+var server = http.createServer(function (req, res) {
+  nackPool.proxyRequest(req, res);
+});
+
+server.listen(port, "127.0.0.1");
+sys.puts("Listening on http://127.0.0.1:" + port);
