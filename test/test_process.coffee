@@ -70,6 +70,24 @@ exports.testProxyRequest = (test) ->
       test.ok !err
       server.close()
 
+exports.testOnReadyState = (test) ->
+  test.expect 2
+
+  process = createProcess config
+
+  process.onState 'ready', ->
+    test.ok true
+
+    process.onState 'ready', ->
+      test.ok true
+
+      process.on 'exit', ->
+        test.done()
+
+      process.quit()
+
+  process.spawn()
+
 exports.testQuitSpawned = (test) ->
   test.expect 3
 
