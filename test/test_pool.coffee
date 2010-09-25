@@ -1,6 +1,10 @@
+http = require 'http'
+
 {createPool} = require 'nack/pool'
 
 config = __dirname + "/fixtures/hello.ru"
+
+PORT = 8080
 
 exports.testCreatePool = (test) ->
   test.expect 14
@@ -54,3 +58,35 @@ exports.testPoolIncrement = (test) ->
     test.done()
 
   pool.quit()
+
+exports.testProxyRequest = (test) ->
+  test.expect 7
+
+  pool = createPool config
+
+  pool.onNext 'ready', ->
+    test.ok true
+
+  pool.on 'exit', ->
+    test.ok true
+    test.done()
+
+  server = http.createServer (req, res) ->
+    pool.onNext 'worker:busy', ->
+      test.ok true
+
+    pool.onNext 'worker:ready', ->
+      test.ok true
+
+    pool.proxyRequest req, res, ->
+      test.ok true
+      pool.quit()
+
+  server.on 'close', ->
+    test.ok true
+
+  server.listen PORT
+  server.on 'listening', ->
+    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+      test.ok !err
+      server.close()

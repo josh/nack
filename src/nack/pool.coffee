@@ -110,6 +110,7 @@ exports.Pool = class Pool extends EventEmitter
     @onNext 'worker:ready', (worker) ->
       worker.proxyRequest reqBuf, res, ->
         callback() if callback?
+      reqBuf.flush()
 
     @announceReadyWorkers()
 
