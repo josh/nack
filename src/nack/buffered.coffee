@@ -84,3 +84,34 @@ exports.BufferedWriteStream = class BufferedWriteStream extends EventEmitter
 
     @_flushed = true
     @emit 'drain'
+
+exports.BufferedLineStream = class BufferedLineStream extends EventEmitter
+  constructor: (@stream) ->
+    @readable = true
+    @_buffer = ""
+    @_flushed = false
+
+    @stream.on 'data',  (args...) => @write args...
+    @stream.on 'end',   (args...) => @end args...
+
+    @stream.on 'error', (args...) => @emit 'error', args...
+    @stream.on 'close', (args...) => @emit 'close', args...
+    @stream.on 'fd',    (args...) => @emit 'fd', args...
+
+    for all name, fun of @stream when !this[name] and name[0] != '_'
+      @__defineGetter__ name, (args...) -> @stream[name]
+
+  write: (chunk) ->
+    @_buffer += chunk
+
+    while (index = @_buffer.indexOf("\n")) != -1
+      line     = @_buffer[0...index]
+      @_buffer = @_buffer[index+1...@_buffer.length]
+
+      @emit 'data', line
+
+  end: (args...) ->
+    if args.length > 0
+      @write args...
+
+    @emit 'end'

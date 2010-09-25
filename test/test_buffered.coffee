@@ -1,5 +1,8 @@
 {EventEmitter} = require 'events'
-{BufferedReadStream, BufferedWriteStream} = require 'nack/buffered'
+
+{BufferedReadStream,
+ BufferedWriteStream,
+ BufferedLineStream} = require 'nack/buffered'
 
 class MockReadBuffer extends EventEmitter
   constructor: ->
@@ -123,5 +126,33 @@ exports.testBufferedWriteStreamEndBeforeFlush = (test) ->
 
   stream.flush()
   test.same 1, buffer.getSize()
+
+  test.done()
+
+exports.testBufferedLineStream = (test) ->
+  test.expect 5
+
+  buffer = new MockReadBuffer
+
+  stream = new BufferedLineStream buffer
+  test.ok stream.readable
+
+  lines = []
+  stream.on 'data', (chunk) ->
+    lines.push chunk
+
+  stream.on 'end', ->
+    test.ok true
+
+  buffer.emit 'data', new Buffer("foo\n")
+  test.same ["foo"], lines
+
+  buffer.emit 'data', new Buffer("ba")
+  test.same ["foo"], lines
+
+  buffer.emit 'data', new Buffer("r\n")
+  test.same ["foo", "bar"], lines
+
+  buffer.emit 'end'
 
   test.done()
