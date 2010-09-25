@@ -29,7 +29,7 @@ Example
 Simple proxy
 
     var http = require('http');
-    var nack = require('nack/process');
+    var nack = require('nack');
 
     var app = nack.createProcess("/path/to/app/config.ru");
 
@@ -39,7 +39,7 @@ Simple proxy
 
 You can spawn up a pool of workers with:
 
-    var nack = require('nack/pool');
+    var nack = require('nack');
     nack.createPool("/path/to/app/config.ru", { size: 3 });
 
 Workers can idle out after a period of inactivity:
