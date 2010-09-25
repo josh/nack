@@ -3,15 +3,10 @@
 
 {BufferedReadStream} = require 'nack/buffered'
 
-removeWorkerFromList = (workers, workerToRemove) ->
-  index = 0
-  for worker in workers
-    if worker.id is workerToRemove.id
-      workers.splice index, 1
-      return workerToRemove
-    index++
-
-  false
+removeFromArray = (array, obj) ->
+  index = array.indexOf obj
+  if index isnt -1
+    array.splice index, 1
 
 class AggregateStream extends EventEmitter
   add: (stream, process) ->
@@ -66,12 +61,12 @@ exports.Pool = class Pool extends EventEmitter
          @emit 'ready'
 
     process.on 'busy', =>
-      removeWorkerFromList @readyWorkers, process
+      removeFromArray @readyWorkers, process
       @emit 'worker:busy', process
 
     process.on 'exit', =>
-      removeWorkerFromList @workers, process
-      removeWorkerFromList @readyWorkers, process
+      removeFromArray @workers, process
+      removeFromArray @readyWorkers, process
 
       @emit 'worker:exit', process
 

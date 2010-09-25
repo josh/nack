@@ -6,18 +6,13 @@ client        = require 'nack/client'
 {EventEmitter}       = require 'events'
 {BufferedReadStream} = require 'nack/buffered'
 
-randomId = ->
-  Math.floor Math.random() * 10000000000
-
 tmpSock = ->
   pid  = process.pid
-  rand = randomId()
+  rand = Math.floor Math.random() * 10000000000
   "/tmp/nack." + pid + "." + rand + ".sock"
 
 exports.Process = class Process extends EventEmitter
   constructor: (@config, options) ->
-    @id = randomId()
-
     options ?= {}
     @idle  = options.idle
     @state = null
