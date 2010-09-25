@@ -82,7 +82,7 @@ exports.Process = class Process extends EventEmitter
   changeState: (state) ->
     if @state != state
       @state = state
-      @emit state
+      process.nextTick => @emit state
 
   onState: (state, callback) ->
     if @state == state
