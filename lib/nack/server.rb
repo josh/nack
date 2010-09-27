@@ -122,7 +122,7 @@ module Nack
       debug "Accepted connection"
 
       env, input = nil, StringIO.new
-      NetString.parse(sock) do |data|
+      NetString.read(sock) do |data|
         if env.nil?
           env = JSON.parse(data)
         else

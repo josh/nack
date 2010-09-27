@@ -43,7 +43,7 @@ module Nack
 
       status, headers, body = nil, nil, []
 
-      NetString.parse(socket) do |data|
+      NetString.read(socket) do |data|
         if status.nil?
           status = data.to_i
         elsif headers.nil?
