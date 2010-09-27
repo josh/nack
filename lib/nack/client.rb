@@ -1,10 +1,10 @@
+require 'json'
 require 'socket'
-require 'yajl'
+
+require 'nack/netstring'
 
 module Nack
   class Client
-    CRLF = "\r\n"
-
     def self.open(*args)
       new(*args)
     end
@@ -33,27 +33,23 @@ module Nack
     end
 
     def request(env = {}, body = nil)
-      encoder = Yajl::Encoder.new
-
-      encoder.encode(env, socket)
-      socket.write(CRLF)
+      socket.write(NetString.encode(env.to_json))
 
       if body
-        encoder.encode(body, socket)
-        socket.write(CRLF)
+        socket.write(NetString.encode(body))
       end
 
       socket.close_write
 
       status, headers, body = nil, nil, []
 
-      Yajl::Parser.parse(socket) do |obj|
+      NetString.parse(socket) do |data|
         if status.nil?
-          status = obj.to_i
+          status = data.to_i
         elsif headers.nil?
-          headers = obj
+          headers = JSON.parse(data)
         else
-          body << obj
+          body << data
         end
       end
 

@@ -1,14 +1,14 @@
+require 'json'
 require 'rack'
 require 'socket'
 require 'stringio'
 require 'thread'
-require 'yajl'
+
 require 'nack/error'
+require 'nack/netstring'
 
 module Nack
   class Server
-    CRLF = "\r\n"
-
     SERVER_ERROR = [500, { "Content-Type" => "text/html" }, ["Internal Server Error"]]
 
     def self.run(*args)
@@ -122,11 +122,11 @@ module Nack
       debug "Accepted connection"
 
       env, input = nil, StringIO.new
-      Yajl::Parser.parse(sock) do |obj|
+      NetString.parse(sock) do |data|
         if env.nil?
-          env = obj
+          env = JSON.parse(data)
         else
-          input.write(obj)
+          input.write(data)
         end
       end
 
@@ -159,17 +159,11 @@ module Nack
 
       debug "Sending response: #{status}"
 
-      encoder = Yajl::Encoder.new
-
-      encoder.encode(status.to_s, sock)
-      sock.write(CRLF)
-
-      encoder.encode(headers, sock)
-      sock.write(CRLF)
+      sock.write(NetString.encode(status.to_s))
+      sock.write(NetString.encode(headers.to_json))
 
       body.each do |part|
-        encoder.encode(part, sock)
-        sock.write(CRLF)
+        sock.write(NetString.encode(part))
       end
     rescue Exception => e
       warn "#{e.class}: #{e.message}"

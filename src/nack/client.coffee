@@ -1,12 +1,10 @@
 sys = require 'sys'
 url = require 'url'
+ns  = require 'nack/netstring'
 
 {Stream}              = require 'net'
 {EventEmitter}        = require 'events'
 {BufferedWriteStream} = require 'nack/buffered'
-{StreamParser}        = require 'nack/json'
-
-CRLF = "\r\n"
 
 exports.ClientRequest = class ClientRequest extends EventEmitter
   constructor: (@socket, @method, @path, headers) ->
@@ -38,19 +36,19 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
       @headers[key] = value
 
   _initParser: ->
-    response     = new ClientResponse @socket
-    streamParser = new StreamParser @socket
+    response = new ClientResponse @socket
+    nsStream = new ns.ReadStream @socket
 
-    streamParser.on "obj", (obj) =>
+    nsStream.on "data", (data) =>
       if !response.statusCode
-        response.statusCode = obj
+        response.statusCode = JSON.parse(data)
       else if !response.headers
         response.headers = []
-        for k, vs of obj
+        for k, vs of JSON.parse(data)
           for v in vs.split "\n"
             response.headers.push [k, v]
       else
-        chunk = obj
+        chunk = data
 
       if response.statusCode? && response.headers? && !chunk?
         @emit 'response', response
@@ -61,8 +59,7 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
       response.emit 'end'
 
   writeObj: (obj) ->
-    @bufferedSocket.write JSON.stringify(obj)
-    @bufferedSocket.write CRLF
+    @bufferedSocket.write ns.encode(JSON.stringify(obj))
 
   write: (chunk) ->
     @writeObj chunk.toString()

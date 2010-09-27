@@ -21,7 +21,7 @@ Dependencies
 
 * node >= 0.2.3
 * rack
-* yajl-ruby
+* json
 
 Example
 -------
