@@ -1,11 +1,13 @@
 {length, decode, encode} = require 'nack/netstring'
 
 exports.testLength = (test) ->
-  test.expect 6
+  test.expect 8
 
   test.same 3, length new Buffer("3:abc,")
   test.same 0, length new Buffer("0:,")
-  test.same false, length new Buffer("30")
+  test.same 5, length new Buffer("5:café")
+  test.same(-1, length new Buffer("30"))
+  test.same(-1, length new Buffer(""))
 
   try
     length new Buffer(":")
@@ -25,25 +27,30 @@ exports.testLength = (test) ->
   test.done()
 
 exports.testDecode = (test) ->
-  test.expect 5
+  test.expect 8
 
   test.same decode("3:abc,"), new Buffer("abc")
   test.same decode(new Buffer("3:abc,")), new Buffer("abc")
   test.same decode("0:,"), new Buffer("")
+  test.same decode("5:café"), new Buffer("café")
+  test.same decode("3:☃"), new Buffer("☃")
 
-  test.same decode("30"), false
-  test.same decode("30:abc"), false
+  test.same decode(""), -1
+  test.same decode("30"), -1
+  test.same decode("30:abc"), -1
 
   test.done()
 
 exports.testEncode = (test) ->
-  test.expect 5
+  test.expect 7
 
   test.same encode("abc"), new Buffer("3:abc,")
   test.same encode(new Buffer("abc", 'utf8')), new Buffer("3:abc,")
   test.same encode("a"), new Buffer("1:a,")
   test.same encode("hello world!"), new Buffer("12:hello world!,")
   test.same encode(""), new Buffer("0:,")
+  test.same encode("café"), new Buffer("5:café,")
+  test.same encode("☃"), new Buffer("3:☃,")
 
   test.done()
 
@@ -58,17 +65,19 @@ exports.testReadStream = (test) ->
   nsStream = new ReadStream stream
 
   chunks = []
-  nsStream.on 'data', (chunk) ->
+  nsStream.on 'string', (chunk) ->
     chunks.push chunk
 
   stream.emit 'data', new Buffer("3:abc,")
   stream.emit 'data', new Buffer("12:hello")
   stream.emit 'data', new Buffer(" world!,")
+  stream.emit 'data', new Buffer("5:café,")
   stream.emit 'data', new Buffer("1:a,1:b,1:c,")
 
   test.same [
     new Buffer("abc"),
     new Buffer("hello world!"),
+    new Buffer("café"),
     new Buffer("a"),
     new Buffer("b"),
     new Buffer("c")

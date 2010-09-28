@@ -39,7 +39,7 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
     response = new ClientResponse @socket
     nsStream = new ns.ReadStream @socket
 
-    nsStream.on "data", (data) =>
+    nsStream.on 'string', (data) =>
       if !response.statusCode
         response.statusCode = JSON.parse(data)
       else if !response.headers

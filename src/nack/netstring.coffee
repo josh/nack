@@ -24,47 +24,74 @@ exports.length = (buf) ->
     i++
 
   if i is buf.length
-    false
+    -1
   else
     len
+
+exports.nsLength = (buf) ->
+  length   = buf.length
+  nsHeader = "#{length}:"
+  nsHeader.length + length + 1
 
 exports.decode = (buffer) ->
   if typeof buffer is 'string'
     buffer = new Buffer buffer
 
-  len = exports.length buffer
+  length = exports.length buffer
 
-  if len is false
-    return false
+  if length is -1
+    return -1
 
-  offset = "#{len}:".length
-  end    = offset+len
+  nsHeader = "#{length}:"
+  offset = nsHeader.length
+  end    = offset+length
 
   if buffer.length < end
-    false
+    -1
   else
-    buffer[offset...end]
+    buffer.slice offset, end
 
 exports.encode = (buffer) ->
-  new Buffer "#{buffer.length}:#{buffer},"
+  if typeof buffer is 'string'
+    buffer = new Buffer buffer
+
+  length   = buffer.length
+  nsHeader = "#{length}:"
+  nsLength = nsHeader.length + length + 1
+
+  out = new Buffer nsLength
+  out.write nsHeader, 0
+  buffer.copy out, nsHeader.length, 0
+  out.write ",", nsLength - 1
+  out
 
 
 {EventEmitter} = require 'events'
 
+concatBuffers = (buf1, buf2) ->
+  len = buf1.length + buf2.length
+  buf = new Buffer len
+  buf1.copy buf, 0, 0
+  buf2.copy buf, buf1.length, 0
+  buf
+
 exports.ReadStream = class ReadStream extends EventEmitter
   constructor: (@stream) ->
+    buffer = new Buffer 0
+
+    @stream.on 'data', (chunk) =>
+      buffer = concatBuffers buffer, chunk
+
+      loop
+        try
+          buf = exports.decode buffer
+          break if buf is -1
+          offset = exports.nsLength buf
+          buffer = buffer.slice offset, buffer.length
+          @emit 'string', buf
+        catch error
+          @emit 'error', error
+          break
+
     for all name, fun of @stream when !this[name] and name[0] != '_'
       @__defineGetter__ name, (args...) -> @stream[name]
-
-  on: (event, listener) ->
-    if event is 'data'
-      buffer = ""
-      @stream.on 'data', (chunk) ->
-        buffer += chunk
-
-        while buf = exports.decode buffer
-          offset = exports.encode(buf).length
-          buffer = buffer[offset...offset+buffer.length]
-          listener buf
-    else
-      @stream.on event, listener
