@@ -33,11 +33,8 @@ module Nack
     end
 
     def request(env = {}, body = nil)
-      socket.write(NetString.encode(env.to_json))
-
-      if body
-        socket.write(NetString.encode(body))
-      end
+      NetString.write(socket, env.to_json)
+      NetString.write(socket, body) if body
 
       socket.close_write
 

@@ -159,11 +159,11 @@ module Nack
 
       debug "Sending response: #{status}"
 
-      sock.write(NetString.encode(status.to_s))
-      sock.write(NetString.encode(headers.to_json))
+      NetString.write(sock, status.to_s)
+      NetString.write(sock, headers.to_json)
 
       body.each do |part|
-        sock.write(NetString.encode(part))
+        NetString.write(sock, part)
       end
     rescue Exception => e
       warn "#{e.class}: #{e.message}"
