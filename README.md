@@ -20,6 +20,7 @@ Dependencies
 ------------
 
 * node >= 0.2.3
+* node-netstring
 * rack
 * json
 
