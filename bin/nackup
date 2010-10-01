@@ -36,7 +36,7 @@ if !options[:port] && !options[:file]
 end
 
 cfgfile = File.read(config)
-app = eval "Rack::Builder.new {( " + cfgfile + "\n )}.to_app",
+app = eval "Nack::Builder.new {( " + cfgfile + "\n )}.to_app",
                  nil, config
 
 $stdout.sync = true
