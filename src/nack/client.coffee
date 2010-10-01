@@ -7,12 +7,12 @@ ns  = require 'netstring'
 {BufferedWriteStream} = require 'nack/buffered'
 
 exports.ClientRequest = class ClientRequest extends EventEmitter
-  constructor: (@socket, @method, @path, headers) ->
+  constructor: (@socket, @method, @path, headers, metaVariables) ->
     @bufferedSocket = new BufferedWriteStream @socket
     @writeable = true
 
-    @_parseHeaders headers
-    @writeObj @headers
+    @_parseEnv headers, metaVariables
+    @writeObj @env
 
     @socket.on 'connect', => @bufferedSocket.flush()
 
@@ -21,19 +21,30 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
 
     @_initParser()
 
-  _parseHeaders: (headers) ->
-    @headers = {}
-    @headers["REQUEST_METHOD"] = @method
+  _parseEnv: (headers, metaVariables) ->
+    @env = {}
+    @env['REQUEST_METHOD'] = @method
 
     {pathname, query} = url.parse @path
-    @headers["PATH_INFO"]    = pathname
-    @headers["QUERY_STRING"] = query
-    @headers["SCRIPT_NAME"]  = ""
+    @env['PATH_INFO']    = pathname
+    @env['QUERY_STRING'] = query
+    @env['SCRIPT_NAME']  = ""
+
+    @env['REMOTE_ADDR'] = "0.0.0.0"
+    @env['SERVER_ADDR'] = "0.0.0.0"
+
+    if host = headers.host
+      if {name, port} = headers.host.split ':'
+        @env['SERVER_NAME'] = name
+        @env['SERVER_PORT'] = port
 
     for key, value of headers
       key = key.toUpperCase().replace('-', '_')
       key = "HTTP_#{key}" unless key == 'CONTENT_TYPE' or key == 'CONTENT_LENGTH'
-      @headers[key] = value
+      @env[key] = value
+
+    for key, value of metaVariables
+      @env[key] = value
 
   _initParser: ->
     response = new ClientResponse @socket
@@ -78,13 +89,17 @@ exports.Client = class Client extends Stream
     if @readyState is 'closed'
       @connect @port, @host
 
-  request: (method, path, headers) ->
+  request: (args...) ->
     @reconnect()
-    request = new ClientRequest @, method, path, headers
+    request = new ClientRequest @, args...
     request
 
   proxyRequest: (serverRequest, serverResponse, callback) ->
-    clientRequest = @request serverRequest.method, serverRequest.url, serverRequest.headers
+    metaVariables =
+      "REMOTE_ADDR": serverRequest.connection.remoteAddress
+      "REMOTE_PORT": serverRequest.connection.remotePort
+
+    clientRequest = @request serverRequest.method, serverRequest.url, serverRequest.headers, metaVariables
     sys.pump serverRequest, clientRequest
 
     clientRequest.on "response", (clientResponse) ->

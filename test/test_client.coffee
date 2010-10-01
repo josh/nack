@@ -21,7 +21,7 @@ exports.testClientRequest = (test) ->
     test.ok request
     test.same "GET", request.method
     test.same "/foo", request.path
-    test.same "/foo", request.headers['PATH_INFO']
+    test.same "/foo", request.env['PATH_INFO']
 
     test.ok request.writeable
 
