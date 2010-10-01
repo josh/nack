@@ -66,6 +66,9 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
       else if chunk?
         response.emit 'data', chunk
 
+    nsStream.on 'error', (exception) =>
+      @stream.emit 'error', exception
+
     @socket.on 'end', ->
       response.emit 'end'
 
@@ -102,9 +105,12 @@ exports.Client = class Client extends Stream
     clientRequest = @request serverRequest.method, serverRequest.url, serverRequest.headers, metaVariables
     sys.pump serverRequest, clientRequest
 
+    @on "error", (err) ->
+      callback err
+
     clientRequest.on "response", (clientResponse) ->
       serverResponse.writeHead clientResponse.statusCode, clientResponse.headers
-      sys.pump clientResponse, serverResponse, callback
+      sys.pump clientResponse, serverResponse
 
       if callback?
         clientResponse.on "end", callback

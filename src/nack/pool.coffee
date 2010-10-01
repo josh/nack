@@ -103,8 +103,11 @@ exports.Pool = class Pool extends EventEmitter
     reqBuf = new BufferedReadStream req
 
     @onNext 'worker:ready', (worker) ->
-      worker.proxyRequest reqBuf, res, ->
-        callback() if callback?
+      worker.proxyRequest reqBuf, res, (err) =>
+        if callback?
+          callback err
+        else if err
+          @emit 'error', err
       reqBuf.flush()
 
     @announceReadyWorkers()
