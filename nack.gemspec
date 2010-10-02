@@ -10,7 +10,7 @@ Gem::Specification.new do |s|
   s.files = [
     'lib/nack.rb',
     'lib/nack/builder',
-    'lib/nack/client'
+    'lib/nack/client',
     'lib/nack/error',
     'lib/nack/netstring',
     'lib/nack/server'
