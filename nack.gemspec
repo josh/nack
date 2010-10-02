@@ -9,11 +9,11 @@ Gem::Specification.new do |s|
 
   s.files = [
     'lib/nack.rb',
-    'lib/nack/builder',
-    'lib/nack/client',
-    'lib/nack/error',
-    'lib/nack/netstring',
-    'lib/nack/server'
+    'lib/nack/builder.rb',
+    'lib/nack/client.rb',
+    'lib/nack/error.rb',
+    'lib/nack/netstring.rb',
+    'lib/nack/server.rb'
   ]
   s.executables = ['nackup']
   s.extra_rdoc_files = ['README.md', 'LICENSE']
