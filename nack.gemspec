@@ -8,9 +8,12 @@ Gem::Specification.new do |s|
   EOS
 
   s.files = [
-    'lib/nack/client.rb',
-    'lib/nack/server.rb',
-    'lib/nack.rb'
+    'lib/nack.rb',
+    'lib/nack/builder',
+    'lib/nack/client'
+    'lib/nack/error',
+    'lib/nack/netstring',
+    'lib/nack/server'
   ]
   s.executables = ['nackup']
   s.extra_rdoc_files = ['README.md', 'LICENSE']
