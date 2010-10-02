@@ -1,6 +1,6 @@
 sys = require 'sys'
 url = require 'url'
-ns  = require 'netstring'
+ns  = require 'nack/ns'
 
 {Stream}              = require 'net'
 {EventEmitter}        = require 'events'
