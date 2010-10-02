@@ -9,6 +9,6 @@ task 'build', 'Build CoffeeScript source files', ->
   coffee.stdout.on 'data', (data) -> print data.toString()
 
 task 'test', 'Run test suite', ->
-  {testrunner} = require 'nodeunit'
   process.chdir __dirname
-  testrunner.run ['test']
+  {reporters} = require 'nodeunit'
+  reporters.default.run ['test']
