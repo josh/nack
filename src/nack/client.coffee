@@ -12,7 +12,7 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
     @writeable = true
 
     @_parseEnv headers, metaVariables
-    @writeObj @env
+    @write JSON.stringify @env
 
     @socket.on 'connect', => @bufferedSocket.flush()
 
@@ -72,11 +72,8 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
     @socket.on 'end', ->
       response.emit 'end'
 
-  writeObj: (obj) ->
-    @bufferedSocket.write ns.nsWrite(JSON.stringify(obj))
-
   write: (chunk) ->
-    @writeObj chunk.toString()
+    @bufferedSocket.write ns.nsWrite(chunk.toString())
 
   end: ->
     @bufferedSocket.end()
