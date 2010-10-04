@@ -11,6 +11,7 @@
   , "web" : "http://github.com/josh/nack/issues"
   }
 , "directories": { "lib": "./lib/nack" }
+, "bin": { "nack": "./bin/nack" }
 , "main": "./lib/nack"
 , "repository":
   { "type": "git"
