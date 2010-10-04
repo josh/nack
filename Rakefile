@@ -8,7 +8,7 @@ Rake::TestTask.new do |t|
   t.warning = true
 end
 
-Version = "0.1.1"
+Version = "0.1.2"
 
 file "nack-#{Version}.gem" do
   sh "gem build nack.gemspec"
