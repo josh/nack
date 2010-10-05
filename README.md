@@ -48,6 +48,18 @@ Workers can idle out after a period of inactivity:
     // Timeout after 15m
     nack.createPool("/path/to/app/config.ru", { idle: 15 * 60 * 1000 });
 
+Connect API:
+
+    var connect = require('connect');
+    var nack    = require('nack');
+
+    connect.createServer(
+      connect.logger(),
+      connect.vhost('foo.test',
+        connect.createServer(nack("/u/apps/foo/config.ru"))
+      )
+    ).listen(3000);
+
 Caveats
 -------
 
