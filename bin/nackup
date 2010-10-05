@@ -40,4 +40,6 @@ app = eval "Nack::Builder.new {( " + cfgfile + "\n )}.to_app",
 $stdout.sync = true
 options[:onready] = proc { puts "ready" }
 
+options[:name] = File.basename(File.dirname(config))
+
 Nack::Server.run(app, options)
