@@ -48,13 +48,6 @@ Workers can idle out after a period of inactivity:
     // Timeout after 15m
     nack.createPool("/path/to/app/config.ru", { idle: 15 * 60 * 1000 });
 
-"Roadmap"
---------
-
-* Robustification
-* JSGI / Connect adapters
-* Binary protocol for IPC
-
 Caveats
 -------
 
