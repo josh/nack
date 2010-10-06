@@ -50,24 +50,33 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
     response = new ClientResponse @socket
     nsStream = new ns.Stream @socket
 
-    nsStream.on 'data', (data) =>
-      if !response.statusCode
-        response.statusCode = JSON.parse(data)
-      else if !response.headers
-        response.headers = []
-        for k, vs of JSON.parse(data)
-          for v in vs.split "\n"
-            response.headers.push [k, v]
-      else
-        chunk = data
+    stopped = false
 
-      if response.statusCode? && response.headers? && !chunk?
-        @emit 'response', response
-      else if chunk?
-        response.emit 'data', chunk
+    nsStream.on 'data', (data) =>
+      return if stopped
+      try
+        if !response.statusCode
+          response.statusCode = JSON.parse(data)
+        else if !response.headers
+          response.headers = []
+          for k, vs of JSON.parse(data)
+            for v in vs.split "\n"
+              response.headers.push [k, v]
+        else
+          chunk = data
+
+        if response.statusCode? && response.headers? && !chunk?
+          @emit 'response', response
+        else if chunk?
+          response.emit 'data', chunk
+      catch error
+        stopped = true
+        @socket.emit 'error', error
 
     nsStream.on 'error', (exception) =>
-      @stream.emit 'error', exception
+      return if stopped
+      stopped = true
+      @socket.emit 'error', exception
 
     @socket.on 'end', ->
       response.emit 'end'
@@ -102,15 +111,13 @@ exports.Client = class Client extends Stream
     clientRequest = @request serverRequest.method, serverRequest.url, serverRequest.headers, metaVariables
     sys.pump serverRequest, clientRequest
 
-    @on "error", (err) ->
-      callback err
+    if callback?
+      @on "error", (err) -> callback err
+      @on "close", callback
 
     clientRequest.on "response", (clientResponse) ->
       serverResponse.writeHead clientResponse.statusCode, clientResponse.headers
       sys.pump clientResponse, serverResponse
-
-      if callback?
-        clientResponse.on "end", callback
 
 exports.createConnection = (port, host) ->
   client = new Client
