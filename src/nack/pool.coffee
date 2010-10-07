@@ -35,6 +35,16 @@ exports.Pool = class Pool extends EventEmitter
     @stdout = new AggregateStream
     @stderr = new AggregateStream
 
+    readyWorkerCount = @readyWorkers.length
+    @on 'worker:ready', () =>
+      if readyWorkerCount is 0 and @readyWorkers.length > 0
+        @emit 'ready'
+      readyWorkerCount = @readyWorkers.length
+
+    @on 'worker:exit', () =>
+      if @workers.length is 0
+        @emit 'exit'
+
     for n in [1..options.size]
       @increment()
 
@@ -46,19 +56,16 @@ exports.Pool = class Pool extends EventEmitter
 
   increment: ->
     process = createProcess @config, idle: @idle
+    @workers.push process
 
     process.on 'spawn', =>
       @stdout.add process.stdout, process
       @stderr.add process.stderr, process
+      @emit 'worker:spawn', process
 
     process.on 'ready', =>
-      previousCount = @readyWorkers.length
       @readyWorkers.push process
-
       @emit 'worker:ready', process
-
-      if previousCount is 0 and @readyWorkers.length > 0
-         @emit 'ready'
 
     process.on 'busy', =>
       removeFromArray @readyWorkers, process
@@ -67,13 +74,8 @@ exports.Pool = class Pool extends EventEmitter
     process.on 'exit', =>
       removeFromArray @workers, process
       removeFromArray @readyWorkers, process
-
       @emit 'worker:exit', process
 
-      if @workers.length is 0
-        @emit 'exit'
-
-    @workers.push process
     process
 
   decrement: ->

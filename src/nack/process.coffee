@@ -3,8 +3,8 @@ client        = require 'nack/client'
 {spawn, exec} = require 'child_process'
 {exists}      = require 'path'
 
-{EventEmitter}       = require 'events'
-{BufferedReadStream} = require 'nack/buffered'
+{EventEmitter} = require 'events'
+{BufferedReadStream, BufferedLineStream} = require 'nack/buffered'
 
 tmpSock = ->
   pid  = process.pid
@@ -51,14 +51,12 @@ exports.Process = class Process extends EventEmitter
       @stdout = @child.stdout
       @stderr = @child.stderr
 
-      ready = (data) =>
-        if data.toString() is "ready\n"
-          @stdout.removeListener 'data', ready
-          @stderr.removeListener 'data', ready
+      readyLineHandler = (line) =>
+        if line.toString() is "ready"
+          @stdout.removeListener 'data', readyLineHandler
           @changeState 'ready'
-
-      @stdout.on 'data', ready
-      @stderr.on 'data', ready
+      stdoutLines = new BufferedLineStream @stdout
+      stdoutLines.on 'data', readyLineHandler
 
       @child.on 'exit', (code, signal) =>
         @clearTimeout()
@@ -130,8 +128,6 @@ exports.Process = class Process extends EventEmitter
     if @child
       @changeState 'quitting'
       @child.kill 'SIGQUIT'
-    else
-      process.nextTick => @emit 'exit'
 
 exports.createProcess = (args...) ->
   new Process args...

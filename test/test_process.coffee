@@ -110,15 +110,15 @@ exports.testQuitSpawned = (test) ->
   process.spawn()
 
 exports.testQuitUnspawned = (test) ->
-  test.expect 1
+  test.expect 0
 
   process = createProcess config
 
   process.on 'exit', ->
-    test.ok true
-    test.done()
+    test.ok false
 
   process.onNext 'quitting', () ->
     test.ok false
 
   process.quit()
+  test.done()

@@ -6,10 +6,8 @@ config = __dirname + "/fixtures/hello.ru"
 
 PORT = 8080
 
-exports.testCreatePool = (test) ->
-  test.expect 14
-
-  count = 0
+exports.testCreatePoolEvents = (test) ->
+  test.expect 5
 
   pool = createPool config, size: 3
   test.same 3, pool.workers.length
@@ -19,10 +17,29 @@ exports.testCreatePool = (test) ->
     test.same 1, pool.readyWorkers.length
 
   pool.on 'worker:ready', ->
+    if pool.readyWorkers.length == 3
+      pool.quit()
+
+  pool.on 'exit', ->
+    test.same 0, pool.workers.length
+    test.same 0, pool.readyWorkers.length
+    test.done()
+
+  pool.spawn()
+
+exports.testCreatePoolWorkerEvents = (test) ->
+  test.expect 11
+
+  count = 0
+
+  pool = createPool config, size: 3
+  test.same 3, pool.workers.length
+  test.same 0, pool.readyWorkers.length
+
+  pool.on 'worker:ready', ->
     count++
     test.same count, pool.readyWorkers.length
 
-  pool.on 'worker:ready', ->
     if pool.readyWorkers.length == 3
       pool.quit()
 
@@ -31,15 +48,13 @@ exports.testCreatePool = (test) ->
     test.same count, pool.workers.length
     test.same count, pool.readyWorkers.length
 
-  pool.onNext 'exit', ->
-    test.same 0, pool.workers.length
-    test.same 0, pool.readyWorkers.length
-    test.done()
+    if count is 0
+      test.done()
 
   pool.spawn()
 
 exports.testPoolIncrement = (test) ->
-  test.expect 4
+  test.expect 3
 
   pool = createPool config, size: 1
   test.same 1, pool.workers.length
@@ -53,11 +68,7 @@ exports.testPoolIncrement = (test) ->
 
   test.same 2, pool.workers.length
 
-  pool.on 'exit', ->
-    test.same 0, pool.workers.length
-    test.done()
-
-  pool.quit()
+  test.done()
 
 exports.testProxyRequest = (test) ->
   test.expect 7
