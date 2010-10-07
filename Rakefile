@@ -16,4 +16,6 @@ end
 task :release => :gem do
   sh "gem push pkg/#{gem_task.gem_file}"
   sh "npm publish"
+
+  sh "rm -r pkg/"
 end
