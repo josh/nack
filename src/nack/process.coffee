@@ -114,14 +114,16 @@ exports.Process = class Process extends EventEmitter
 
       @changeState 'busy'
       connection = client.createConnection @sockPath
-      connection.proxyRequest reqBuf, res, (err) =>
-        if err
-          if callback then callback err
-          else @emit 'error', err
-          return
+      connection.proxyRequest reqBuf, res
 
+      connection.on 'error', (err) =>
+        if callback then callback err
+        else @emit 'error', err
+
+      connection.on 'close', () =>
         callback() if callback
         @changeState 'ready'
+
       reqBuf.flush()
 
   kill: ->

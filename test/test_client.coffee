@@ -62,9 +62,11 @@ exports.testProxyRequest = (test) ->
     client = createConnection process.sockPath
     test.ok client
 
-    client.proxyRequest req, res, ->
+    client.on 'close', ->
       test.ok true
       process.quit()
+
+    client.proxyRequest req, res
 
   server.on 'close', ->
     test.ok true

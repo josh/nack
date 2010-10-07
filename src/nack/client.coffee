@@ -106,17 +106,13 @@ exports.Client = class Client extends Stream
     request = new ClientRequest @, args...
     request
 
-  proxyRequest: (serverRequest, serverResponse, callback) ->
+  proxyRequest: (serverRequest, serverResponse) ->
     metaVariables =
       "REMOTE_ADDR": serverRequest.connection.remoteAddress
       "REMOTE_PORT": serverRequest.connection.remotePort
 
     clientRequest = @request serverRequest.method, serverRequest.url, serverRequest.headers, metaVariables
     sys.pump serverRequest, clientRequest
-
-    if callback?
-      @on "error", (err) -> callback err
-      @on "close", callback
 
     clientRequest.on "response", (clientResponse) ->
       serverResponse.writeHead clientResponse.statusCode, clientResponse.headers
