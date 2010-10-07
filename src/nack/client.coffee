@@ -19,7 +19,9 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
     @bufferedSocket.on 'drain', => @emit 'drain'
     @bufferedSocket.on 'close', => @emit 'close'
 
-    @_initParser()
+    response = new ClientResponse @socket
+    response._initParser () =>
+      @emit 'response', response
 
   _parseEnv: (headers, metaVariables) ->
     @env = {}
@@ -46,41 +48,6 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
     for key, value of metaVariables
       @env[key] = value
 
-  _initParser: ->
-    response = new ClientResponse @socket
-    nsStream = new ns.Stream @socket
-
-    stopped = false
-
-    nsStream.on 'data', (data) =>
-      return if stopped
-      try
-        if !response.statusCode
-          response.statusCode = JSON.parse(data)
-        else if !response.headers
-          response.headers = []
-          for k, vs of JSON.parse(data)
-            for v in vs.split "\n"
-              response.headers.push [k, v]
-        else
-          chunk = data
-
-        if response.statusCode? && response.headers? && !chunk?
-          @emit 'response', response
-        else if chunk?
-          response.emit 'data', chunk
-      catch error
-        stopped = true
-        @socket.emit 'error', error
-
-    nsStream.on 'error', (exception) =>
-      return if stopped
-      stopped = true
-      @socket.emit 'error', exception
-
-    @socket.on 'end', ->
-      response.emit 'end'
-
   write: (chunk) ->
     @bufferedSocket.write ns.nsWrite(chunk.toString())
 
@@ -92,6 +59,42 @@ exports.ClientResponse = class ClientResponse extends EventEmitter
     @client = @socket
     @statusCode = null
     @headers = null
+    @_stopped = false
+
+  _initParser: (callback) ->
+    nsStream = new ns.Stream @socket
+
+    nsStream.on 'data', (data) =>
+      return if @_stopped
+      @_parseData data, callback
+
+    nsStream.on 'error', (exception) =>
+      return if @_stopped
+      @_stopped = true
+      @socket.emit 'error', exception
+
+    @socket.on 'end', =>
+      @emit 'end'
+
+  _parseData: (data, callback) ->
+    try
+      if !@statusCode
+        @statusCode = JSON.parse(data)
+      else if !@headers
+        @headers = []
+        for k, vs of JSON.parse(data)
+          for v in vs.split "\n"
+            @headers.push [k, v]
+      else
+        chunk = data
+
+      if @statusCode? && @headers? && !chunk?
+        callback()
+      else if chunk?
+        @emit 'data', chunk
+    catch error
+      @_stopped = true
+      @socket.emit 'error', error
 
 exports.Client = class Client extends Stream
   reconnect: ->
