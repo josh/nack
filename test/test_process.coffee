@@ -38,6 +38,41 @@ exports.testCreateProcess = (test) ->
 
   process.spawn()
 
+exports.testCreateConnection = (test) ->
+  test.expect 7
+
+  process = createProcess config
+
+  process.onNext 'ready', ->
+    test.ok true
+
+  process.on 'exit', ->
+    test.ok true
+    test.done()
+
+  process.createConnection (client) ->
+    test.ok client
+
+    request = client.request 'GET', '/foo', {}
+    request.end()
+
+    request.on 'close', ->
+      test.ok true
+
+    request.on 'response', (response) ->
+      test.ok response
+      test.same 200, response.statusCode
+
+      body = ""
+      response.on 'data', (chunk) ->
+        body += chunk
+
+      response.on 'end', ->
+        test.same "Hello World\n", body
+
+        process.quit()
+
+
 exports.testProxyRequest = (test) ->
   test.expect 7
 

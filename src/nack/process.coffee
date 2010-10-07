@@ -102,25 +102,28 @@ exports.Process = class Process extends EventEmitter
         @quit()
       @_timeoutId = setTimeout callback, @idle
 
-  proxyRequest: (req, res, callback) ->
-    reqBuf = new BufferedReadStream req
+  createConnection: (callback) ->
     @spawn()
 
     @onState 'ready', =>
-      if @state isnt 'ready'
-        @emit 'error', new Error "process said it was ready but wasn't"
-
       @changeState 'busy'
-      connection = client.createConnection @sockPath
-      connection.proxyRequest reqBuf, res
 
-      connection.on 'error', (err) =>
-        if callback then callback err
-        else @emit 'error', err
+      connection = client.createConnection @sockPath
 
       connection.on 'close', () =>
-        callback() if callback
         @changeState 'ready'
+
+      callback connection
+
+  proxyRequest: (req, res, callback) ->
+    reqBuf = new BufferedReadStream req
+
+    @createConnection (connection) ->
+      connection.proxyRequest reqBuf, res
+
+      if callback
+        connection.on 'error', callback
+        connection.on 'close', callback
 
       reqBuf.flush()
 
