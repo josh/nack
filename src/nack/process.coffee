@@ -128,6 +128,7 @@ exports.Process = class Process extends EventEmitter
 
   quit: ->
     if @child
+      @changeState 'quitting'
       @child.kill 'SIGQUIT'
     else
       process.nextTick => @emit 'exit'
