@@ -1,4 +1,4 @@
-require.paths.push __dirname + "/lib"
+require.paths.unshift __dirname + "/lib"
 process.env['PATH'] = __dirname + "/bin:" + process.env['PATH']
 
 {print} = require 'sys'
