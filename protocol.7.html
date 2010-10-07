@@ -77,29 +77,31 @@
 
 <p>First, the client MUST send the <code>env</code> hash which MUST be serialized as a single JSON netstring. The <code>env</code> has MUST include the CGI environment variables specificied by the Rack SPEC. This excludes any Rack specific variables that start with "rack.".</p>
 
-<p>Next, the client MAY send the request body following the <code>env</code>. The body SHOULD NOT be encoded as JSON. Depending on the size, the body MAY be sent as a single netstring or chunk into multiple smaller parts.</p>
+<p>Next, the client MAY send the request body following the <code>env</code>. The body SHOULD NOT be encoded as JSON. Depending on the size, the body MAY be sent as a single netstring or chunked into multiple smaller parts.</p>
 
 <p>Once the body parts have been sent, the client MUST close its write socket to indicate the request is finished.</p>
 
 <p>Sample:</p>
 
-<p>  16:{"METHOD":"GET"},4:foo=,3:bar,</p>
+<pre><code>16:{"METHOD":"GET"},4:foo=,3:bar,
+</code></pre>
 
 <h3 id="RESPONSE">RESPONSE</h3>
 
-<p>To start the response, the server MUST first send a netstring with the interger status code of the response. Following this MUST be a JSON serialized netstring of the response headers hash.</p>
+<p>To start the response, the server MUST first send a netstring with the integer status code of the response. Following this MUST be a JSON serialized netstring of the response headers hash.</p>
 
 <p>Similar to the request body, the response body MAY be sent as a single netstring or chunked into multiple parts. The body parts SHOULD NOT be JSON encoded.</p>
 
-<p>When the repsonse is finished, the server should close its write socket thus closing the entire connection.</p>
+<p>When the response is finished, the server should close its write socket thus closing the entire connection.</p>
 
 <p>Sample:</p>
 
-<p>  3:200,28:{"Content-Type":"text/html"},10:&lt;!DOCTYPE ,5:html>,</p>
+<pre><code>3:200,28:{"Content-Type":"text/html"},10:&lt;!DOCTYPE ,5:html&gt;,
+</code></pre>
 
 <h2 id="SEE-ALSO">SEE ALSO</h2>
 
-<p><span class="man-ref">json<span class="s">(3)</span></span>, http://cr.yp.to/proto/netstrings.txt</p>
+<p><span class="man-ref">json<span class="s">(3)</span></span>, <a href="http://cr.yp.to/proto/netstrings.txt" data-bare-link="true">http://cr.yp.to/proto/netstrings.txt</a></p>
 
 
   <ol class='man-decor man-foot man foot'>
