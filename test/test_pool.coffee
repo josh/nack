@@ -11,44 +11,43 @@ exports.testCreatePoolEvents = (test) ->
 
   pool = createPool config, size: 3
   test.same 3, pool.workers.length
-  test.same 0, pool.readyWorkers.length
+  test.same 0, pool.getReadyWorkerCount()
 
   pool.onNext 'ready', ->
-    test.same 1, pool.readyWorkers.length
+    test.same 1, pool.getReadyWorkerCount()
 
   pool.on 'worker:ready', ->
-    if pool.readyWorkers.length == 3
+    if pool.getReadyWorkerCount() == 3
       pool.quit()
 
   pool.on 'exit', ->
-    test.same 0, pool.workers.length
-    test.same 0, pool.readyWorkers.length
+    test.same 3, pool.workers.length
+    test.same 0, pool.getReadyWorkerCount()
     test.done()
 
   pool.spawn()
 
 exports.testCreatePoolWorkerEvents = (test) ->
-  test.expect 11
+  test.expect 4
 
   count = 0
 
   pool = createPool config, size: 3
   test.same 3, pool.workers.length
-  test.same 0, pool.readyWorkers.length
+  test.same 0, pool.getReadyWorkerCount()
 
   pool.on 'worker:ready', ->
     count++
-    test.same count, pool.readyWorkers.length
 
-    if pool.readyWorkers.length == 3
+    if pool.getReadyWorkerCount() == 3
+      test.same 3, pool.workers.length
       pool.quit()
 
   pool.on 'worker:exit', ->
     count--
-    test.same count, pool.workers.length
-    test.same count, pool.readyWorkers.length
 
     if count is 0
+      test.same 0, pool.getReadyWorkerCount()
       test.done()
 
   pool.spawn()

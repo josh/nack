@@ -3,11 +3,6 @@
 
 {BufferedReadStream} = require 'nack/buffered'
 
-removeFromArray = (array, obj) ->
-  index = array.indexOf obj
-  if index isnt -1
-    array.splice index, 1
-
 class AggregateStream extends EventEmitter
   add: (stream, process) ->
     stream.on 'data', (data) =>
@@ -27,22 +22,21 @@ exports.Pool = class Pool extends EventEmitter
     options ?= {}
     options.size ?= 1
 
-    @workers      = []
-    @readyWorkers = []
-
+    @workers = []
     @idle = options.idle
 
     @stdout = new AggregateStream
     @stderr = new AggregateStream
 
-    readyWorkerCount = @readyWorkers.length
+    previousReadyWorkerCount = 0
     @on 'worker:ready', () =>
-      if readyWorkerCount is 0 and @readyWorkers.length > 0
+      newReadyWorkerCount = @getReadyWorkerCount()
+      if previousReadyWorkerCount is 0 and newReadyWorkerCount > 0
         @emit 'ready'
-      readyWorkerCount = @readyWorkers.length
+      previousReadyWorkerCount = newReadyWorkerCount
 
     @on 'worker:exit', () =>
-      if @workers.length is 0
+      if @getAliveWorkerCount() is 0
         @emit 'exit'
 
     for n in [1..options.size]
@@ -54,6 +48,18 @@ exports.Pool = class Pool extends EventEmitter
       listener args...
     @on event, callback
 
+  getAliveWorkerCount: () ->
+    count = 0
+    for worker in @workers when worker.state
+      count++
+    count
+
+  getReadyWorkerCount: () ->
+    count = 0
+    for worker in @workers when worker.state is 'ready'
+      count++
+    count
+
   increment: ->
     process = createProcess @config, idle: @idle
     @workers.push process
@@ -64,16 +70,12 @@ exports.Pool = class Pool extends EventEmitter
       @emit 'worker:spawn', process
 
     process.on 'ready', =>
-      @readyWorkers.push process
       @emit 'worker:ready', process
 
     process.on 'busy', =>
-      removeFromArray @readyWorkers, process
       @emit 'worker:busy', process
 
     process.on 'exit', =>
-      removeFromArray @workers, process
-      removeFromArray @readyWorkers, process
       @emit 'worker:exit', process
 
     process
