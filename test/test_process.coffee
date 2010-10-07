@@ -88,24 +88,42 @@ exports.testOnReadyState = (test) ->
 
   process.spawn()
 
+exports.testKill = (test) ->
+  test.expect 3
+
+  process = createProcess config
+
+  process.onNext 'ready', ->
+    test.ok true
+    process.kill()
+
+  process.onNext 'quitting', () ->
+    test.ok true
+
+  process.onNext 'exit', ->
+    test.ok true
+    test.done()
+
+  process.spawn()
+
 exports.testQuitSpawned = (test) ->
   test.expect 4
 
   process = createProcess config
+
   process.on 'spawn', ->
     test.ok true
 
   process.onNext 'ready', ->
     test.ok true
-
-    process.on 'exit', ->
-      test.ok true
-      test.done()
-
     process.quit()
 
   process.onNext 'quitting', () ->
     test.ok true
+
+  process.onNext 'exit', ->
+    test.ok true
+    test.done()
 
   process.spawn()
 
@@ -114,10 +132,10 @@ exports.testQuitUnspawned = (test) ->
 
   process = createProcess config
 
-  process.on 'exit', ->
+  process.onNext 'quitting', () ->
     test.ok false
 
-  process.onNext 'quitting', () ->
+  process.on 'exit', ->
     test.ok false
 
   process.quit()

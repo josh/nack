@@ -124,6 +124,11 @@ exports.Process = class Process extends EventEmitter
         @changeState 'ready'
       reqBuf.flush()
 
+  kill: ->
+    if @child
+      @changeState 'quitting'
+      @child.kill 'SIGTERM'
+
   quit: ->
     if @child
       @changeState 'quitting'
