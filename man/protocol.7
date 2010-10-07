@@ -13,7 +13,7 @@ Node communicates with its Ruby worker process over a TCP or UNIX socket\. The N
 First, the client MUST send the \fBenv\fR hash which MUST be serialized as a single JSON netstring\. The \fBenv\fR has MUST include the CGI environment variables specificied by the Rack SPEC\. This excludes any Rack specific variables that start with "rack\."\.
 .
 .P
-Next, the client MAY send the request body following the \fBenv\fR\. The body SHOULD NOT be encoded as JSON\. Depending on the size, the body MAY be sent as a single netstring or chunk into multiple smaller parts\.
+Next, the client MAY send the request body following the \fBenv\fR\. The body SHOULD NOT be encoded as JSON\. Depending on the size, the body MAY be sent as a single netstring or chunked into multiple smaller parts\.
 .
 .P
 Once the body parts have been sent, the client MUST close its write socket to indicate the request is finished\.
@@ -21,23 +21,37 @@ Once the body parts have been sent, the client MUST close its write socket to in
 .P
 Sample:
 .
-.P
+.IP "" 4
+.
+.nf
+
 16:{"METHOD":"GET"},4:foo=,3:bar,
 .
+.fi
+.
+.IP "" 0
+.
 .SS "RESPONSE"
-To start the response, the server MUST first send a netstring with the interger status code of the response\. Following this MUST be a JSON serialized netstring of the response headers hash\.
+To start the response, the server MUST first send a netstring with the integer status code of the response\. Following this MUST be a JSON serialized netstring of the response headers hash\.
 .
 .P
 Similar to the request body, the response body MAY be sent as a single netstring or chunked into multiple parts\. The body parts SHOULD NOT be JSON encoded\.
 .
 .P
-When the repsonse is finished, the server should close its write socket thus closing the entire connection\.
+When the response is finished, the server should close its write socket thus closing the entire connection\.
 .
 .P
 Sample:
 .
-.P
+.IP "" 4
+.
+.nf
+
 3:200,28:{"Content\-Type":"text/html"},10:<!DOCTYPE ,5:html>,
 .
+.fi
+.
+.IP "" 0
+.
 .SH "SEE ALSO"
-json(3), http://cr\.yp\.to/proto/netstrings\.txt
+json(3), \fIhttp://cr\.yp\.to/proto/netstrings\.txt\fR
