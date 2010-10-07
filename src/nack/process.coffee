@@ -26,6 +26,9 @@ exports.Process = class Process extends EventEmitter
     else
       raiseConfigError()
 
+    @on 'busy', =>
+      @deferTimeout()
+
   getNackupPath: (callback) ->
     if @nackupPath?
       callback null, @nackupPath
@@ -64,9 +67,6 @@ exports.Process = class Process extends EventEmitter
         @stdout = @stderr = null
         @emit 'exit'
 
-      @on 'ready', =>
-        @deferTimeout()
-
       @emit 'spawn'
 
     this
@@ -103,8 +103,6 @@ exports.Process = class Process extends EventEmitter
       @_timeoutId = setTimeout callback, @idle
 
   proxyRequest: (req, res, callback) ->
-    @deferTimeout()
-
     reqBuf = new BufferedReadStream req
     @spawn()
 
