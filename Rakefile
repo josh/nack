@@ -21,6 +21,23 @@ task :man => ([:clobber] + Dir["doc/*"].map { |doc|
   man
 })
 
+task :pages => :man do
+  rm_rf "pages"
+
+  url = `git remote show origin`.grep(/Push.*URL/).first[/git@.*/]
+  sh "git clone -q -b gh-pages #{url} pages"
+
+  sh "rm pages/*.html"
+
+  sh "ronn -5 doc/*"
+  sh "mv doc/*.html pages/"
+
+  cd "pages"
+  sh "git add -u *.html"
+  sh "git commit -m 'rebuild manual'"
+  sh "git push #{url} gh-pages"
+end
+
 require 'rake/gempackagetask'
 spec = eval(File.read("nack.gemspec"))
 gem_task = Rake::GemPackageTask.new(spec) do
