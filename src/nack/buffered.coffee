@@ -31,7 +31,7 @@ exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
     # Tell the `@stream` to pause and stop emitting new events
     @stream.pause()
 
-    # Foward any properties to `@stream`
+    # Forward any properties to `@stream`
     for all name, fun of @stream when !this[name] and name[0] != '_'
       @__defineGetter__ name, (args...) -> @stream[name]
 
@@ -59,16 +59,25 @@ exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
     # Emit a `drain` event to signal the buffer is empty.
     @emit 'drain'
 
+# **BufferedWriteStream** wraps any writeable stream and captures writes
+# to it. The data is held in a buffer until `flush` is called.
+#
+#     bufferedStream = new BufferWriteStream stream
+#     stream.on 'connect', () -> bufferedStream.flush()
+#     bufferedStream.write "foo"
+#
 exports.BufferedWriteStream = class BufferedWriteStream extends EventEmitter
   constructor: (@stream) ->
     @writeable = true
     @_queue = []
     @_flushed = false
 
+    # Forward `drain`, `error` and `close` events
     @stream.on 'drain', => @emit 'drain'
     @stream.on 'error', (exception) => @emit 'error', exception
     @stream.on 'close', => @emit 'close'
 
+  # Call `write` on `@stream`, otherwise queue a `write` call.
   write: (args...) ->
     if @_flushed
       @stream.write args...
@@ -76,6 +85,7 @@ exports.BufferedWriteStream = class BufferedWriteStream extends EventEmitter
       @_queue.push ['write', args...]
       false
 
+  # Call `end` on `@stream`, otherwise queue a `end` call.
   end: (args...) ->
     if @_flushed
       @stream.end args...
@@ -83,6 +93,7 @@ exports.BufferedWriteStream = class BufferedWriteStream extends EventEmitter
       @_queue.push ['end', args...]
       false
 
+  # Call `destroy` on `@stream`, otherwise queue a `destroy` call.
   destroy: ->
     if @_flushed
       @stream.destroy()
@@ -90,7 +101,9 @@ exports.BufferedWriteStream = class BufferedWriteStream extends EventEmitter
       @_queue.push ['destroy']
       false
 
+
   flush: ->
+    # Process queued method calls
     for [fun, args...] in @_queue
       switch fun
         when 'write'
@@ -101,31 +114,48 @@ exports.BufferedWriteStream = class BufferedWriteStream extends EventEmitter
           @stream.destroy args...
 
     @_flushed = true
+
+    # Emit a `drain` event to signal the buffer is empty.
     @emit 'drain'
 
+# **BufferedLineStream** wraps any readable stream and buffers data until
+# it encounters a `\n` line break. It will emit `data` events as lines
+# instead of arbitrarily chunked text.
+#
+#     stdoutLines = new BufferedLineStream(stdoutStream)
+#     stdoutLines.on 'data', (line) ->
+#       if line.match "TO: "
+#         console.log line
+#
 exports.BufferedLineStream = class BufferedLineStream extends EventEmitter
   constructor: (@stream) ->
     @readable = true
     @_buffer = ""
     @_flushed = false
 
+    # Buffer `data` and `end` events from `@stream`
     @stream.on 'data',  (args...) => @write args...
     @stream.on 'end',   (args...) => @end args...
 
+    # Forward `error`, `close` and `fd` events from `@stream`
     @stream.on 'error', (args...) => @emit 'error', args...
     @stream.on 'close', (args...) => @emit 'close', args...
     @stream.on 'fd',    (args...) => @emit 'fd', args...
 
+    # Forward any properties to `@stream`
     for all name, fun of @stream when !this[name] and name[0] != '_'
       @__defineGetter__ name, (args...) -> @stream[name]
 
   write: (chunk) ->
+    # Write chunk to string buffer
     @_buffer += chunk
 
+    # Check for `\n` in buffer
     while (index = @_buffer.indexOf("\n")) != -1
       line     = @_buffer[0...index]
       @_buffer = @_buffer[index+1...@_buffer.length]
 
+      # Emit `data` line as a single line
       @emit 'data', line
 
   end: (args...) ->
