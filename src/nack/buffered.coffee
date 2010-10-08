@@ -1,5 +1,14 @@
 {EventEmitter} = require 'events'
 
+# **BufferedReadStream** wraps any readable stream and captures any events
+# it fires. The events are held in a buffer until `flush` is called.
+#
+#     http.createServer (req, res) ->
+#       bufferedReq = new BufferedReadStream req
+#       fs.readFile path, () ->
+#         bufferedReq.on 'data' (chunk) ->
+#           console.log
+#
 exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
   constructor: (@stream) ->
     @readable = true
@@ -12,33 +21,42 @@ exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
       else
         @_queue.push ['emit', event, args...]
 
+    # Listen and queue up any events on the @stream
     @stream.on 'data',  (args...) -> queueEvent 'data', args...
     @stream.on 'end',   (args...) -> queueEvent 'end', args...
     @stream.on 'error', (args...) -> queueEvent 'error', args...
     @stream.on 'close', (args...) -> queueEvent 'close', args...
     @stream.on 'fd',    (args...) -> queueEvent 'fd', args...
 
+    # Tell the @stream to pause and stop emitting new events
     @stream.pause()
 
+    # Foward any properties to @stream
     for all name, fun of @stream when !this[name] and name[0] != '_'
       @__defineGetter__ name, (args...) -> @stream[name]
 
+  # Ignore requests to resume the stream
   resume: ->
 
+  # Ignore requrests to pause the stream
   pause: ->
 
   flush: ->
+    # Tell the @stream to resume
     try
       @stream.resume()
     catch error
       # Stream is probably closed now
 
+    # Flush the event buffer and re-emit the events.
     for [fun, args...] in @_queue
       switch fun
         when 'emit'
           @emit args...
 
     @_flushed = true
+
+    # Emit a 'drain' event to signal the buffer is empty.
     @emit 'drain'
 
 exports.BufferedWriteStream = class BufferedWriteStream extends EventEmitter
