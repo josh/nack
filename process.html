@@ -1,0 +1,143 @@
+<!DOCTYPE html>  <html> <head>   <title>process.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>            <div id="jump_to">         Jump To &hellip;         <div id="jump_wrapper">           <div id="jump_page">                                           <a class="source" href="buffered.html">                 buffered.coffee               </a>                                           <a class="source" href="client.html">                 client.coffee               </a>                                           <a class="source" href="logger.html">                 logger.coffee               </a>                                           <a class="source" href="pool.html">                 pool.coffee               </a>                                           <a class="source" href="process.html">                 process.coffee               </a>                        </div>         </div>       </div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               process.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="octowrap">                 <a class="octothorpe" href="#section-1">#</a>               </div>                            </td>             <td class="code">               <div class="highlight"><pre><span class="nx">sys</span>           <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;sys&#39;</span>
+<span class="nx">client</span>        <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;nack/client&#39;</span>
+<span class="p">{</span><span class="nx">spawn</span><span class="p">,</span> <span class="nx">exec</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;child_process&#39;</span>
+<span class="p">{</span><span class="nx">exists</span><span class="p">}</span>      <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;path&#39;</span>
+
+<span class="p">{</span><span class="nx">EventEmitter</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;events&#39;</span>
+<span class="p">{</span><span class="nx">BufferedReadStream</span><span class="p">,</span> <span class="nx">BufferedLineStream</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;nack/buffered&#39;</span>
+
+<span class="nx">tmpSock</span> <span class="o">=</span> <span class="o">-&gt;</span>
+  <span class="nx">pid</span>  <span class="o">=</span> <span class="nx">process</span><span class="p">.</span><span class="nx">pid</span>
+  <span class="nx">rand</span> <span class="o">=</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">floor</span> <span class="nb">Math</span><span class="p">.</span><span class="nx">random</span><span class="p">()</span> <span class="o">*</span> <span class="mi">10000000000</span>
+  <span class="s2">&quot;/tmp/nack.&quot;</span> <span class="o">+</span> <span class="nx">pid</span> <span class="o">+</span> <span class="s2">&quot;.&quot;</span> <span class="o">+</span> <span class="nx">rand</span> <span class="o">+</span> <span class="s2">&quot;.sock&quot;</span>
+
+<span class="nx">exports</span><span class="p">.</span><span class="nx">Process</span> <span class="o">=</span> <span class="k">class</span> <span class="nx">Process</span> <span class="k">extends</span> <span class="nx">EventEmitter</span>
+  <span class="nv">constructor: </span><span class="p">(</span><span class="nx">@config</span><span class="p">,</span> <span class="nx">options</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="nx">options</span> <span class="o">?=</span> <span class="p">{}</span>
+    <span class="nx">@idle</span>  <span class="o">=</span> <span class="nx">options</span><span class="p">.</span><span class="nx">idle</span>
+    <span class="nx">@state</span> <span class="o">=</span> <span class="kc">null</span>
+
+    <span class="nx">raiseConfigError</span> <span class="o">=</span> <span class="o">=&gt;</span>
+      <span class="nx">@emit</span> <span class="s1">&#39;error&#39;</span><span class="p">,</span> <span class="k">new</span> <span class="nb">Error</span> <span class="s2">&quot;configuration \&quot;#{@config}\&quot; doesn&#39;t exist&quot;</span>
+
+    <span class="k">if</span> <span class="nx">@config</span><span class="o">?</span>
+      <span class="nx">exists</span> <span class="nx">@config</span><span class="p">,</span> <span class="p">(</span><span class="nx">ok</span><span class="p">)</span> <span class="o">=&gt;</span>
+        <span class="nx">raiseConfigError</span><span class="p">()</span> <span class="k">if</span> <span class="o">!</span><span class="nx">ok</span>
+    <span class="k">else</span>
+      <span class="nx">raiseConfigError</span><span class="p">()</span>
+
+    <span class="nx">@on</span> <span class="s1">&#39;busy&#39;</span><span class="p">,</span> <span class="o">=&gt;</span>
+      <span class="nx">@deferTimeout</span><span class="p">()</span>
+
+  <span class="nv">getNackupPath: </span><span class="p">(</span><span class="nx">callback</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="k">if</span> <span class="nx">@nackupPath</span><span class="o">?</span>
+      <span class="nx">callback</span> <span class="kc">null</span><span class="p">,</span> <span class="nx">@nackupPath</span>
+    <span class="k">else</span>
+      <span class="nx">exec</span> <span class="s1">&#39;which nackup&#39;</span><span class="p">,</span> <span class="p">(</span><span class="nx">error</span><span class="p">,</span> <span class="nx">stdout</span><span class="p">,</span> <span class="nx">stderr</span><span class="p">)</span> <span class="o">=&gt;</span>
+        <span class="k">if</span> <span class="nx">error</span>
+          <span class="nx">callback</span> <span class="k">new</span> <span class="nb">Error</span> <span class="s2">&quot;Couldn&#39;t find `nackup` in PATH&quot;</span>
+        <span class="k">else</span>
+          <span class="nx">@nackupPath</span> <span class="o">=</span> <span class="nx">stdout</span><span class="p">.</span><span class="nx">replace</span> <span class="sr">/(\n|\r)+$/</span><span class="p">,</span> <span class="s1">&#39;&#39;</span>
+          <span class="nx">callback</span> <span class="nx">error</span><span class="p">,</span> <span class="nx">@nackupPath</span>
+
+  <span class="nv">spawn: </span><span class="p">()</span> <span class="o">-&gt;</span>
+    <span class="k">return</span> <span class="k">if</span> <span class="nx">@state</span>
+
+    <span class="nx">@changeState</span> <span class="s1">&#39;spawning&#39;</span>
+
+    <span class="nx">@getNackupPath</span> <span class="p">(</span><span class="nx">err</span><span class="p">,</span> <span class="nx">nackup</span><span class="p">)</span> <span class="o">=&gt;</span>
+      <span class="k">return</span> <span class="nx">@emit</span> <span class="s1">&#39;error&#39;</span><span class="p">,</span> <span class="nx">err</span> <span class="k">if</span> <span class="nx">err</span>
+
+      <span class="nx">@sockPath</span> <span class="o">=</span> <span class="nx">tmpSock</span><span class="p">()</span>
+      <span class="nx">@child</span> <span class="o">=</span> <span class="nx">spawn</span> <span class="s2">&quot;nackup&quot;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;--file&#39;</span><span class="p">,</span> <span class="nx">@sockPath</span><span class="p">,</span> <span class="nx">@config</span><span class="p">]</span>
+
+      <span class="nx">@stdout</span> <span class="o">=</span> <span class="nx">@child</span><span class="p">.</span><span class="nx">stdout</span>
+      <span class="nx">@stderr</span> <span class="o">=</span> <span class="nx">@child</span><span class="p">.</span><span class="nx">stderr</span>
+
+      <span class="nx">readyLineHandler</span> <span class="o">=</span> <span class="p">(</span><span class="nx">line</span><span class="p">)</span> <span class="o">=&gt;</span>
+        <span class="k">if</span> <span class="nx">line</span><span class="p">.</span><span class="nx">toString</span><span class="p">()</span> <span class="o">is</span> <span class="s2">&quot;ready&quot;</span>
+          <span class="nx">@stdout</span><span class="p">.</span><span class="nx">removeListener</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="nx">readyLineHandler</span>
+          <span class="nx">@changeState</span> <span class="s1">&#39;ready&#39;</span>
+      <span class="nx">stdoutLines</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">BufferedLineStream</span> <span class="nx">@stdout</span>
+      <span class="nx">stdoutLines</span><span class="p">.</span><span class="kc">on</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="nx">readyLineHandler</span>
+
+      <span class="nx">@child</span><span class="p">.</span><span class="kc">on</span> <span class="s1">&#39;exit&#39;</span><span class="p">,</span> <span class="p">(</span><span class="nx">code</span><span class="p">,</span> <span class="nx">signal</span><span class="p">)</span> <span class="o">=&gt;</span>
+        <span class="nx">@clearTimeout</span><span class="p">()</span>
+        <span class="nx">@state</span> <span class="o">=</span> <span class="nx">@sockPath</span> <span class="o">=</span> <span class="nx">@child</span> <span class="o">=</span> <span class="kc">null</span>
+        <span class="nx">@stdout</span> <span class="o">=</span> <span class="nx">@stderr</span> <span class="o">=</span> <span class="kc">null</span>
+        <span class="nx">@emit</span> <span class="s1">&#39;exit&#39;</span>
+
+      <span class="nx">@emit</span> <span class="s1">&#39;spawn&#39;</span>
+
+    <span class="k">this</span>
+
+  <span class="nv">onNext: </span><span class="p">(</span><span class="nx">event</span><span class="p">,</span> <span class="nx">listener</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="nx">callback</span> <span class="o">=</span> <span class="p">(</span><span class="nx">args</span><span class="p">...)</span> <span class="o">=&gt;</span>
+      <span class="nx">@removeListener</span> <span class="nx">event</span><span class="p">,</span> <span class="nx">callback</span>
+      <span class="nx">listener</span> <span class="nx">args</span><span class="p">...</span>
+    <span class="nx">@on</span> <span class="nx">event</span><span class="p">,</span> <span class="nx">callback</span>
+
+  <span class="nv">changeState: </span><span class="p">(</span><span class="nx">state</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="k">if</span> <span class="nx">@state</span> <span class="o">!=</span> <span class="nx">state</span>
+      <span class="nx">@state</span> <span class="o">=</span> <span class="nx">state</span>
+      <span class="nx">process</span><span class="p">.</span><span class="nx">nextTick</span> <span class="o">=&gt;</span> <span class="nx">@emit</span> <span class="nx">state</span>
+
+  <span class="nv">onState: </span><span class="p">(</span><span class="nx">state</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="k">if</span> <span class="nx">@state</span> <span class="o">==</span> <span class="nx">state</span>
+      <span class="nx">callback</span><span class="p">()</span>
+    <span class="k">else</span>
+      <span class="nx">@onNext</span> <span class="nx">state</span><span class="p">,</span> <span class="o">=&gt;</span>
+        <span class="nx">@onState</span> <span class="nx">state</span><span class="p">,</span> <span class="nx">callback</span>
+
+  <span class="nv">clearTimeout: </span><span class="o">-&gt;</span>
+    <span class="k">if</span> <span class="nx">@_timeoutId</span>
+      <span class="nx">clearTimeout</span> <span class="nx">@_timeoutId</span>
+
+  <span class="nv">deferTimeout: </span><span class="o">-&gt;</span>
+    <span class="k">if</span> <span class="nx">@idle</span>
+      <span class="nx">@clearTimeout</span><span class="p">()</span>
+
+      <span class="nx">callback</span> <span class="o">=</span> <span class="o">=&gt;</span>
+        <span class="nx">@emit</span> <span class="s1">&#39;idle&#39;</span>
+        <span class="nx">@quit</span><span class="p">()</span>
+      <span class="nx">@_timeoutId</span> <span class="o">=</span> <span class="nx">setTimeout</span> <span class="nx">callback</span><span class="p">,</span> <span class="nx">@idle</span>
+
+  <span class="nv">createConnection: </span><span class="p">(</span><span class="nx">callback</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="nx">@spawn</span><span class="p">()</span>
+
+    <span class="nx">@onState</span> <span class="s1">&#39;ready&#39;</span><span class="p">,</span> <span class="o">=&gt;</span>
+      <span class="nx">@changeState</span> <span class="s1">&#39;busy&#39;</span>
+
+      <span class="nx">connection</span> <span class="o">=</span> <span class="nx">client</span><span class="p">.</span><span class="nx">createConnection</span> <span class="nx">@sockPath</span>
+
+      <span class="nx">connection</span><span class="p">.</span><span class="kc">on</span> <span class="s1">&#39;close&#39;</span><span class="p">,</span> <span class="p">()</span> <span class="o">=&gt;</span>
+        <span class="nx">@changeState</span> <span class="s1">&#39;ready&#39;</span>
+
+      <span class="nx">callback</span> <span class="nx">connection</span>
+
+  <span class="nv">proxyRequest: </span><span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="nx">reqBuf</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">BufferedReadStream</span> <span class="nx">req</span>
+
+    <span class="nx">@createConnection</span> <span class="p">(</span><span class="nx">connection</span><span class="p">)</span> <span class="o">-&gt;</span>
+      <span class="nx">connection</span><span class="p">.</span><span class="nx">proxyRequest</span> <span class="nx">reqBuf</span><span class="p">,</span> <span class="nx">res</span>
+
+      <span class="k">if</span> <span class="nx">callback</span>
+        <span class="nx">connection</span><span class="p">.</span><span class="kc">on</span> <span class="s1">&#39;error&#39;</span><span class="p">,</span> <span class="nx">callback</span>
+        <span class="nx">connection</span><span class="p">.</span><span class="kc">on</span> <span class="s1">&#39;close&#39;</span><span class="p">,</span> <span class="nx">callback</span>
+
+      <span class="nx">reqBuf</span><span class="p">.</span><span class="nx">flush</span><span class="p">()</span>
+
+  <span class="nv">kill: </span><span class="o">-&gt;</span>
+    <span class="k">if</span> <span class="nx">@child</span>
+      <span class="nx">@changeState</span> <span class="s1">&#39;quitting&#39;</span>
+      <span class="nx">@child</span><span class="p">.</span><span class="nx">kill</span> <span class="s1">&#39;SIGTERM&#39;</span>
+
+  <span class="nv">quit: </span><span class="o">-&gt;</span>
+    <span class="k">if</span> <span class="nx">@child</span>
+      <span class="nx">@changeState</span> <span class="s1">&#39;quitting&#39;</span>
+      <span class="nx">@child</span><span class="p">.</span><span class="nx">kill</span> <span class="s1">&#39;SIGQUIT&#39;</span>
+
+<span class="nx">exports</span><span class="p">.</span><span class="nx">createProcess</span> <span class="o">=</span> <span class="p">(</span><span class="nx">args</span><span class="p">...)</span> <span class="o">-&gt;</span>
+  <span class="k">new</span> <span class="nx">Process</span> <span class="nx">args</span><span class="p">...</span>
+
+</pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 

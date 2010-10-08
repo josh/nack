@@ -1,0 +1,127 @@
+<!DOCTYPE html>  <html> <head>   <title>client.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>            <div id="jump_to">         Jump To &hellip;         <div id="jump_wrapper">           <div id="jump_page">                                           <a class="source" href="buffered.html">                 buffered.coffee               </a>                                           <a class="source" href="client.html">                 client.coffee               </a>                                           <a class="source" href="logger.html">                 logger.coffee               </a>                                           <a class="source" href="pool.html">                 pool.coffee               </a>                                           <a class="source" href="process.html">                 process.coffee               </a>                        </div>         </div>       </div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               client.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="octowrap">                 <a class="octothorpe" href="#section-1">#</a>               </div>                            </td>             <td class="code">               <div class="highlight"><pre><span class="nx">sys</span> <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;sys&#39;</span>
+<span class="nx">url</span> <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;url&#39;</span>
+<span class="nx">ns</span>  <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;nack/ns&#39;</span>
+
+<span class="p">{</span><span class="nx">Stream</span><span class="p">}</span>              <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;net&#39;</span>
+<span class="p">{</span><span class="nx">EventEmitter</span><span class="p">}</span>        <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;events&#39;</span>
+<span class="p">{</span><span class="nx">BufferedWriteStream</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;nack/buffered&#39;</span>
+
+<span class="nx">exports</span><span class="p">.</span><span class="nx">ClientRequest</span> <span class="o">=</span> <span class="k">class</span> <span class="nx">ClientRequest</span> <span class="k">extends</span> <span class="nx">EventEmitter</span>
+  <span class="nv">constructor: </span><span class="p">(</span><span class="nx">@socket</span><span class="p">,</span> <span class="nx">@method</span><span class="p">,</span> <span class="nx">@path</span><span class="p">,</span> <span class="nx">headers</span><span class="p">,</span> <span class="nx">metaVariables</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="nx">@bufferedSocket</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">BufferedWriteStream</span> <span class="nx">@socket</span>
+    <span class="nx">@writeable</span> <span class="o">=</span> <span class="kc">true</span>
+
+    <span class="nx">@_parseEnv</span> <span class="nx">headers</span><span class="p">,</span> <span class="nx">metaVariables</span>
+    <span class="nx">@write</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">stringify</span> <span class="nx">@env</span>
+
+    <span class="nx">@socket</span><span class="p">.</span><span class="kc">on</span> <span class="s1">&#39;connect&#39;</span><span class="p">,</span> <span class="o">=&gt;</span> <span class="nx">@bufferedSocket</span><span class="p">.</span><span class="nx">flush</span><span class="p">()</span>
+
+    <span class="nx">@bufferedSocket</span><span class="p">.</span><span class="kc">on</span> <span class="s1">&#39;drain&#39;</span><span class="p">,</span> <span class="o">=&gt;</span> <span class="nx">@emit</span> <span class="s1">&#39;drain&#39;</span>
+    <span class="nx">@bufferedSocket</span><span class="p">.</span><span class="kc">on</span> <span class="s1">&#39;close&#39;</span><span class="p">,</span> <span class="o">=&gt;</span> <span class="nx">@emit</span> <span class="s1">&#39;close&#39;</span>
+
+    <span class="nx">response</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ClientResponse</span> <span class="nx">@socket</span>
+    <span class="nx">response</span><span class="p">.</span><span class="nx">_initParser</span> <span class="p">()</span> <span class="o">=&gt;</span>
+      <span class="nx">@emit</span> <span class="s1">&#39;response&#39;</span><span class="p">,</span> <span class="nx">response</span>
+
+  <span class="nv">_parseEnv: </span><span class="p">(</span><span class="nx">headers</span><span class="p">,</span> <span class="nx">metaVariables</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="nx">@env</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="nx">@env</span><span class="p">[</span><span class="s1">&#39;REQUEST_METHOD&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nx">@method</span>
+
+    <span class="p">{</span><span class="nx">pathname</span><span class="p">,</span> <span class="nx">query</span><span class="p">}</span> <span class="o">=</span> <span class="nx">url</span><span class="p">.</span><span class="nx">parse</span> <span class="nx">@path</span>
+    <span class="nx">@env</span><span class="p">[</span><span class="s1">&#39;PATH_INFO&#39;</span><span class="p">]</span>    <span class="o">=</span> <span class="nx">pathname</span>
+    <span class="nx">@env</span><span class="p">[</span><span class="s1">&#39;QUERY_STRING&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nx">query</span>
+    <span class="nx">@env</span><span class="p">[</span><span class="s1">&#39;SCRIPT_NAME&#39;</span><span class="p">]</span>  <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+    <span class="nx">@env</span><span class="p">[</span><span class="s1">&#39;REMOTE_ADDR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;0.0.0.0&quot;</span>
+    <span class="nx">@env</span><span class="p">[</span><span class="s1">&#39;SERVER_ADDR&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;0.0.0.0&quot;</span>
+
+    <span class="k">if</span> <span class="nx">host</span> <span class="o">=</span> <span class="nx">headers</span><span class="p">.</span><span class="nx">host</span>
+      <span class="k">if</span> <span class="p">{</span><span class="nx">name</span><span class="p">,</span> <span class="nx">port</span><span class="p">}</span> <span class="o">=</span> <span class="nx">headers</span><span class="p">.</span><span class="nx">host</span><span class="p">.</span><span class="nx">split</span> <span class="s1">&#39;:&#39;</span>
+        <span class="nx">@env</span><span class="p">[</span><span class="s1">&#39;SERVER_NAME&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nx">name</span>
+        <span class="nx">@env</span><span class="p">[</span><span class="s1">&#39;SERVER_PORT&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nx">port</span>
+
+    <span class="k">for</span> <span class="nx">key</span><span class="p">,</span> <span class="nx">value</span> <span class="k">of</span> <span class="nx">headers</span>
+      <span class="nx">key</span> <span class="o">=</span> <span class="nx">key</span><span class="p">.</span><span class="nx">toUpperCase</span><span class="p">().</span><span class="nx">replace</span><span class="p">(</span><span class="s1">&#39;-&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">)</span>
+      <span class="nx">key</span> <span class="o">=</span> <span class="s2">&quot;HTTP_#{key}&quot;</span> <span class="nx">unless</span> <span class="nx">key</span> <span class="o">==</span> <span class="s1">&#39;CONTENT_TYPE&#39;</span> <span class="o">or</span> <span class="nx">key</span> <span class="o">==</span> <span class="s1">&#39;CONTENT_LENGTH&#39;</span>
+      <span class="nx">@env</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span> <span class="o">=</span> <span class="nx">value</span>
+
+    <span class="k">for</span> <span class="nx">key</span><span class="p">,</span> <span class="nx">value</span> <span class="k">of</span> <span class="nx">metaVariables</span>
+      <span class="nx">@env</span><span class="p">[</span><span class="nx">key</span><span class="p">]</span> <span class="o">=</span> <span class="nx">value</span>
+
+  <span class="nv">write: </span><span class="p">(</span><span class="nx">chunk</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="nx">@bufferedSocket</span><span class="p">.</span><span class="nx">write</span> <span class="nx">ns</span><span class="p">.</span><span class="nx">nsWrite</span><span class="p">(</span><span class="nx">chunk</span><span class="p">.</span><span class="nx">toString</span><span class="p">())</span>
+
+  <span class="nv">end: </span><span class="o">-&gt;</span>
+    <span class="nx">@bufferedSocket</span><span class="p">.</span><span class="nx">end</span><span class="p">()</span>
+
+<span class="nx">exports</span><span class="p">.</span><span class="nx">ClientResponse</span> <span class="o">=</span> <span class="k">class</span> <span class="nx">ClientResponse</span> <span class="k">extends</span> <span class="nx">EventEmitter</span>
+  <span class="nv">constructor: </span><span class="p">(</span><span class="nx">@socket</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="nx">@client</span> <span class="o">=</span> <span class="nx">@socket</span>
+    <span class="nx">@statusCode</span> <span class="o">=</span> <span class="kc">null</span>
+    <span class="nx">@headers</span> <span class="o">=</span> <span class="kc">null</span>
+    <span class="nx">@_stopped</span> <span class="o">=</span> <span class="kc">false</span>
+
+  <span class="nv">_initParser: </span><span class="p">(</span><span class="nx">callback</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="nx">nsStream</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ns</span><span class="p">.</span><span class="nx">Stream</span> <span class="nx">@socket</span>
+
+    <span class="nx">nsStream</span><span class="p">.</span><span class="kc">on</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="p">(</span><span class="nx">data</span><span class="p">)</span> <span class="o">=&gt;</span>
+      <span class="k">return</span> <span class="k">if</span> <span class="nx">@_stopped</span>
+      <span class="nx">@_parseData</span> <span class="nx">data</span><span class="p">,</span> <span class="nx">callback</span>
+
+    <span class="nx">nsStream</span><span class="p">.</span><span class="kc">on</span> <span class="s1">&#39;error&#39;</span><span class="p">,</span> <span class="p">(</span><span class="nx">exception</span><span class="p">)</span> <span class="o">=&gt;</span>
+      <span class="k">return</span> <span class="k">if</span> <span class="nx">@_stopped</span>
+      <span class="nx">@_stopped</span> <span class="o">=</span> <span class="kc">true</span>
+      <span class="nx">@socket</span><span class="p">.</span><span class="nx">emit</span> <span class="s1">&#39;error&#39;</span><span class="p">,</span> <span class="nx">exception</span>
+
+    <span class="nx">@socket</span><span class="p">.</span><span class="kc">on</span> <span class="s1">&#39;end&#39;</span><span class="p">,</span> <span class="o">=&gt;</span>
+      <span class="nx">@emit</span> <span class="s1">&#39;end&#39;</span>
+
+  <span class="nv">_parseData: </span><span class="p">(</span><span class="nx">data</span><span class="p">,</span> <span class="nx">callback</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="k">try</span>
+      <span class="k">if</span> <span class="o">!</span><span class="nx">@statusCode</span>
+        <span class="nx">@statusCode</span> <span class="o">=</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="o">!</span><span class="nx">@headers</span>
+        <span class="nx">@headers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="nx">k</span><span class="p">,</span> <span class="nx">vs</span> <span class="k">of</span> <span class="nx">JSON</span><span class="p">.</span><span class="nx">parse</span><span class="p">(</span><span class="nx">data</span><span class="p">)</span>
+          <span class="k">for</span> <span class="nx">v</span> <span class="k">in</span> <span class="nx">vs</span><span class="p">.</span><span class="nx">split</span> <span class="s2">&quot;\n&quot;</span>
+            <span class="nx">@headers</span><span class="p">.</span><span class="nx">push</span> <span class="p">[</span><span class="nx">k</span><span class="p">,</span> <span class="nx">v</span><span class="p">]</span>
+      <span class="k">else</span>
+        <span class="nx">chunk</span> <span class="o">=</span> <span class="nx">data</span>
+
+      <span class="k">if</span> <span class="nx">@statusCode</span><span class="o">?</span> <span class="o">&amp;&amp;</span> <span class="nx">@headers</span><span class="o">?</span> <span class="o">&amp;&amp;</span> <span class="o">!</span><span class="nx">chunk</span><span class="o">?</span>
+        <span class="nx">callback</span><span class="p">()</span>
+      <span class="k">else</span> <span class="k">if</span> <span class="nx">chunk</span><span class="o">?</span>
+        <span class="nx">@emit</span> <span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="nx">chunk</span>
+    <span class="k">catch</span> <span class="nx">error</span>
+      <span class="nx">@_stopped</span> <span class="o">=</span> <span class="kc">true</span>
+      <span class="nx">@socket</span><span class="p">.</span><span class="nx">emit</span> <span class="s1">&#39;error&#39;</span><span class="p">,</span> <span class="nx">error</span>
+
+<span class="nx">exports</span><span class="p">.</span><span class="nx">Client</span> <span class="o">=</span> <span class="k">class</span> <span class="nx">Client</span> <span class="k">extends</span> <span class="nx">Stream</span>
+  <span class="nv">reconnect: </span><span class="o">-&gt;</span>
+    <span class="k">if</span> <span class="nx">@readyState</span> <span class="o">is</span> <span class="s1">&#39;closed&#39;</span>
+      <span class="nx">@connect</span> <span class="nx">@port</span><span class="p">,</span> <span class="nx">@host</span>
+
+  <span class="nv">request: </span><span class="p">(</span><span class="nx">args</span><span class="p">...)</span> <span class="o">-&gt;</span>
+    <span class="nx">@reconnect</span><span class="p">()</span>
+    <span class="nx">request</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">ClientRequest</span> <span class="err">@</span><span class="p">,</span> <span class="nx">args</span><span class="p">...</span>
+    <span class="nx">request</span>
+
+  <span class="nv">proxyRequest: </span><span class="p">(</span><span class="nx">serverRequest</span><span class="p">,</span> <span class="nx">serverResponse</span><span class="p">)</span> <span class="o">-&gt;</span>
+    <span class="nx">metaVariables</span> <span class="o">=</span>
+      <span class="s2">&quot;REMOTE_ADDR&quot;</span><span class="o">:</span> <span class="nx">serverRequest</span><span class="p">.</span><span class="nx">connection</span><span class="p">.</span><span class="nx">remoteAddress</span>
+      <span class="s2">&quot;REMOTE_PORT&quot;</span><span class="o">:</span> <span class="nx">serverRequest</span><span class="p">.</span><span class="nx">connection</span><span class="p">.</span><span class="nx">remotePort</span>
+
+    <span class="nx">clientRequest</span> <span class="o">=</span> <span class="nx">@request</span> <span class="nx">serverRequest</span><span class="p">.</span><span class="nx">method</span><span class="p">,</span> <span class="nx">serverRequest</span><span class="p">.</span><span class="nx">url</span><span class="p">,</span> <span class="nx">serverRequest</span><span class="p">.</span><span class="nx">headers</span><span class="p">,</span> <span class="nx">metaVariables</span>
+    <span class="nx">sys</span><span class="p">.</span><span class="nx">pump</span> <span class="nx">serverRequest</span><span class="p">,</span> <span class="nx">clientRequest</span>
+
+    <span class="nx">clientRequest</span><span class="p">.</span><span class="kc">on</span> <span class="s2">&quot;response&quot;</span><span class="p">,</span> <span class="p">(</span><span class="nx">clientResponse</span><span class="p">)</span> <span class="o">-&gt;</span>
+      <span class="nx">serverResponse</span><span class="p">.</span><span class="nx">writeHead</span> <span class="nx">clientResponse</span><span class="p">.</span><span class="nx">statusCode</span><span class="p">,</span> <span class="nx">clientResponse</span><span class="p">.</span><span class="nx">headers</span>
+      <span class="nx">sys</span><span class="p">.</span><span class="nx">pump</span> <span class="nx">clientResponse</span><span class="p">,</span> <span class="nx">serverResponse</span>
+
+<span class="nx">exports</span><span class="p">.</span><span class="nx">createConnection</span> <span class="o">=</span> <span class="p">(</span><span class="nx">port</span><span class="p">,</span> <span class="nx">host</span><span class="p">)</span> <span class="o">-&gt;</span>
+  <span class="nx">client</span> <span class="o">=</span> <span class="k">new</span> <span class="nx">Client</span>
+  <span class="nx">client</span><span class="p">.</span><span class="nx">port</span> <span class="o">=</span> <span class="nx">port</span>
+  <span class="nx">client</span><span class="p">.</span><span class="nx">host</span> <span class="o">=</span> <span class="nx">host</span>
+  <span class="nx">client</span>
+
+</pre></div>             </td>           </tr>                </tbody>     </table>   </div> </body> </html> 
