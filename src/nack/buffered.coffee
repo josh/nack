@@ -21,17 +21,17 @@ exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
       else
         @_queue.push ['emit', event, args...]
 
-    # Listen and queue up any events on the @stream
+    # Listen and queue up any events on the `@stream`
     @stream.on 'data',  (args...) -> queueEvent 'data', args...
     @stream.on 'end',   (args...) -> queueEvent 'end', args...
     @stream.on 'error', (args...) -> queueEvent 'error', args...
     @stream.on 'close', (args...) -> queueEvent 'close', args...
     @stream.on 'fd',    (args...) -> queueEvent 'fd', args...
 
-    # Tell the @stream to pause and stop emitting new events
+    # Tell the `@stream` to pause and stop emitting new events
     @stream.pause()
 
-    # Foward any properties to @stream
+    # Foward any properties to `@stream`
     for all name, fun of @stream when !this[name] and name[0] != '_'
       @__defineGetter__ name, (args...) -> @stream[name]
 
@@ -42,7 +42,7 @@ exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
   pause: ->
 
   flush: ->
-    # Tell the @stream to resume
+    # Tell the `@stream` to resume
     try
       @stream.resume()
     catch error
@@ -56,7 +56,7 @@ exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
 
     @_flushed = true
 
-    # Emit a 'drain' event to signal the buffer is empty.
+    # Emit a `drain` event to signal the buffer is empty.
     @emit 'drain'
 
 exports.BufferedWriteStream = class BufferedWriteStream extends EventEmitter
