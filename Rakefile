@@ -21,21 +21,45 @@ task :man => ([:clobber] + Dir["doc/*"].map { |doc|
   man
 })
 
-task :pages => :man do
-  rm_rf "pages"
+task :pages => "pages:build"
 
-  url = `git remote show origin`.grep(/Push.*URL/).first[/git@.*/]
-  sh "git clone -q -b gh-pages #{url} pages"
+namespace :pages do
+  task :build => ["pages:man", "pages:docco"]
 
-  sh "rm pages/*.html"
+  task :man do
+    mkdir_p "pages"
 
-  sh "ronn -5 doc/*"
-  sh "mv doc/*.html pages/"
+    sh "ronn -stoc -5 doc/*"
+    sh "mv doc/*.html pages/"
+  end
 
-  cd "pages"
-  sh "git add -u *.html"
-  sh "git commit -m 'rebuild manual'"
-  sh "git push #{url} gh-pages"
+  task :docco do
+    mkdir_p "pages"
+
+    sh "docco src/**/*.coffee"
+    sh "mv docs/* pages/"
+
+    rm_r "docs/"
+  end
+
+  task :publish do
+    rm_rf "pages"
+
+    url = `git remote show origin`.grep(/Push.*URL/).first[/git@.*/]
+    sh "git clone -q -b gh-pages #{url} pages"
+
+    sh "rm pages/*"
+
+    Rake::Task['pages:build'].invoke
+
+    cd "pages" do
+      sh "git add ."
+      sh "git commit -m 'rebuild manual'"
+      sh "git push #{url} gh-pages"
+    end
+
+    rm_rf "pages/"
+  end
 end
 
 require 'rake/gempackagetask'
