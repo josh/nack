@@ -12,7 +12,6 @@
   }
 , "directories": { "doc": "./doc", "man": "./man", "lib": "./lib/nack" }
 , "bin": { "nack": "./bin/nack" }
-, "main": "./lib/nack"
 , "repository":
   { "type": "git"
   , "url": "http://github.com/josh/nack.git"
