@@ -14,7 +14,7 @@ exports.testCreatePoolEvents = (test) ->
   test.same 0, pool.getReadyWorkerCount()
 
   pool.onNext 'ready', ->
-    test.same 1, pool.getReadyWorkerCount()
+    test.ok pool.getReadyWorkerCount() > 0
 
   pool.on 'worker:ready', ->
     if pool.getReadyWorkerCount() == 3
