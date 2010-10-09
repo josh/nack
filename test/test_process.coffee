@@ -39,7 +39,7 @@ exports.testCreateProcess = (test) ->
   process.spawn()
 
 exports.testCreateConnection = (test) ->
-  test.expect 7
+  test.expect 6
 
   process = createProcess config
 
@@ -55,9 +55,6 @@ exports.testCreateConnection = (test) ->
 
     request = client.request 'GET', '/foo', {}
     request.end()
-
-    request.on 'close', ->
-      test.ok true
 
     request.on 'response', (response) ->
       test.ok response
