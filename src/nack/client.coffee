@@ -10,14 +10,6 @@ ns  = require 'nack/ns'
 #
 # This is an EventEmitter with the following events:
 #
-#   Event: 'drain'
-#   function () { }
-#   Emitted when the write buffer becomes empty.
-#
-#   Event: 'close'
-#   function () { }
-#   Emitted once the stream is fully closed.
-#
 #   Event 'response'
 #   function (response) { }
 #   Emitted when a response is received to this request. This event is
@@ -38,10 +30,6 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
 
     # Flush the buffer once we've established a connection to the server
     @socket.on 'connect', => @bufferedSocket.flush()
-
-    # Forward `drain` and `close` events
-    @bufferedSocket.on 'drain', => @emit 'drain'
-    @bufferedSocket.on 'close', => @emit 'close'
 
     # Prepare `ClientResponse`
     response = new ClientResponse @socket

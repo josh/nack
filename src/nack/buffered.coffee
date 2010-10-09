@@ -25,8 +25,6 @@ exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
     @stream.on 'data',  (args...) -> queueEvent 'data', args...
     @stream.on 'end',   (args...) -> queueEvent 'end', args...
     @stream.on 'error', (args...) -> queueEvent 'error', args...
-    @stream.on 'close', (args...) -> queueEvent 'close', args...
-    @stream.on 'fd',    (args...) -> queueEvent 'fd', args...
 
     # Tell the `@stream` to pause and stop emitting new events
     @stream.pause()
@@ -80,7 +78,6 @@ exports.BufferedWriteStream = class BufferedWriteStream extends EventEmitter
     # Forward `drain`, `error` and `close` events
     @stream.on 'drain', => @emit 'drain'
     @stream.on 'error', (exception) => @emit 'error', exception
-    @stream.on 'close', => @emit 'close'
 
   # Call `write` on `@stream`, otherwise queue a `write` call.
   write: (args...) ->
