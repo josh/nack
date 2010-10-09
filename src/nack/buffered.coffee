@@ -41,6 +41,11 @@ exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
   # Ignore requrests to pause the stream
   pause: ->
 
+  # Destroy `@stream` and clear queue
+  destroy: ->
+    @_queue = []
+    @stream.destroy()
+
   flush: ->
     # Tell the `@stream` to resume
     try
