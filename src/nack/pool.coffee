@@ -1,7 +1,7 @@
 {EventEmitter}  = require 'events'
-{createProcess} = require 'nack/process'
+{createProcess} = require './process'
 
-{BufferedReadStream} = require 'nack/buffered'
+{BufferedReadStream} = require './buffered'
 
 class AggregateStream extends EventEmitter
   add: (stream, process) ->

@@ -1,10 +1,10 @@
 sys = require 'sys'
 url = require 'url'
-ns  = require 'nack/ns'
+ns  = require './ns'
 
 {Stream}              = require 'net'
 {EventEmitter}        = require 'events'
-{BufferedWriteStream} = require 'nack/buffered'
+{BufferedWriteStream} = require './buffered'
 
 # This is a Writable Stream.
 #

@@ -1,10 +1,10 @@
 sys           = require 'sys'
-client        = require 'nack/client'
+client        = require './client'
 {spawn, exec} = require 'child_process'
 {exists}      = require 'path'
 
 {EventEmitter} = require 'events'
-{BufferedReadStream, BufferedLineStream} = require 'nack/buffered'
+{BufferedReadStream, BufferedLineStream} = require './buffered'
 
 tmpSock = ->
   pid  = process.pid

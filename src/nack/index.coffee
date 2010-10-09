@@ -1,6 +1,6 @@
-{createProcess} = require 'nack/process'
-{createPool}    = require 'nack/pool'
-{logStream}     = require 'nack/logger'
+{createProcess} = require './process'
+{createPool}    = require './pool'
+{logStream}     = require './logger'
 
 module.exports = (config, options) ->
   options ?= {}

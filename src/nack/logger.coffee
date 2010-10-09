@@ -1,6 +1,6 @@
 sys = require 'sys'
 
-{BufferedLineStream} = require 'nack/buffered'
+{BufferedLineStream} = require './buffered'
 
 chomp = (str) ->
   str.replace /(\n|\r)+$/, ''
