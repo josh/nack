@@ -6,12 +6,6 @@ client        = require './client'
 {EventEmitter} = require 'events'
 {BufferedReadStream, BufferedLineStream} = require './buffered'
 
-# Generates a random sock path.
-tmpSock = ->
-  pid  = process.pid
-  rand = Math.floor Math.random() * 10000000000
-  "/tmp/nack." + pid + "." + rand + ".sock"
-
 # **Process** manages a single Ruby worker process.
 #
 # A Process requires a path to a rackup config file _(config.ru)_.
@@ -26,32 +20,44 @@ tmpSock = ->
 #
 # A Process has 5 states:
 #
-#   `null`: Not started or dead
-#   `spawning`: Is booting and can't accept a connection yet
-#   `ready`: Is ready to accept a connection and handle a request
-#   `busy`: Is currently handling a request, not ready
-#   `quitting`: Was set a kill signal and is shutting down
+# > `null`: Not started or dead
+# >
+# > `spawning`: Is booting and can't accept a connection yet
+# >
+# > `ready`: Is ready to accept a connection and handle a request
+# >
+# > `busy`: Is currently handling a request, not ready
+# >
+# > `quitting`: Was set a kill signal and is shutting down
 #
 # Anytime a process changes states, an event is fired with the new
 # state name. When the process becomes `ready`, a `ready` is fired.
 #
 # Other events:
 #
-#   Event: `error`
-#   function (exception) { }
-#   Emitted when an error occurs.
-#
-#   Event: `spawn`
-#   function (exception) { }
-#   Emitted when the process moves from `spawning` to `ready` state
-#
-#   Event: `exit`
-#   function () { }
-#   Emitted when the Process terminates.
-#
-#   Event: `idle`
-#   function () { }
-#   Emitted when the Process times out because of inactivity.
+# > **Event: 'error'**
+# >
+# > `function (exception) { }`
+# >
+# > Emitted when an error occurs.
+# >
+# > **Event: 'spawn'**
+# >
+# > `function (exception) { }`
+# >
+# > Emitted when the process moves from `spawning` to `ready` state.
+# >
+# > **Event: 'exit'**
+# >
+# > `function () { }`
+# >
+# > Emitted when the Process terminates.
+# >
+# > **Event: 'idle'**
+# >
+# > `function () { }`
+# >
+# > Emitted when the Process times out because of inactivity.
 #
 exports.Process = class Process extends EventEmitter
   constructor: (@config, options) ->
@@ -81,7 +87,8 @@ exports.Process = class Process extends EventEmitter
     else
       exec 'which nackup', (error, stdout, stderr) =>
         if error
-          # Throw an exception if `nackup` isn't in the PATH
+          # Throw an exception if `nackup` isn't in the `PATH`.
+          #
           # Probably need to `gem install nack` or fix shitty rubygems
           callback new Error "Couldn't find `nackup` in PATH"
         else
@@ -96,7 +103,7 @@ exports.Process = class Process extends EventEmitter
     @changeState 'spawning'
 
     @getNackupPath (err, nackup) =>
-      # Bubble error from getNackupPath
+      # Bubble error from `getNackupPath`
       return @emit 'error', err if err
 
       # Generate a random sock path
@@ -225,3 +232,9 @@ exports.Process = class Process extends EventEmitter
 # Public API for creating a **Process**
 exports.createProcess = (args...) ->
   new Process args...
+
+# Generates a random sock path.
+tmpSock = ->
+  pid  = process.pid
+  rand = Math.floor Math.random() * 10000000000
+  "/tmp/nack." + pid + "." + rand + ".sock"
