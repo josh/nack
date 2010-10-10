@@ -199,6 +199,7 @@ exports.Process = class Process extends EventEmitter
 
       callback connection
 
+  # Proxies a `http.ServerRequest` and `http.ServerResponse` to the process
   proxyRequest: (req, res, callback) ->
     # Wrap the `http.ServerRequest` with a `BufferedReadStream`
     # so we don't miss any `data` or `end` events.
