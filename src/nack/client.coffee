@@ -6,9 +6,12 @@ ns  = require './ns'
 {EventEmitter}        = require 'events'
 {BufferedWriteStream} = require './buffered'
 
-# This is a Writable Stream.
+# A **ClientRequest** is returned when `Client.request()` is called.
 #
-# This is an EventEmitter with the following events:
+# It is a Writable Stream and responds to the conventional
+# `write` and `end` methods.
+#
+# Its also an EventEmitter with the following events:
 #
 #   Event 'response'
 #   function (response) { }
@@ -71,16 +74,19 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
     for key, value of metaVariables
       @env[key] = value
 
+  # Write chunk to client
   write: (chunk) ->
     # Netstring encode the chunk and write it to the socket
     @bufferedSocket.write ns.nsWrite(chunk.toString())
 
+  # Closes writting socket.
   end: ->
     @bufferedSocket.end()
 
-# This is a Readable Stream.
+# A **ClientResponse** is emitted from the client request's
+# `response` event.
 #
-# This is an EventEmitter with the following events:
+# It is a Readable Stream and emits the conventional events:
 #
 #   Event: `data`
 #   function (chunk) { }
@@ -149,16 +155,37 @@ exports.ClientResponse = class ClientResponse extends EventEmitter
       # Catch and emit as a socket error
       @socket.emit 'error', error
 
+# A **Client** establishes a connection to a worker process.
+#
+# It takes a `port` and `host` or a UNIX socket path.
+#
+# Its API is similar to `http.Client`.
+#
+#     var conn = client.createConnection('/tmp/nack.sock');
+#     var request = conn.request('GET', '/', {'host', 'localhost'});
+#     request.end();
+#     request.on('response', function (response) {
+#       console.log('STATUS: ' + response.statusCode);
+#       console.log('HEADERS: ' + JSON.stringify(response.headers));
+#       response.on('data', function (chunk) {
+#         console.log('BODY: ' + chunk);
+#       });
+#     });
+#
 exports.Client = class Client extends Stream
+  # Reconnect if the connection is closed.
   reconnect: ->
     if @readyState is 'closed'
       @connect @port, @host
 
+  # Start the connection and create a ClientRequest.
   request: (args...) ->
     @reconnect()
     request = new ClientRequest @, args...
     request
 
+  # Proxy a `http.ServerRequest` and `http.serverResponse` between
+  # the `Client`.
   proxyRequest: (serverRequest, serverResponse) ->
     metaVariables =
       "REMOTE_ADDR": serverRequest.connection.remoteAddress
@@ -171,6 +198,7 @@ exports.Client = class Client extends Stream
       serverResponse.writeHead clientResponse.statusCode, clientResponse.headers
       sys.pump clientResponse, serverResponse
 
+# Public API for creating a **Client**
 exports.createConnection = (port, host) ->
   client = new Client
   client.port = port
