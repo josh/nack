@@ -2,6 +2,7 @@
 {createPool}    = require './pool'
 {logStream}     = require './logger'
 
+# Connect API
 module.exports = (config, options) ->
   options ?= {}
   options.size ?= 3
@@ -11,6 +12,7 @@ module.exports = (config, options) ->
       if err
         next err
 
+# Expose `createProcess`, `createPool`, and `logStream`
 module.exports.createProcess = createProcess
 module.exports.createPool    = createPool
 module.exports.logStream     = logStream
