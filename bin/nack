@@ -1,7 +1,5 @@
 #!/usr/bin/env node
 
-require.paths.unshift("/Users/josh/Dropbox/nack/lib")
-
 var config = process.argv[2];
 var port   = process.argv[3] || 3000;
 
