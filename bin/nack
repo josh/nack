@@ -8,8 +8,8 @@ var sys = require('sys');
 var nack = require('nack');
 var pool = nack.createPool(config, {size: 3, idle: 15 * 60 * 1000});
 
-nack.logStream(pool.stdout);
-nack.logStream(pool.stderr);
+sys.pump(pool.stdout, process.stdout);
+sys.pump(pool.stderr, process.stdout);
 
 var http = require('http');
 var server = http.createServer(function (req, res) {
