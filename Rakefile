@@ -29,7 +29,8 @@ namespace :pages do
   task :man do
     mkdir_p "pages"
 
-    sh "ronn -stoc -5 doc/*"
+    sh "ronn -stoc -5 README.md doc/*"
+    sh "mv README.html pages/index.html"
     sh "mv doc/*.html pages/"
   end
 
