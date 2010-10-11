@@ -24,7 +24,7 @@ task :man => ([:clobber] + Dir["doc/*"].map { |doc|
 task :pages => "pages:build"
 
 namespace :pages do
-  task :build => ["pages:man", "pages:docco"]
+  task :build => ["pages:man", "pages:annotations"]
 
   task :man do
     mkdir_p "pages"
@@ -33,11 +33,11 @@ namespace :pages do
     sh "mv doc/*.html pages/"
   end
 
-  task :docco do
-    mkdir_p "pages"
+  task :annotations do
+    mkdir_p "pages/annotations"
 
     sh "docco src/**/*.coffee"
-    sh "mv docs/* pages/"
+    sh "mv docs/* pages/annotations"
 
     rm_r "docs/"
   end
@@ -48,7 +48,7 @@ namespace :pages do
     url = `git remote show origin`.grep(/Push.*URL/).first[/git@.*/]
     sh "git clone -q -b gh-pages #{url} pages"
 
-    sh "rm pages/*"
+    sh "rm -rf pages/*"
 
     Rake::Task['pages:build'].invoke
 
