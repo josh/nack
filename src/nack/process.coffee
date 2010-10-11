@@ -109,7 +109,7 @@ exports.Process = class Process extends EventEmitter
       # Generate a random sock path
       @sockPath = tmpSock()
       # Spawn a Ruby server connecting to our `@sockPath`
-      @child = spawn "nackup", ['--file', @sockPath, @config]
+      @child = spawn nackup, ['--file', @sockPath, @config]
 
       # Expose `stdout` and `stderr` on Process
       @stdout = @child.stdout
