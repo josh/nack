@@ -45,6 +45,22 @@ class TestNetString < Test::Unit::TestCase
     assert_raise(Nack::Error) { read(io) { |s| s } }
   end
 
+  def test_resume_reading
+    io = StringIO.new("3:abc,1:a,1:b,0:,5:hello,1:c,0:,2:42,")
+
+    buf = []
+    read(io) { |s| s.length > 0 ? buf << s : break }
+    assert_equal ["abc", "a", "b"], buf
+
+    buf = []
+    read(io) { |s| s.length > 0 ? buf << s : break }
+    assert_equal ["hello", "c"], buf
+
+    buf = []
+    read(io) { |s| s.length > 0 ? buf << s : break }
+    assert_equal ["42"], buf
+  end
+
   def test_encode
     assert_equal "12:hello world!,", encode("hello world!")
     assert_equal [0x31, 0x32, 0x3a, 0x68, 0x65, 0x6c, 0x6c, 0x6f,
