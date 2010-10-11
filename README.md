@@ -1,10 +1,9 @@
-nack
-====
+nack -- Node powered Rack server
+================================
 
-Node powered Rack server.
+## DESCRIPTION
 
-Installation
-------------
+## INSTALL
 
 nack is distributed as 2 packages.
 
@@ -16,16 +15,15 @@ The ruby server is available on RubyGems.
 
     gem install nack
 
-Dependencies
-------------
+### DEPENDENCIES
 
 * node >= 0.2.3
 * node-netstring
 * rack
 * json
 
-Example
--------
+EXAMPLES
+--------
 
 Simple proxy
 
@@ -60,7 +58,11 @@ Connect API:
       )
     ).listen(3000);
 
-Caveats
--------
+## CAVEATS
 
 nack was design to be used as a local development proxy. You probably don't wanna try running a production app on it. I'm sure its slow too so don't send me any benchmarks.
+
+
+## SEE ALSO
+
+nack(1), nack-protocol(7), <http://josh.github.com/nack/annotations>
