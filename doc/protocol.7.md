@@ -15,7 +15,7 @@ Once the body parts have been sent, the client MUST close its write socket to in
 
 Sample:
 
-    16:{"METHOD":"GET"},4:foo=,3:bar,
+  16:{"METHOD":"GET"},4:foo=,3:bar,
 
 ### RESPONSE
 
@@ -27,7 +27,7 @@ When the response is finished, the server should close its write socket thus clo
 
 Sample:
 
-    3:200,28:{"Content-Type":"text/html"},10:<!DOCTYPE ,5:html>,
+  3:200,28:{"Content-Type":"text/html"},10:<!DOCTYPE ,5:html>,
 
 ## SEE ALSO
 

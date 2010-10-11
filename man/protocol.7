@@ -21,15 +21,8 @@ Once the body parts have been sent, the client MUST close its write socket to in
 .P
 Sample:
 .
-.IP "" 4
-.
-.nf
-
+.P
 16:{"METHOD":"GET"},4:foo=,3:bar,
-.
-.fi
-.
-.IP "" 0
 .
 .SS "RESPONSE"
 To start the response, the server MUST first send a netstring with the integer status code of the response\. Following this MUST be a JSON serialized netstring of the response headers hash\.
@@ -43,15 +36,8 @@ When the response is finished, the server should close its write socket thus clo
 .P
 Sample:
 .
-.IP "" 4
-.
-.nf
-
+.P
 3:200,28:{"Content\-Type":"text/html"},10:<!DOCTYPE ,5:html>,
-.
-.fi
-.
-.IP "" 0
 .
 .SH "SEE ALSO"
 json(3), \fIhttp://cr\.yp\.to/proto/netstrings\.txt\fR
