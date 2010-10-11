@@ -49,6 +49,8 @@ exports.Client = class Client extends Stream
       serverResponse.writeHead clientResponse.statusCode, clientResponse.headers
       sys.pump clientResponse, serverResponse
 
+    clientRequest
+
 # Public API for creating a **Client**
 exports.createConnection = (port, host) ->
   client = new Client

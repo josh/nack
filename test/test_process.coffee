@@ -71,7 +71,7 @@ exports.testCreateConnection = (test) ->
 
 
 exports.testProxyRequest = (test) ->
-  test.expect 7
+  test.expect 6
 
   process = createProcess config
 
@@ -92,9 +92,6 @@ exports.testProxyRequest = (test) ->
     process.proxyRequest req, res, ->
       test.ok true
       process.quit()
-
-  server.on 'close', ->
-    test.ok true
 
   server.listen PORT
   server.on 'listening', ->

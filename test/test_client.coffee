@@ -47,7 +47,7 @@ exports.testClientRequest = (test) ->
     test.done()
 
 exports.testProxyRequest = (test) ->
-  test.expect 8
+  test.expect 9
 
   process = createProcess config
   process.spawn()
@@ -59,14 +59,14 @@ exports.testProxyRequest = (test) ->
     client = createConnection process.sockPath
     test.ok client
 
-    client.on 'close', ->
-      test.ok true
-      process.quit()
+    request = client.proxyRequest req, res
+    test.ok request
+    test.ok request.writeable
 
-    client.proxyRequest req, res
-
-  server.on 'close', ->
-    test.ok true
+    request.on 'response', (response) ->
+      response.on 'end', ->
+        test.ok true
+        process.quit()
 
   process.onNext 'ready', ->
     server.listen PORT

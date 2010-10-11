@@ -70,7 +70,7 @@ exports.testPoolIncrement = (test) ->
   test.done()
 
 exports.testProxyRequest = (test) ->
-  test.expect 7
+  test.expect 6
 
   pool = createPool config
 
@@ -91,9 +91,6 @@ exports.testProxyRequest = (test) ->
     pool.proxyRequest req, res, ->
       test.ok true
       pool.quit()
-
-  server.on 'close', ->
-    test.ok true
 
   server.listen PORT
   server.on 'listening', ->
