@@ -1,6 +1,5 @@
 {createProcess} = require './process'
 {createPool}    = require './pool'
-{logStream}     = require './logger'
 
 # Connect API
 module.exports = (config, options) ->
@@ -12,7 +11,6 @@ module.exports = (config, options) ->
       if err
         next err
 
-# Expose `createProcess`, `createPool`, and `logStream`
+# Expose `createProcess` and `createPool`
 module.exports.createProcess = createProcess
 module.exports.createPool    = createPool
-module.exports.logStream     = logStream
