@@ -135,7 +135,7 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
 
   # Closes writting socket.
   end: ->
-    @bufferedSocket.end()
+    @bufferedSocket.end ns.nsWrite("")
 
 # A **ClientResponse** is emitted from the client request's
 # `response` event.
@@ -183,9 +183,6 @@ exports.ClientResponse = class ClientResponse extends EventEmitter
       # Bubble the error, hopefully someone will catch it
       @socket.emit 'error', exception
 
-    @socket.on 'end', =>
-      @emit 'end'
-
   _parseData: (data, callback) ->
     try
       # The first response part is the status
@@ -199,16 +196,16 @@ exports.ClientResponse = class ClientResponse extends EventEmitter
           # Split multiline Rack headers and create an array
           for v in vs.split "\n"
             @headers.push [k, v]
-      # Else its body parts
-      else
-        chunk = data
 
-      # Call the callback once we've received the status and headers
-      if @statusCode? && @headers? && !chunk?
+        # Call the callback once we've received the status and headers
         callback()
-      else if chunk?
-        # Emit data chunks
-        @emit 'data', chunk
+
+      # Else its body parts
+      else if data.length > 0
+        @emit 'data', data
+      else
+        @emit 'end'
+
     catch error
       # Flag the response as stopped
       @_stopped = true
