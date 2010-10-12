@@ -1,16 +1,7 @@
-{createProcess} = require './process'
 {createPool}    = require './pool'
+{createProcess} = require './process'
+{createServer}  = require './server'
 
-# Connect API
-module.exports = (config, options) ->
-  options ?= {}
-  options.size ?= 3
-  pool = createPool config, options
-  (req, res, next) ->
-    pool.proxyRequest req, res, (err) ->
-      if err
-        next err
-
-# Expose `createProcess` and `createPool`
-module.exports.createProcess = createProcess
 module.exports.createPool    = createPool
+module.exports.createProcess = createProcess
+module.exports.createServer  = createServer

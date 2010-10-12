@@ -3,18 +3,12 @@
 var config = process.argv[2];
 var port   = process.argv[3] || 3000;
 
+var nack   = require('nack');
+var server = nack.createServer(config);
+
 var sys = require('sys');
-
-var nack = require('nack');
-var pool = nack.createPool(config, {size: 3, idle: 15 * 60 * 1000});
-
-sys.pump(pool.stdout, process.stdout);
-sys.pump(pool.stderr, process.stdout);
-
-var http = require('http');
-var server = http.createServer(function (req, res) {
-  pool.proxyRequest(req, res);
-});
+sys.pump(server.pool.stdout, process.stdout);
+sys.pump(server.pool.stderr, process.stdout);
 
 server.listen(port, "127.0.0.1");
 sys.puts("Listening on http://127.0.0.1:" + port);
