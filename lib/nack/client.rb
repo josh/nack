@@ -35,7 +35,6 @@ module Nack
     def request(env = {}, body = nil)
       NetString.write(socket, env.to_json)
       NetString.write(socket, body) if body
-      NetString.write(socket, "")
 
       socket.close_write
 
@@ -46,10 +45,8 @@ module Nack
           status = data.to_i
         elsif headers.nil?
           headers = JSON.parse(data)
-        elsif data.length > 0
-          body << data
         else
-          break
+          body << data
         end
       end
 

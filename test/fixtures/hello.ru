@@ -1,3 +1,3 @@
 run lambda { |env|
-  [200, {"Content-Type" => "text/plain"}, ["Hello ", "", "World\n"]]
+  [200, {"Content-Type" => "text/plain"}, ["Hello ", "World\n"]]
 }

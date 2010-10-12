@@ -131,10 +131,8 @@ module Nack
       NetString.read(sock) do |data|
         if env.nil?
           env = JSON.parse(data)
-        elsif data.length > 0
-          input.write(data)
         else
-          break
+          input.write(data)
         end
       end
 
@@ -173,9 +171,8 @@ module Nack
       NetString.write(sock, headers.to_json)
 
       body.each do |part|
-        NetString.write(sock, part) if part.length > 0
+        NetString.write(sock, part)
       end
-      NetString.write(sock, "")
     rescue Exception => e
       warn "#{e.class}: #{e.message}"
       warn e.backtrace.join("\n")
