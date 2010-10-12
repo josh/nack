@@ -8,7 +8,7 @@ config = __dirname + "/fixtures/hello.ru"
 PORT = 8080
 
 exports.testClientRequest = (test) ->
-  test.expect 13
+  test.expect 14
 
   process = createProcess config
   process.spawn()
@@ -24,8 +24,12 @@ exports.testClientRequest = (test) ->
     test.same "/foo", request.env['PATH_INFO']
 
     test.ok request.writeable
+    test.same false, request.write "foo=bar"
 
     request.end()
+
+    request.on 'drain', () ->
+      test.ok true
 
     request.on 'response', (response) ->
       test.ok response
