@@ -17,6 +17,9 @@ exports.createServer = (config, options) ->
         else
           throw err
 
+  server.on 'close', ->
+    pool.quit()
+
   server.pool = pool
 
   server
