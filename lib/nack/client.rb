@@ -49,7 +49,7 @@ module Nack
         elsif data.length > 0
           body << data
         else
-          break
+          # break
         end
       end
 

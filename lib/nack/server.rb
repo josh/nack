@@ -134,7 +134,7 @@ module Nack
         elsif data.length > 0
           input.write(data)
         else
-          break
+          # break
         end
       end
 
