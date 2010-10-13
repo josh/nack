@@ -1,6 +1,5 @@
-http = require 'http'
-
-{createPool} = require './pool'
+{createServer} = require 'connect'
+{createPool}   = require './pool'
 
 exports.createServer = (config, options) ->
   options ?= {}
@@ -9,13 +8,10 @@ exports.createServer = (config, options) ->
 
   pool = createPool config, options
 
-  server = http.createServer (req, res, next) ->
+  server = createServer (req, res, next) ->
     pool.proxyRequest req, res, (err) ->
       if err
-        if next?
-          next err
-        else
-          throw err
+        next err
 
   server.on 'close', ->
     pool.quit()
