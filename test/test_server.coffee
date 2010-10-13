@@ -1,0 +1,22 @@
+http = require 'http'
+
+{createServer} = require 'nack/server'
+
+config = __dirname + "/fixtures/hello.ru"
+
+PORT = 8080
+
+exports.testProxyRequest = (test) ->
+  test.expect 2
+
+  server = createServer config
+
+  server.on 'close', ->
+    test.ok true
+    test.done()
+
+  server.listen PORT
+  server.on 'listening', ->
+    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+      test.ok !err
+      server.close()
