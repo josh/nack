@@ -155,27 +155,26 @@ module Nack
         "rack.url_scheme" => ["yes", "on", "1"].include?(env["HTTPS"]) ? "https" : "http"
       })
 
-      thread = Thread.new do
-        begin
-          app.call(env)
-        rescue Exception => e
-          warn "#{e.class}: #{e.message}"
-          warn e.backtrace.join("\n")
-          SERVER_ERROR
+      begin
+        status, headers, body = app.call(env)
+      rescue Exception => e
+        warn "#{e.class}: #{e.message}"
+        warn e.backtrace.join("\n")
+        status, headers, body = SERVER_ERROR
+      end
+
+      begin
+        debug "Sending response: #{status}"
+        NetString.write(sock, status.to_s)
+        NetString.write(sock, headers.to_json)
+
+        body.each do |part|
+          NetString.write(sock, part) if part.length > 0
         end
+        NetString.write(sock, "")
+      ensure
+        body.close if body.respond_to?(:close)
       end
-      thread.join
-      status, headers, body = thread.value
-
-      debug "Sending response: #{status}"
-
-      NetString.write(sock, status.to_s)
-      NetString.write(sock, headers.to_json)
-
-      body.each do |part|
-        NetString.write(sock, part) if part.length > 0
-      end
-      NetString.write(sock, "")
     rescue Exception => e
       warn "#{e.class}: #{e.message}"
       warn e.backtrace.join("\n")
