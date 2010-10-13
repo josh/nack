@@ -56,7 +56,7 @@ class TestUnixServer < Test::Unit::TestCase
   end
 
   def teardown
-    Process.kill('KILL', pid)
+    Process.kill('TERM', pid)
     Process.wait(pid)
   end
 
@@ -92,7 +92,7 @@ class TestTCPServer < Test::Unit::TestCase
   end
 
   def teardown
-    Process.kill('KILL', pid)
+    Process.kill('TERM', pid)
     Process.wait(pid)
   end
 
@@ -125,7 +125,7 @@ class TestNackup < Test::Unit::TestCase
   end
 
   def teardown
-    Process.kill('KILL', pid)
+    Process.kill('TERM', pid)
     Process.wait(pid)
   end
 
