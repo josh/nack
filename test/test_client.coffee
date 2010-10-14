@@ -94,6 +94,47 @@ exports.testClientRequestAfterConnect = (test) ->
     test.ok true
     test.done()
 
+exports.testClientMultipleRequest = (test) ->
+  test.expect 8
+
+  process = createProcess config
+  process.spawn()
+
+  process.onNext 'ready', ->
+    client = createConnection process.sockPath
+    test.ok client
+
+    receivedRequests = 0
+    handleResponse = (response) ->
+      test.ok response
+      test.same 200, response.statusCode
+
+      response.on 'end', ->
+        receivedRequests++
+
+        if receivedRequests is 3
+          console.log "quit"
+          process.quit()
+
+    request1 = client.request 'GET', '/foo', {}
+    request1.write "foo=bar"
+    request1.end()
+    request1.on 'response', handleResponse
+
+    request2 = client.request 'GET', '/bar', {}
+    request2.write "bar=baz"
+    request2.end()
+    request2.on 'response', handleResponse
+
+    request3 = client.request 'GET', '/bar', {}
+    request3.write "baz=biz"
+    request3.end()
+    request3.on 'response', handleResponse
+
+  process.on 'exit', ->
+    test.ok true
+    test.done()
+
 exports.testClientRequestWithCookies = (test) ->
   test.expect 8
 

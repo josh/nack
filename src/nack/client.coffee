@@ -23,6 +23,42 @@ ns  = require './ns'
 #     });
 #
 exports.Client = class Client extends Stream
+  constructor: ->
+    @_outgoing = []
+    @_incoming = null
+
+    @on 'connect', => @_processRequest()
+    @on 'close',   => @_finishRequest()
+
+    @_initResponseParser()
+
+  _initResponseParser: () ->
+    # Initialize a Netstring stream parser
+    nsStream = new ns.Stream @
+
+    nsStream.on 'data', (data) =>
+      if @_incoming
+        @_incoming._receiveData data
+
+    nsStream.on 'error', (exception) =>
+      @_incoming = null
+      @emit 'error', exception
+
+  _processRequest: () ->
+    if @readyState is 'open' and !@_incoming
+      if request = @_outgoing[0]
+        @_incoming = new ClientResponse @, request
+        request.flush()
+    else
+      @reconnect()
+
+  _finishRequest: () ->
+    @_outgoing.shift()
+    @_incoming = null
+
+    if @_outgoing.length > 0
+      @_processRequest()
+
   # Reconnect if the connection is closed.
   reconnect: ->
     if @readyState is 'closed'
@@ -30,8 +66,9 @@ exports.Client = class Client extends Stream
 
   # Start the connection and create a ClientRequest.
   request: (args...) ->
-    @reconnect()
     request = new ClientRequest @, args...
+    @_outgoing.push request
+    @_processRequest()
     request
 
   # Proxy a `http.ServerRequest` and `http.serverResponse` between
@@ -79,23 +116,14 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
   constructor: (@socket, @method, @path, headers, metaVariables) ->
     @writeable = true
 
-    # Initialize writeQueue if socket is still connecting
+    # Initialize writeQueue since socket is still connecting
     # net.Stream will buffer on connecting in node 0.3.x
-    if @socket.readyState is 'opening'
-      @_writeQueue = []
+    @_writeQueue = []
 
     # Build an `@env` obj from headers and metaVariables
     @_parseEnv headers, metaVariables
     # Then write it to the socket
     @write JSON.stringify @env
-
-    # Flush the buffer once we've established a connection to the server
-    @socket.on 'connect', => @flush()
-
-    # Prepare `ClientResponse`
-    response = new ClientResponse @socket
-    response._initParser () =>
-      @emit 'response', response
 
   _parseEnv: (headers, metaVariables) ->
     @env = {}
@@ -173,6 +201,8 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
       else
         @socket.write data
 
+    @_writeQueue = null
+
     # Buffer is empty, let the world know!
     @emit 'drain'
 
@@ -203,48 +233,32 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
 # > Emitted when an error occurs.
 #
 exports.ClientResponse = class ClientResponse extends EventEmitter
-  constructor: (@socket) ->
+  constructor: (@socket, @request) ->
     @client = @socket
     @statusCode = null
     @headers = null
-    @_stopped = false
 
-  _initParser: (callback) ->
-    # Initialize a Netstring stream parser
-    nsStream = new ns.Stream @socket
-
-    nsStream.on 'data', (data) =>
-      return if @_stopped
-      @_parseData data, callback
-
-    nsStream.on 'error', (exception) =>
-      return if @_stopped
-      # Flag the response as stopped
-      @_stopped = true
-      # Bubble the error, hopefully someone will catch it
-      @socket.emit 'error', exception
-
-  _parseData: (data, callback) ->
+  _receiveData: (data) ->
     try
       # The first response part is the status
       if !@statusCode
-        @statusCode = JSON.parse(data)
+        @statusCode = JSON.parse data
       # The second part is the JSON encoded headers
       else if !@headers
         @headers = {}
         # Parse the headers
-        for k, vs of JSON.parse(data)
+        for k, vs of JSON.parse data
           # Split multiline Rack headers
           v = vs.split "\n"
           @headers[k] = if v.length > 0
             # Hack for node 0.2 headers
             # http://github.com/ry/node/commit/6560ab9
-            v.join("\r\n#{k}: ")
+            v.join "\r\n#{k}: "
           else
             vs
 
-        # Call the callback once we've received the status and headers
-        callback()
+        # Emit response once we've received the status and headers
+        @request.emit 'response', @
 
       # Else its body parts
       else if data.length > 0
@@ -253,7 +267,5 @@ exports.ClientResponse = class ClientResponse extends EventEmitter
         @emit 'end'
 
     catch error
-      # Flag the response as stopped
-      @_stopped = true
       # Catch and emit as a socket error
       @socket.emit 'error', error
