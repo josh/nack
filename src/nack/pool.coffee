@@ -157,6 +157,11 @@ exports.Pool = class Pool extends EventEmitter
     for worker in @workers
       worker.spawn()
 
+  # Tell everyone to terminate
+  terminate: ->
+    for worker in @workers
+      worker.terminate()
+
   # Tell everyone to die
   quit: ->
     for worker in @workers
