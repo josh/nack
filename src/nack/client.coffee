@@ -278,7 +278,7 @@ exports.ClientResponse = class ClientResponse extends EventEmitter
       else if data.length > 0
         @emit 'data', data
 
-      # Empty string mean EOF
+      # Empty string means EOF
       else
         @emit 'end'
 
