@@ -62,64 +62,6 @@ exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
     # Emit a `drain` event to signal the buffer is empty.
     @emit 'drain'
 
-# **BufferedWriteStream** wraps any writeable stream and captures writes
-# to it. The data is held in a buffer until `flush` is called.
-#
-#     bufferedStream = new BufferWriteStream stream
-#     stream.on 'connect', () -> bufferedStream.flush()
-#     bufferedStream.write "foo"
-#
-exports.BufferedWriteStream = class BufferedWriteStream extends EventEmitter
-  constructor: (@stream) ->
-    @writeable = true
-    @_queue = []
-    @_flushed = false
-
-    # Forward `drain`, `error` and `close` events
-    @stream.on 'drain', => @emit 'drain'
-    @stream.on 'error', (exception) => @emit 'error', exception
-
-  # Call `write` on `@stream`, otherwise queue a `write` call.
-  write: (args...) ->
-    if @_flushed
-      @stream.write args...
-    else
-      @_queue.push ['write', args...]
-      false
-
-  # Call `end` on `@stream`, otherwise queue a `end` call.
-  end: (args...) ->
-    if @_flushed
-      @stream.end args...
-    else
-      @_queue.push ['end', args...]
-      false
-
-  # Call `destroy` on `@stream`, otherwise queue a `destroy` call.
-  destroy: ->
-    if @_flushed
-      @stream.destroy()
-    else
-      @_queue.push ['destroy']
-      false
-
-
-  flush: ->
-    # Process queued method calls
-    for [fun, args...] in @_queue
-      switch fun
-        when 'write'
-          @stream.write args...
-        when 'end'
-          @stream.end args...
-        when 'destroy'
-          @stream.destroy args...
-
-    @_flushed = true
-
-    # Emit a `drain` event to signal the buffer is empty.
-    @emit 'drain'
-
 # **BufferedLineStream** wraps any readable stream and buffers data until
 # it encounters a `\n` line break. It will emit `data` events as lines
 # instead of arbitrarily chunked text.

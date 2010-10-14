@@ -7,8 +7,8 @@ config = __dirname + "/fixtures/hello.ru"
 
 PORT = 8080
 
-exports.testClientRequest = (test) ->
-  test.expect 14
+exports.testClientRequestBeforeConnect = (test) ->
+  test.expect 13
 
   process = createProcess config
   process.spawn()
@@ -38,13 +38,57 @@ exports.testClientRequest = (test) ->
 
       body = ""
       response.on 'data', (chunk) ->
-        test.ok true
         body += chunk
 
       response.on 'end', ->
         test.same "Hello World\n", body
 
         process.quit()
+
+  process.on 'exit', ->
+    test.ok true
+    test.done()
+
+exports.testClientRequestAfterConnect = (test) ->
+  test.expect 12
+
+  process = createProcess config
+  process.spawn()
+
+  process.onNext 'ready', ->
+    client = createConnection process.sockPath
+    test.ok client
+
+    client.on 'connect', ->
+      request = client.request 'GET', '/foo', {}
+      test.ok request
+      test.same "GET", request.method
+      test.same "/foo", request.path
+      test.same "/foo", request.env['PATH_INFO']
+
+      test.ok request.writeable
+      test.same true, request.write "foo=bar"
+
+      request.end()
+
+      request.on 'drain', () ->
+        test.ok false
+
+      request.on 'response', (response) ->
+        test.ok response
+        test.same 200, response.statusCode
+        test.equals client, response.client
+
+        body = ""
+        response.on 'data', (chunk) ->
+          body += chunk
+
+        response.on 'end', ->
+          test.same "Hello World\n", body
+
+          process.quit()
+
+    client.reconnect()
 
   process.on 'exit', ->
     test.ok true

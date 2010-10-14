@@ -2,9 +2,8 @@ sys = require 'sys'
 url = require 'url'
 ns  = require './ns'
 
-{Stream}              = require 'net'
-{EventEmitter}        = require 'events'
-{BufferedWriteStream} = require './buffered'
+{Stream}       = require 'net'
+{EventEmitter} = require 'events'
 
 # A **Client** establishes a connection to a worker process.
 #
@@ -58,6 +57,9 @@ exports.createConnection = (port, host) ->
   client.host = host
   client
 
+# Empty netstring signals EOF
+END_OF_FILE = ns.nsWrite ""
+
 # A **ClientRequest** is returned when `Client.request()` is called.
 #
 # It is a Writable Stream and responds to the conventional
@@ -75,10 +77,12 @@ exports.createConnection = (port, host) ->
 #
 exports.ClientRequest = class ClientRequest extends EventEmitter
   constructor: (@socket, @method, @path, headers, metaVariables) ->
-    # Write `@socket` with `BufferedWriteStream` so we can write to it
-    # before it is ready.
-    @bufferedSocket = new BufferedWriteStream @socket
     @writeable = true
+
+    # Initialize writeQueue if socket is still connecting
+    # net.Stream will buffer on connecting in node 0.3.x
+    if @socket.readyState is 'opening'
+      @_writeQueue = []
 
     # Build an `@env` obj from headers and metaVariables
     @_parseEnv headers, metaVariables
@@ -86,7 +90,7 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
     @write JSON.stringify @env
 
     # Flush the buffer once we've established a connection to the server
-    @socket.on 'connect', => @bufferedSocket.flush()
+    @socket.on 'connect', => @flush()
 
     # Prepare `ClientResponse`
     response = new ClientResponse @socket
@@ -130,12 +134,49 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
 
   # Write chunk to client
   write: (chunk) ->
-    # Netstring encode the chunk and write it to the socket
-    @bufferedSocket.write ns.nsWrite(chunk.toString())
+    # Netstring encode chunk
+    nsChunk = ns.nsWrite chunk.toString()
+
+    if @_writeQueue
+      @_writeQueue.push nsChunk
+      # Return false because data was buffered
+      false
+    else
+      @socket.write nsChunk
 
   # Closes writting socket.
-  end: ->
-    @bufferedSocket.end ns.nsWrite("")
+  end: (chunk) ->
+    if (chunk)
+      @write chunk
+
+    flushed = if @_writeQueue
+      @_writeQueue.push END_OF_FILE
+      # Return false because data was buffered
+      false
+    else
+      @socket.end END_OF_FILE
+
+    # Mark stream as closed
+    @writeable = false
+
+    flushed
+
+  destroy: ->
+    @socket.destroy()
+
+  flush: ->
+    while @_writeQueue and @_writeQueue.length
+      data = @_writeQueue.shift()
+
+      if data is END_OF_FILE
+        @socket.end data
+      else
+        @socket.write data
+
+    # Buffer is empty, let the world know!
+    @emit 'drain'
+
+    true
 
 # A **ClientResponse** is emitted from the client request's
 # `response` event.
