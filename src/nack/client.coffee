@@ -39,7 +39,7 @@ exports.Client = class Client extends Stream
 
   _initResponseParser: () ->
     # Initialize a Netstring stream parser
-    nsStream = new ns.Stream @
+    nsStream = new ns.Stream this
 
     # Listen for data and hand it to our parser
     nsStream.on 'data', (data) =>
@@ -56,7 +56,7 @@ exports.Client = class Client extends Stream
     # we aren't already handling a response
     if @readyState is 'open' and !@_incoming
       if request = @_outgoing[0]
-        @_incoming = new ClientResponse @, request
+        @_incoming = new ClientResponse this, request
         # Flush the request buffer into socket
         request.flush()
     else
@@ -78,7 +78,7 @@ exports.Client = class Client extends Stream
 
   # Start the connection and create a ClientRequest.
   request: (args...) ->
-    request = new ClientRequest @, args...
+    request = new ClientRequest this, args...
     @_outgoing.push request
     @_processRequest()
     request
@@ -272,7 +272,7 @@ exports.ClientResponse = class ClientResponse extends EventEmitter
             vs
 
         # Emit response once we've received the status and headers
-        @request.emit 'response', @
+        @request.emit 'response', this
 
       # Else its body parts
       else if data.length > 0
