@@ -190,12 +190,17 @@ exports.ClientResponse = class ClientResponse extends EventEmitter
         @statusCode = JSON.parse(data)
       # The second part is the JSON encoded headers
       else if !@headers
-        @headers = []
+        @headers = {}
         # Parse the headers
         for k, vs of JSON.parse(data)
-          # Split multiline Rack headers and create an array
-          for v in vs.split "\n"
-            @headers.push [k, v]
+          # Split multiline Rack headers
+          v = vs.split "\n"
+          @headers[k] = if v.length > 0
+            # Hack for node 0.2 headers
+            # http://github.com/ry/node/commit/6560ab9
+            v.join("\r\n#{k}: ")
+          else
+            vs
 
         # Call the callback once we've received the status and headers
         callback()
