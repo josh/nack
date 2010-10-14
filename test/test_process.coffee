@@ -117,14 +117,14 @@ exports.testOnReadyState = (test) ->
 
   process.spawn()
 
-exports.testKill = (test) ->
+exports.testTerminate = (test) ->
   test.expect 3
 
   process = createProcess config
 
   process.onNext 'ready', ->
     test.ok true
-    process.kill()
+    process.terminate()
 
   process.onNext 'quitting', () ->
     test.ok true

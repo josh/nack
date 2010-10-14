@@ -218,7 +218,7 @@ exports.Process = class Process extends EventEmitter
 
   # Send `SIGTERM` to process.
   # This will immediately kill it.
-  kill: ->
+  terminate: ->
     if @child
       @changeState 'quitting'
       @child.kill 'SIGTERM'
