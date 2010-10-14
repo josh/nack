@@ -80,20 +80,20 @@ exports.Process = class Process extends EventEmitter
     @on 'busy', =>
       @deferTimeout()
 
-  # Expand path to `nackup` command
-  getNackupPath: (callback) ->
-    if @nackupPath?
-      callback null, @nackupPath
+  # Expand path to `nack_worker` command
+  getNackWorkerPath: (callback) ->
+    if @nackWorkerPath?
+      callback null, @nackWorkerPath
     else
-      exec 'which nackup', (error, stdout, stderr) =>
+      exec 'which nack_worker', (error, stdout, stderr) =>
         if error
-          # Throw an exception if `nackup` isn't in the `PATH`.
+          # Throw an exception if `nack_worker` isn't in the `PATH`.
           #
           # Probably need to `gem install nack` or fix shitty rubygems
-          callback new Error "Couldn't find `nackup` in PATH"
+          callback new Error "Couldn't find `nack_worker` in PATH"
         else
-          @nackupPath = stdout.replace /(\n|\r)+$/, ''
-          callback error, @nackupPath
+          @nackWorkerPath = stdout.replace /(\n|\r)+$/, ''
+          callback error, @nackWorkerPath
 
   spawn: () ->
     # Do nothing if the process is already started
@@ -102,14 +102,14 @@ exports.Process = class Process extends EventEmitter
     # Change start to `spawning` and fire an event
     @changeState 'spawning'
 
-    @getNackupPath (err, nackup) =>
-      # Bubble error from `getNackupPath`
+    @getNackWorkerPath (err, nackWorker) =>
+      # Bubble error from `getNackWorkerPath`
       return @emit 'error', err if err
 
       # Generate a random sock path
       @sockPath = tmpSock()
       # Spawn a Ruby server connecting to our `@sockPath`
-      @child = spawn nackup, ['--file', @sockPath, @config]
+      @child = spawn nackWorker, ['--file', @sockPath, @config]
 
       # Expose `stdout` and `stderr` on Process
       @stdout = @child.stdout

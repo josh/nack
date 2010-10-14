@@ -110,7 +110,7 @@ module Nack
       install_handlers!
 
       loop do
-        $0 = "nackup [#{name}] (#{request_count})"
+        $0 = "nack worker [#{name}] (#{request_count})"
         debug "Waiting for connection"
         handle accept!
       end
@@ -143,7 +143,7 @@ module Nack
 
       method, path = env['REQUEST_METHOD'], env['PATH_INFO']
       debug "Received request: #{method} #{path}"
-      $0 = "nackup [#{name}] (#{request_count}) #{method} #{path}"
+      $0 = "nack worker [#{name}] (#{request_count}) #{method} #{path}"
 
       env = env.merge({
         "rack.version" => Rack::VERSION,

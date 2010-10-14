@@ -6,7 +6,7 @@ require 'optparse'
 options = {}
 
 opts = OptionParser.new("", 24, '  ') { |opts|
-  opts.banner = "Usage: nackup [options] [rackup config]"
+  opts.banner = "Usage: nack_worker [options] [rackup config]"
 
   opts.on("-p", "--port PORT", "listen on PORT") { |port|
     options[:port] = port

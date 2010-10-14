@@ -101,7 +101,7 @@ class TestTCPServer < Test::Unit::TestCase
   end
 end
 
-class TestNackup < Test::Unit::TestCase
+class TestNackWorker < Test::Unit::TestCase
   include Nack
   include ServerTests
 
@@ -118,7 +118,7 @@ class TestNackup < Test::Unit::TestCase
       $stdout.reopen(wr)
       $stderr.reopen(wr)
 
-      exec "nackup", "--file", sock, CONFIG
+      exec "nack_worker", "--file", sock, CONFIG
     end
 
     assert_equal 'ready', rd.readline.chomp

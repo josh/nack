@@ -15,7 +15,7 @@ Gem::Specification.new do |s|
     'lib/nack/netstring.rb',
     'lib/nack/server.rb'
   ]
-  s.executables = ['nackup']
+  s.executables = ['nack_worker']
   s.extra_rdoc_files = ['README.md', 'LICENSE']
 
   s.author   = 'Joshua Peek'
