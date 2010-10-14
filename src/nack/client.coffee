@@ -24,38 +24,50 @@ ns  = require './ns'
 #
 exports.Client = class Client extends Stream
   constructor: ->
+    # Initialize outgoing array to hold pending requests
     @_outgoing = []
+    # Incoming is used to point to the current response
     @_incoming = null
 
+    # Once we've made the connect, process the next request
     @on 'connect', => @_processRequest()
-    @on 'close',   => @_finishRequest()
+    # Finalize the request on close
+    @on 'close', => @_finishRequest()
 
+    # Initialize the response netstring parser
     @_initResponseParser()
 
   _initResponseParser: () ->
     # Initialize a Netstring stream parser
     nsStream = new ns.Stream @
 
+    # Listen for data and hand it to our parser
     nsStream.on 'data', (data) =>
       if @_incoming
         @_incoming._receiveData data
 
+    # Bubble any errors
     nsStream.on 'error', (exception) =>
       @_incoming = null
       @emit 'error', exception
 
   _processRequest: () ->
+    # Process the request now if the socket is open and
+    # we aren't already handling a response
     if @readyState is 'open' and !@_incoming
       if request = @_outgoing[0]
         @_incoming = new ClientResponse @, request
+        # Flush the request buffer into socket
         request.flush()
     else
+      # Try to reconnect and try again soon
       @reconnect()
 
   _finishRequest: () ->
     @_outgoing.shift()
     @_incoming = null
 
+    # Anymore requests, continue processing
     if @_outgoing.length > 0
       @_processRequest()
 
@@ -196,11 +208,13 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
     while @_writeQueue and @_writeQueue.length
       data = @_writeQueue.shift()
 
+      # Close write socket when we see an empty netstring `0:,`
       if data is END_OF_FILE
         @socket.end data
       else
         @socket.write data
 
+    # Clear queue, remaining writes won't buffer
     @_writeQueue = null
 
     # Buffer is empty, let the world know!
@@ -263,6 +277,8 @@ exports.ClientResponse = class ClientResponse extends EventEmitter
       # Else its body parts
       else if data.length > 0
         @emit 'data', data
+
+      # Empty string mean EOF
       else
         @emit 'end'
 
