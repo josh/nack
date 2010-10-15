@@ -59,7 +59,10 @@ exports.Pool = class Pool extends EventEmitter
     options.size ?= 1
 
     @workers = []
-    @idle = options.idle
+
+    @processOptions =
+      idle: options.idle
+      cwd:  options.cwd
 
     # Initialize aggregate streams
     @stdout = new AggregateStream
@@ -107,7 +110,7 @@ exports.Pool = class Pool extends EventEmitter
   # Add a process to the pool
   increment: ->
     # Create a new process
-    process = createProcess @config, idle: @idle
+    process = createProcess @config, @processOptions
 
     # Push it onto the workers list
     @workers.push process

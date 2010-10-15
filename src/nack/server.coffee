@@ -1,10 +1,12 @@
 {createServer} = require 'connect'
 {createPool}   = require './pool'
+{dirname}      = require 'path'
 
 exports.createServer = (config, options) ->
   options ?= {}
   options.size ?= 3
   options.idle ?= 15 * 60 * 1000
+  options.cwd  ?= dirname(config)
 
   pool = createPool config, options
 

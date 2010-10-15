@@ -62,7 +62,9 @@ client        = require './client'
 exports.Process = class Process extends EventEmitter
   constructor: (@config, options) ->
     options ?= {}
-    @idle  = options.idle
+    @idle = options.idle
+    @cwd  = options.cwd
+
     # Set initial state to `null`
     @state = null
 
@@ -109,7 +111,9 @@ exports.Process = class Process extends EventEmitter
       # Generate a random sock path
       @sockPath = tmpSock()
       # Spawn a Ruby server connecting to our `@sockPath`
-      @child = spawn nackWorker, ['--file', @sockPath, @config]
+      @child = spawn nackWorker, ['--file', @sockPath, @config],
+        cwd: @cwd
+        env: process.env
 
       # Expose `stdout` and `stderr` on Process
       @stdout = @child.stdout
