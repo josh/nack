@@ -1,7 +1,5 @@
-module Nack
-  autoload :Builder,   'nack/builder'
-  autoload :Client,    'nack/client'
-  autoload :Error,     'nack/error'
-  autoload :NetString, 'nack/netstring'
-  autoload :Server,    'nack/server'
-end
+require 'nack/builder'
+require 'nack/client'
+require 'nack/error'
+require 'nack/netstring'
+require 'nack/server'

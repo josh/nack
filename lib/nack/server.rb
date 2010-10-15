@@ -1,11 +1,5 @@
-require 'json'
-require 'rack'
 require 'socket'
 require 'stringio'
-require 'thread'
-
-require 'nack/error'
-require 'nack/netstring'
 
 module Nack
   class Server
@@ -19,6 +13,10 @@ module Nack
     attr_accessor :name, :request_count
 
     def initialize(app, options = {})
+      # Lazy require rack and json
+      require 'rack'
+      require 'json'
+
       self.state  = :starting
       self.app    = app
 

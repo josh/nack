@@ -1,5 +1,4 @@
 require 'strscan'
-require 'nack/error'
 
 module Nack
   # http://cr.yp.to/proto/netstrings.txt
