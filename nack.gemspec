@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name     = 'nack'
-  s.version  = '0.1.9'
+  s.version  = '0.1.10'
   s.date     = '2010-10-15'
   s.summary  = 'Node Rack server'
   s.description = <<-EOS
