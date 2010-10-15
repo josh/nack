@@ -113,7 +113,6 @@ exports.testClientMultipleRequest = (test) ->
         receivedRequests++
 
         if receivedRequests is 3
-          console.log "quit"
           process.quit()
 
     request1 = client.request 'GET', '/foo', {}
