@@ -1,3 +1,4 @@
+require 'json'
 require 'socket'
 
 module Nack
@@ -10,9 +11,6 @@ module Nack
                   :socket
 
     def initialize(*args)
-      # Lazy require json
-      require 'json'
-
       case args.length
       when 1
         self.file = args[0]
