@@ -41,6 +41,7 @@ module Nack
     def close
       self.state = :quit
       server.close
+      File.unlink(file) if file && File.exist?(file)
       nil
     end
 
@@ -59,12 +60,6 @@ module Nack
     def open_server
       server = if file
         File.unlink(file) if File.exist?(file)
-
-        at_exit do
-          debug "Removing sock #{file}"
-          File.unlink(file)
-        end
-
         UNIXServer.open(file)
       elsif port
         TCPServer.open(port)
@@ -78,8 +73,8 @@ module Nack
     end
 
     def install_handlers!
-      trap('TERM') { exit }
-      trap('INT')  { exit }
+      trap('TERM') { close; exit! 0 }
+      trap('INT')  { close; exit! 0 }
       trap('QUIT') { close }
     end
 
@@ -150,8 +145,6 @@ module Nack
 
         begin
           status, headers, body = app.call(env)
-        rescue SystemExit
-          exit
         rescue Exception => e
           warn "#{e.class}: #{e.message}"
           warn e.backtrace.join("\n")
@@ -174,8 +167,6 @@ module Nack
       ensure
         body.close if body.respond_to?(:close)
       end
-    rescue SystemExit
-      exit
     rescue Exception => e
       warn "#{e.class}: #{e.message}"
       warn e.backtrace.join("\n")
