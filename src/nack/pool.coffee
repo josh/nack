@@ -207,9 +207,3 @@ class AggregateStream extends EventEmitter
 
     stream.on 'error', (exception) =>
       @emit 'error', exception, process
-
-    stream.on 'end', =>
-      @emit 'end', process
-
-    stream.on 'close', =>
-      @emit 'close', process
