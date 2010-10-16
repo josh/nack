@@ -117,18 +117,17 @@ module Nack
       status, headers, body = SERVER_ERROR
 
       env, input = nil, StringIO.new
-      NetString.read(sock) do |data|
-        if env.nil?
-          begin
+      begin
+        NetString.read(sock) do |data|
+          if env.nil?
             env = JSON.parse(data)
-          rescue JSON::ParserError
-            break
+          elsif data.length > 0
+            input.write(data)
+          else
+            # break
           end
-        elsif data.length > 0
-          input.write(data)
-        else
-          # break
         end
+      rescue Nack::Error, JSON::ParserError
       end
 
       sock.close_read

@@ -22,10 +22,36 @@ module ServerTests
     assert_equal 200, status
   end
 
-  def test_bad_request
+  def test_invalid_json_env
     socket = client.socket
 
     Nack::NetString.write(socket, "")
+    socket.close_write
+
+    status, headers, body = nil, nil, []
+
+    Nack::NetString.read(socket) do |data|
+      if status.nil?
+        status = data.to_i
+      elsif headers.nil?
+        headers = JSON.parse(data)
+      elsif data.length > 0
+        body << data
+      else
+        socket.close
+        break
+      end
+    end
+
+    assert_equal 400, status
+    assert_equal({ "Content-Type" => "text/html" }, headers)
+    assert_equal ["Bad Request"], body
+  end
+
+  def test_invalid_netstring
+    socket = client.socket
+
+    socket.write("1:{},")
     socket.close_write
 
     status, headers, body = nil, nil, []
