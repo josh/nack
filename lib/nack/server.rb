@@ -38,7 +38,7 @@ module Nack
       nil
     end
 
-    def quit!
+    def close
       self.state = :quit
       server.close
       nil
@@ -46,14 +46,6 @@ module Nack
 
     def accept?
       state == :ready && !server.closed?
-    end
-
-    def on_shutdown(&block)
-      if block_given?
-        @on_shutdown = block
-      else
-        @on_shutdown
-      end
     end
 
     def server
@@ -68,7 +60,8 @@ module Nack
       server = if file
         File.unlink(file) if File.exist?(file)
 
-        on_shutdown do
+        at_exit do
+          debug "Removing sock #{file}"
           File.unlink(file)
         end
 
@@ -85,41 +78,36 @@ module Nack
     end
 
     def install_handlers!
-      trap('TERM') { shutdown! }
-      trap('INT')  { shutdown! }
-      trap('QUIT') { quit! }
+      trap('TERM') { exit }
+      trap('INT')  { exit }
+      trap('QUIT') { close }
     end
 
     def accept!
       if accept?
         server.accept
       else
-        shutdown!
+        nil
       end
-    rescue Errno::EBADF
-      shutdown!
+    rescue Errno::EBADF, SystemExit
+      nil
     rescue Exception => e
       warn "#{e.class}: #{e.message}"
       warn e.backtrace.join("\n")
-      shutdown!
+      nil
     end
 
     def start
       start_server!
       install_handlers!
 
-      loop do
+      while conn = accept!
         $0 = "nack worker [#{name}] (#{request_count})"
         debug "Waiting for connection"
-        handle accept!
+        handle conn
       end
 
       nil
-    end
-
-    def shutdown!
-      on_shutdown.call if on_shutdown
-      exit! 0
     end
 
     def handle(sock)
