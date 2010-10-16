@@ -5,6 +5,7 @@ require 'stringio'
 module Nack
   class Server
     SERVER_ERROR = [500, { "Content-Type" => "text/html" }, ["Internal Server Error"]]
+    BAD_REQUEST  = [400, { "Content-Type" => "text/html" }, ["Bad Request"]]
 
     def self.run(*args)
       new(*args).start
@@ -125,10 +126,16 @@ module Nack
       self.request_count += 1
       debug "Accepted connection"
 
+      status, headers, body = SERVER_ERROR
+
       env, input = nil, StringIO.new
       NetString.read(sock) do |data|
         if env.nil?
-          env = JSON.parse(data)
+          begin
+            env = JSON.parse(data)
+          rescue JSON::ParserError
+            break
+          end
         elsif data.length > 0
           input.write(data)
         else
@@ -139,26 +146,31 @@ module Nack
       sock.close_read
       input.rewind
 
-      method, path = env['REQUEST_METHOD'], env['PATH_INFO']
-      debug "Received request: #{method} #{path}"
-      $0 = "nack worker [#{name}] (#{request_count}) #{method} #{path}"
+      if env
+        method, path = env['REQUEST_METHOD'], env['PATH_INFO']
+        debug "Received request: #{method} #{path}"
+        $0 = "nack worker [#{name}] (#{request_count}) #{method} #{path}"
 
-      env = env.merge({
-        "rack.version" => Rack::VERSION,
-        "rack.input" => input,
-        "rack.errors" => $stderr,
-        "rack.multithread" => false,
-        "rack.multiprocess" => true,
-        "rack.run_once" => false,
-        "rack.url_scheme" => ["yes", "on", "1"].include?(env["HTTPS"]) ? "https" : "http"
-      })
+        env = env.merge({
+          "rack.version" => Rack::VERSION,
+          "rack.input" => input,
+          "rack.errors" => $stderr,
+          "rack.multithread" => false,
+          "rack.multiprocess" => true,
+          "rack.run_once" => false,
+          "rack.url_scheme" => ["yes", "on", "1"].include?(env["HTTPS"]) ? "https" : "http"
+        })
 
-      begin
-        status, headers, body = app.call(env)
-      rescue Exception => e
-        warn "#{e.class}: #{e.message}"
-        warn e.backtrace.join("\n")
-        status, headers, body = SERVER_ERROR
+        begin
+          status, headers, body = app.call(env)
+        rescue Exception => e
+          warn "#{e.class}: #{e.message}"
+          warn e.backtrace.join("\n")
+          status, headers, body = SERVER_ERROR
+        end
+      else
+        debug "Received bad request"
+        status, headers, body = BAD_REQUEST
       end
 
       begin

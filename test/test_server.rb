@@ -22,6 +22,32 @@ module ServerTests
     assert_equal 200, status
   end
 
+  def test_bad_request
+    socket = client.socket
+
+    Nack::NetString.write(socket, "")
+    socket.close_write
+
+    status, headers, body = nil, nil, []
+
+    Nack::NetString.read(socket) do |data|
+      if status.nil?
+        status = data.to_i
+      elsif headers.nil?
+        headers = JSON.parse(data)
+      elsif data.length > 0
+        body << data
+      else
+        socket.close
+        break
+      end
+    end
+
+    assert_equal 400, status
+    assert_equal({ "Content-Type" => "text/html" }, headers)
+    assert_equal ["Bad Request"], body
+  end
+
   def tmp_sock
     pid  = Process.pid
     rand = (rand() * 10000000000).floor
@@ -47,8 +73,6 @@ class TestUnixServer < Test::Unit::TestCase
 
     self.pid = fork do
       $stdout.reopen(wr)
-      $stderr.reopen(wr)
-
       Server.run(APP, :file => sock, :onready => proc { puts "ready" })
     end
 
@@ -83,8 +107,6 @@ class TestTCPServer < Test::Unit::TestCase
 
     self.pid = fork do
       $stdout.reopen(wr)
-      $stderr.reopen(wr)
-
       Server.run(APP, :host => HOST, :port => PORT, :onready => proc { puts "ready" })
     end
 
@@ -116,8 +138,6 @@ class TestNackWorker < Test::Unit::TestCase
 
     self.pid = fork do
       $stdout.reopen(wr)
-      $stderr.reopen(wr)
-
       exec "nack_worker", "--file", sock, CONFIG
     end
 
