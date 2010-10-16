@@ -1,4 +1,5 @@
 http = require 'http'
+net  = require 'net'
 
 {createProcess}    = require 'nack/process'
 {createConnection} = require 'nack/client'
@@ -8,7 +9,7 @@ config = __dirname + "/fixtures/hello.ru"
 PORT = 8080
 
 exports.testClientRequestBeforeConnect = (test) ->
-  test.expect 13
+  test.expect 14
 
   process = createProcess config
   process.spawn()
@@ -42,6 +43,7 @@ exports.testClientRequestBeforeConnect = (test) ->
 
       response.on 'end', ->
         test.same "Hello World\n", body
+        test.ok response.finished
 
         process.quit()
 
@@ -50,7 +52,7 @@ exports.testClientRequestBeforeConnect = (test) ->
     test.done()
 
 exports.testClientRequestAfterConnect = (test) ->
-  test.expect 12
+  test.expect 13
 
   process = createProcess config
   process.spawn()
@@ -85,6 +87,7 @@ exports.testClientRequestAfterConnect = (test) ->
 
         response.on 'end', ->
           test.same "Hello World\n", body
+          test.ok response.finished
 
           process.quit()
 
@@ -202,3 +205,30 @@ exports.testProxyRequest = (test) ->
   process.on 'exit', ->
     test.ok true
     test.done()
+
+exports.testClientUnfinishedResponse = (test) ->
+  test.expect 3
+
+  sockPath = "/tmp/nack.test.sock"
+
+  worker = net.Server (conn) ->
+    worker.close()
+
+    conn.on 'end', () ->
+      conn.write "3:200,"
+      conn.end()
+
+  worker.listen sockPath, () ->
+    client = createConnection sockPath
+
+    client.on 'close', ->
+      test.done()
+
+    client.on 'error', (exception) ->
+      test.ok exception
+
+    test.ok client
+
+    request = client.request 'GET', '/', {}
+    test.ok request
+    request.end()

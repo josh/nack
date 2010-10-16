@@ -65,6 +65,10 @@ exports.Client = class Client extends Stream
 
   _finishRequest: () ->
     @_outgoing.shift()
+
+    if @_incoming.finished is false
+      @emit 'error', new Error "Incomplete request"
+
     @_incoming = null
 
     # Anymore requests, continue processing
@@ -251,6 +255,7 @@ exports.ClientResponse = class ClientResponse extends EventEmitter
     @client = @socket
     @statusCode = null
     @headers = null
+    @finished = false
 
   _receiveData: (data) ->
     try
@@ -280,6 +285,7 @@ exports.ClientResponse = class ClientResponse extends EventEmitter
 
       # Empty string means EOF
       else
+        @finished = true
         @emit 'end'
 
     catch error
