@@ -150,6 +150,8 @@ module Nack
 
         begin
           status, headers, body = app.call(env)
+        rescue SystemExit
+          exit
         rescue Exception => e
           warn "#{e.class}: #{e.message}"
           warn e.backtrace.join("\n")
@@ -172,6 +174,8 @@ module Nack
       ensure
         body.close if body.respond_to?(:close)
       end
+    rescue SystemExit
+      exit
     rescue Exception => e
       warn "#{e.class}: #{e.message}"
       warn e.backtrace.join("\n")
