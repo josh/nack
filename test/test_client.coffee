@@ -232,3 +232,29 @@ exports.testClientUnfinishedResponse = (test) ->
     request = client.request 'GET', '/', {}
     test.ok request
     request.end()
+
+exports.testClientUnfinishedRequest = (test) ->
+  test.expect 3
+
+  sockPath = "/tmp/nack.test.sock"
+
+  worker = net.Server (conn) ->
+    worker.close()
+
+    conn.on 'data', () ->
+      conn.end()
+
+  worker.listen sockPath, () ->
+    client = createConnection sockPath
+
+    client.on 'close', ->
+      test.done()
+
+    client.on 'error', (exception) ->
+      test.ok exception
+
+    test.ok client
+
+    request = client.request 'GET', '/', {}
+    test.ok request
+    request.end()
