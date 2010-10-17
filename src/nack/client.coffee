@@ -179,7 +179,7 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
   # Write chunk to client
   write: (chunk) ->
     # Netstring encode chunk
-    nsChunk = ns.nsWrite chunk.toString()
+    nsChunk = ns.nsWrite chunk
 
     if @_writeQueue
       @_writeQueue.push nsChunk
