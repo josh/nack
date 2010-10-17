@@ -43,7 +43,7 @@ exports.testClientRequestBeforeConnect = (test) ->
 
       response.on 'end', ->
         test.same "Hello World\n", body
-        test.ok response.finished
+        test.ok response.completed
 
         process.quit()
 
@@ -87,7 +87,7 @@ exports.testClientRequestAfterConnect = (test) ->
 
         response.on 'end', ->
           test.same "Hello World\n", body
-          test.ok response.finished
+          test.ok response.completed
 
           process.quit()
 
@@ -206,7 +206,7 @@ exports.testProxyRequest = (test) ->
     test.ok true
     test.done()
 
-exports.testClientUnfinishedResponse = (test) ->
+exports.testClientUncompletedResponse = (test) ->
   test.expect 3
 
   sockPath = "/tmp/nack.test.sock"
@@ -233,7 +233,7 @@ exports.testClientUnfinishedResponse = (test) ->
     test.ok request
     request.end()
 
-exports.testClientUnfinishedRequest = (test) ->
+exports.testClientUncompletedRequest = (test) ->
   test.expect 3
 
   sockPath = "/tmp/nack.test.sock"
@@ -242,6 +242,92 @@ exports.testClientUnfinishedRequest = (test) ->
     worker.close()
 
     conn.on 'data', () ->
+      conn.end()
+
+  worker.listen sockPath, () ->
+    client = createConnection sockPath
+
+    client.on 'close', ->
+      test.done()
+
+    client.on 'error', (exception) ->
+      test.ok exception
+
+    test.ok client
+
+    request = client.request 'GET', '/', {}
+    test.ok request
+    request.end()
+
+exports.testClientInvalidStatusResponse = (test) ->
+  test.expect 3
+
+  sockPath = "/tmp/nack.test.sock"
+
+  worker = net.Server (conn) ->
+    worker.close()
+
+    conn.on 'end', () ->
+      conn.write "2:{},"
+      conn.write "2:{},"
+      conn.write "0:,"
+      conn.end()
+
+  worker.listen sockPath, () ->
+    client = createConnection sockPath
+
+    client.on 'close', ->
+      test.done()
+
+    client.on 'error', (exception) ->
+      test.ok exception
+
+    test.ok client
+
+    request = client.request 'GET', '/', {}
+    test.ok request
+    request.end()
+
+exports.testClientInvalidHeadersResponse = (test) ->
+  test.expect 3
+
+  sockPath = "/tmp/nack.test.sock"
+
+  worker = net.Server (conn) ->
+    worker.close()
+
+    conn.on 'end', () ->
+      conn.write "3:200,"
+      conn.write "3:100,"
+      conn.write "0:,"
+      conn.end()
+
+  worker.listen sockPath, () ->
+    client = createConnection sockPath
+
+    client.on 'close', ->
+      test.done()
+
+    client.on 'error', (exception) ->
+      test.ok exception
+
+    test.ok client
+
+    request = client.request 'GET', '/', {}
+    test.ok request
+    request.end()
+
+exports.testClientMissingHeadersResponse = (test) ->
+  test.expect 3
+
+  sockPath = "/tmp/nack.test.sock"
+
+  worker = net.Server (conn) ->
+    worker.close()
+
+    conn.on 'end', () ->
+      conn.write "3:200,"
+      conn.write "0:,"
       conn.end()
 
   worker.listen sockPath, () ->

@@ -1,6 +1,7 @@
-sys = require 'sys'
-url = require 'url'
-ns  = require './ns'
+assert = require 'assert'
+ns     = require './ns'
+sys    = require 'sys'
+url    = require 'url'
 
 {Stream}       = require 'net'
 {EventEmitter} = require 'events'
@@ -66,10 +67,13 @@ exports.Client = class Client extends Stream
   _finishRequest: () ->
     @_outgoing.shift()
 
-    if @_incoming.finished is false
-      @emit 'error', new Error "Incomplete request"
-
+    res = @_incoming
     @_incoming = null
+
+    if res.received is false
+      @emit 'error', new Error "Response was not received"
+    else if res.completed is false and res.readable is true
+      @emit 'error', new Error "Response was not completed"
 
     # Anymore requests, continue processing
     if @_outgoing.length > 0
@@ -252,42 +256,61 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
 #
 exports.ClientResponse = class ClientResponse extends EventEmitter
   constructor: (@socket, @request) ->
-    @client = @socket
+    @client     = @socket
+    @readable   = true
+    @received   = false
+    @completed  = false
     @statusCode = null
-    @headers = null
-    @finished = false
+    @headers    = null
 
   _receiveData: (data) ->
+    return if !@readable or @completed
+    @received = true
+
     try
-      # The first response part is the status
-      if !@statusCode
-        @statusCode = JSON.parse data
-      # The second part is the JSON encoded headers
-      else if !@headers
-        @headers = {}
-        # Parse the headers
-        for k, vs of JSON.parse data
-          # Split multiline Rack headers
-          v = vs.split "\n"
-          @headers[k] = if v.length > 0
-            # Hack for node 0.2 headers
-            # http://github.com/ry/node/commit/6560ab9
-            v.join "\r\n#{k}: "
-          else
-            vs
+      if data.length > 0
+        # The first response part is the status
+        if !@statusCode
+          @statusCode = parseInt data
+          assert.ok @statusCode >= 100, "Status must be >= 100"
 
-        # Emit response once we've received the status and headers
-        @request.emit 'response', this
+        # The second part is the JSON encoded headers
+        else if !@headers
+          @headers = {}
 
-      # Else its body parts
-      else if data.length > 0
-        @emit 'data', data
+          # Parse the headers
+          rawHeaders = JSON.parse data
+          assert.equal typeof rawHeaders, 'object', "Headers must be an object"
+
+          for k, vs of rawHeaders
+            # Split multiline Rack headers
+            v = vs.split "\n"
+            @headers[k] = if v.length > 0
+              # Hack for node 0.2 headers
+              # http://github.com/ry/node/commit/6560ab9
+              v.join "\r\n#{k}: "
+            else
+              vs
+
+          # Emit response once we've received the status and headers
+          @request.emit 'response', this
+
+        # Else its body parts
+        else if data.length > 0
+          @emit 'data', data
 
       # Empty string means EOF
       else
-        @finished = true
+        assert.ok @statusCode, "Missing status code"
+        assert.ok @headers, "Missing headers"
+
+        @readable  = false
+        @completed = true
         @emit 'end'
 
     catch error
+      # Mark as not readable to stop parsing
+      @readable = false
+
       # Catch and emit as a socket error
       @socket.emit 'error', error
