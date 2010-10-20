@@ -61,9 +61,10 @@
   <div class='man-navigation' style='display:none'>
     <a href="#NAME">NAME</a>
     <a href="#DESCRIPTION">DESCRIPTION</a>
-    <a href="#INSTALL">INSTALL</a>
     <a href="#EXAMPLES">EXAMPLES</a>
+    <a href="#INSTALL">INSTALL</a>
     <a href="#CAVEATS">CAVEATS</a>
+    <a href="#License">License</a>
     <a href="#SEE-ALSO">SEE ALSO</a>
     </div>
 
@@ -80,29 +81,7 @@
 
 <h2 id="DESCRIPTION">DESCRIPTION</h2>
 
-<h2 id="INSTALL">INSTALL</h2>
-
-<p>nack is distributed as 2 packages.</p>
-
-<p>You can grab the javascript client from npm.</p>
-
-<pre><code>npm install nack
-</code></pre>
-
-<p>The ruby server is available on RubyGems.</p>
-
-<pre><code>gem install nack
-</code></pre>
-
-<h3 id="DEPENDENCIES">DEPENDENCIES</h3>
-
-<ul>
-<li>node >= 0.2.3</li>
-<li>node-netstring</li>
-<li>rack</li>
-<li>json</li>
-</ul>
-
+<p>nack is a <a href="http://github.com/rack/rack">Rack</a> server built on top of the <a href="http://nodejs.org/">Node.js</a> HTTP server. Node does all the hard work of accepting and parsing HTTP requests and nack simply passes it along to a Ruby worker process as a serialized object. You can read more about how the <a href="protocol.7.html">IPC protocol</a> works. Besides running as a standalone Rack server, you can use the JS API to run multiple apps from the same Node process.</p>
 
 <h2 id="EXAMPLES">EXAMPLES</h2>
 
@@ -130,7 +109,7 @@ nack.createPool("/path/to/app/config.ru", { size: 3 });
 nack.createPool("/path/to/app/config.ru", { idle: 15 * 60 * 1000 });
 </code></pre>
 
-<p>Connect API:</p>
+<p>Theres a more friendly server API that returns a <a href="http://senchalabs.github.com/connect/">Connect</a> application.</p>
 
 <pre><code>var connect = require('connect');
 var nack    = require('nack');
@@ -138,18 +117,51 @@ var nack    = require('nack');
 connect.createServer(
   connect.logger(),
   connect.vhost('foo.test',
-    connect.createServer(nack("/u/apps/foo/config.ru"))
+    nack.createServer("/u/apps/foo/config.ru")
+  ),
+  connect.vhost('bar.test',
+    nack.createServer("/u/apps/bar/config.ru")
   )
 ).listen(3000);
 </code></pre>
+
+<h2 id="INSTALL">INSTALL</h2>
+
+<p>nack is distributed as 2 packages.</p>
+
+<p>You can grab the javascript client from npm.</p>
+
+<pre><code>npm install nack
+</code></pre>
+
+<p>The ruby server is available on RubyGems.</p>
+
+<pre><code>gem install nack
+</code></pre>
+
+<h3 id="DEPENDENCIES">DEPENDENCIES</h3>
+
+<ul>
+<li>node >= 0.2.3</li>
+<li>node-netstring</li>
+<li>rack</li>
+<li>json</li>
+</ul>
+
 
 <h2 id="CAVEATS">CAVEATS</h2>
 
 <p>nack was design to be used as a local development proxy. You probably don't wanna try running a production app on it. I'm sure its slow too so don't send me any benchmarks.</p>
 
+<h2 id="License">License</h2>
+
+<p>Copyright (c) 2010 Joshua Peek.</p>
+
+<p>Released under the MIT license. See <code>LICENSE</code> for details.</p>
+
 <h2 id="SEE-ALSO">SEE ALSO</h2>
 
-<p><span class="man-ref">nack<span class="s">(1)</span></span>, <span class="man-ref">nack-protocol<span class="s">(7)</span></span>, <a href="http://josh.github.com/nack/annotations" data-bare-link="true">http://josh.github.com/nack/annotations</a></p>
+<p><a href="nack.1.html" class="man-ref">nack<span class="s">(1)</span></a>, <a href="protocol.7.html" class="man-ref">nack-protocol<span class="s">(7)</span></a>, <a href="annotations/server.html" class="man-ref">nack-server<span class="s">(3)</span></a>, <a href="annotations/pool.html" class="man-ref">nack-pool<span class="s">(3)</span></a>, <a href="annotations/process.html" class="man-ref">nack-process<span class="s">(3)</span></a></p>
 
 
   <ol class='man-decor man-foot man foot'>
