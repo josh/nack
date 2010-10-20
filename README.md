@@ -3,27 +3,7 @@ nack -- Node powered Rack server
 
 ## DESCRIPTION
 
-## INSTALL
-
-nack is distributed as 2 packages.
-
-You can grab the javascript client from npm.
-
-    npm install nack
-
-The ruby server is available on RubyGems.
-
-    gem install nack
-
-### DEPENDENCIES
-
-* node >= 0.2.3
-* node-netstring
-* rack
-* json
-
-EXAMPLES
---------
+## EXAMPLES
 
 Simple proxy
 
@@ -46,7 +26,7 @@ Workers can idle out after a period of inactivity:
     // Timeout after 15m
     nack.createPool("/path/to/app/config.ru", { idle: 15 * 60 * 1000 });
 
-Connect API:
+Theres a more friendly server API that returns a [Connect](http://senchalabs.github.com/connect/) application.
 
     var connect = require('connect');
     var nack    = require('nack');
@@ -54,14 +34,41 @@ Connect API:
     connect.createServer(
       connect.logger(),
       connect.vhost('foo.test',
-        connect.createServer(nack("/u/apps/foo/config.ru"))
+        nack.createServer("/u/apps/foo/config.ru")
+      ),
+      connect.vhost('bar.test',
+        nack.createServer("/u/apps/bar/config.ru")
       )
     ).listen(3000);
+
+## INSTALL
+
+nack is distributed as 2 packages.
+
+You can grab the javascript client from npm.
+
+    npm install nack
+
+The ruby server is available on RubyGems.
+
+    gem install nack
+
+### DEPENDENCIES
+
+* node >= 0.2.3
+* node-netstring
+* rack
+* json
 
 ## CAVEATS
 
 nack was design to be used as a local development proxy. You probably don't wanna try running a production app on it. I'm sure its slow too so don't send me any benchmarks.
 
+## License
+
+Copyright (c) 2010 Joshua Peek.
+
+Released under the MIT license. See `LICENSE` for details.
 
 ## SEE ALSO
 
