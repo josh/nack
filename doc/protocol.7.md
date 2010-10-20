@@ -31,4 +31,4 @@ Sample:
 
 ## SEE ALSO
 
-json(3), <http://cr.yp.to/proto/netstrings.txt>
+nack-client(3), json(7), netstrings(7)

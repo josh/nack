@@ -12,4 +12,4 @@ defaults to 3000.
 
 ## SEE ALSO
 
-rackup(1)
+nack-server(3)

@@ -13,7 +13,7 @@ require 'rake/clean'
 CLOBBER.include('man/*')
 
 desc 'Build the manual'
-task :man => ([:clobber] + Dir["doc/*"].map { |doc|
+task :man => ([:clobber] + Dir["doc/*.md"].map { |doc|
   man = File.join("man", File.basename(doc, '.md'))
   file man do
     sh "ronn --pipe --roff #{doc} > #{man}"
@@ -29,9 +29,10 @@ namespace :pages do
   task :man do
     mkdir_p "pages"
 
-    sh "ronn -stoc -5 README.md doc/*"
-    sh "mv README.html pages/index.html"
+    sh "cp README.md doc/index.md"
+    sh "ronn -stoc -5 doc/*.md"
     sh "mv doc/*.html pages/"
+    sh "rm doc/index.md"
   end
 
   task :annotations do

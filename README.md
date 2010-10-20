@@ -3,7 +3,7 @@ nack -- Node powered Rack server
 
 ## DESCRIPTION
 
-nack is a [Rack](http://github.com/rack/rack) server built on top of the [Node.js](http://nodejs.org/) HTTP server. Node does all the hard work of accepting and parsing HTTP requests and nack simply passes it along to a Ruby worker process as a serialized object. You can read more about how the IPC protocol works. Besides running as a standalone Rack server, you can use the JS API to run multiple apps from the same Node process.
+nack is a [Rack](http://github.com/rack/rack) server built on top of the [Node.js](http://nodejs.org/) HTTP server. Node does all the hard work of accepting and parsing HTTP requests and nack simply passes it along to a Ruby worker process as a serialized object. You can read more about how the [IPC protocol][nack-protocol(7)] works. Besides running as a standalone Rack server, you can use the JS API to run multiple apps from the same Node process.
 
 ## EXAMPLES
 
@@ -74,4 +74,4 @@ Released under the MIT license. See `LICENSE` for details.
 
 ## SEE ALSO
 
-nack(1), nack-protocol(7), <http://josh.github.com/nack/annotations>
+nack(1), nack-protocol(7), nack-server(3), nack-pool(3), nack-process(3)

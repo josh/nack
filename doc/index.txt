@@ -1,0 +1,15 @@
+# manuals
+nack(1)           nack.1
+nack-protocol(7)  protocol.7
+
+# annotations
+nack-index(3)       annotations/index
+nack-buffered(3)    annotations/buffered
+nack-client(3)      annotations/client
+nack-pool(3)        annotations/pool
+nack-process(3)     annotations/process
+nack-server(3)      annotations/server
+
+# external manuals
+json(7)           http://www.json.org/
+netstrings(7)     http://cr.yp.to/proto/netstrings.txt
