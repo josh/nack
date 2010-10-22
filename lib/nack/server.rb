@@ -73,9 +73,9 @@ module Nack
     end
 
     def install_handlers!
-      trap('TERM') { close; exit! 0 }
-      trap('INT')  { close; exit! 0 }
-      trap('QUIT') { close }
+      trap('TERM') { debug "Received TERM"; close; exit! 0 }
+      trap('INT')  { debug "Received INT"; close; exit! 0 }
+      trap('QUIT') { debug "Received QUIT"; close }
     end
 
     def accept!
