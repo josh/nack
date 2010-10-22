@@ -61,8 +61,9 @@ exports.Pool = class Pool extends EventEmitter
     @workers = []
 
     @processOptions =
-      idle: options.idle
-      cwd:  options.cwd
+      idle:  options.idle
+      debug: options.debug
+      cwd:   options.cwd
 
     # Initialize aggregate streams
     @stdout = new AggregateStream
