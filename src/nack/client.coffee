@@ -1,6 +1,6 @@
 assert = require 'assert'
 ns     = require './ns'
-sys    = require 'sys'
+util   = require if process.binding('natives').util then 'util' else 'sys'
 url    = require 'url'
 
 {Stream}       = require 'net'
@@ -99,11 +99,11 @@ exports.Client = class Client extends Stream
       "REMOTE_PORT": serverRequest.connection.remotePort
 
     clientRequest = @request serverRequest.method, serverRequest.url, serverRequest.headers, metaVariables
-    sys.pump serverRequest, clientRequest
+    util.pump serverRequest, clientRequest
 
     clientRequest.on "response", (clientResponse) ->
       serverResponse.writeHead clientResponse.statusCode, clientResponse.headers
-      sys.pump clientResponse, serverResponse
+      util.pump clientResponse, serverResponse
 
     clientRequest
 

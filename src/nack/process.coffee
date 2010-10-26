@@ -1,4 +1,3 @@
-sys           = require 'sys'
 client        = require './client'
 {spawn, exec} = require 'child_process'
 {exists}      = require 'path'
