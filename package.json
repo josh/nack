@@ -6,14 +6,14 @@
   { "type": "MIT"
   , "url": "https://github.com/josh/nack/blob/master/LICENSE"
   }]
-, "bugs" :
-  { "mail" : "npm-@googlegroups.com"
-  , "web" : "http://github.com/josh/nack/issues"
-  }
-, "directories": { "doc": "./doc", "man": "./man", "lib": "./lib/nack" }
-, "bin": { "nack": "./bin/nack" }
 , "repository":
   { "type": "git"
   , "url": "http://github.com/josh/nack.git"
   }
+, "directories": { "doc": "./doc", "man": "./man", "lib": "./lib/nack" }
+, "bin": { "nack": "./bin/nack" }
+, "dependencies": [
+    "connect": ">= 0.2.7"
+  ]
+, "engines" : { "node" : ">=0.2.0" }
 }
