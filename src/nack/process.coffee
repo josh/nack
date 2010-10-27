@@ -1,9 +1,10 @@
 client        = require './client'
 {spawn, exec} = require 'child_process'
 {exists}      = require 'path'
+{pause}       = require './util'
 
 {EventEmitter} = require 'events'
-{BufferedReadStream, BufferedLineStream} = require './buffered'
+{BufferedLineStream} = require './buffered'
 
 # **Process** manages a single Ruby worker process.
 #
@@ -210,12 +211,11 @@ exports.Process = class Process extends EventEmitter
 
   # Proxies a `http.ServerRequest` and `http.ServerResponse` to the process
   proxyRequest: (req, res, callback) ->
-    # Wrap the `http.ServerRequest` with a `BufferedReadStream`
-    # so we don't miss any `data` or `end` events.
-    reqBuf = new BufferedReadStream req
+    # Pause request so we don't miss any `data` or `end` events.
+    resume = pause req
 
     @createConnection (connection) ->
-      connection.proxyRequest reqBuf, res
+      connection.proxyRequest req, res
 
       if callback
         connection.on 'error', callback
@@ -223,7 +223,7 @@ exports.Process = class Process extends EventEmitter
 
       # Flush any events captured while we were establishing
       # our client connection
-      reqBuf.flush()
+      resume()
 
   # Send `SIGTERM` to process.
   # This will immediately kill it.

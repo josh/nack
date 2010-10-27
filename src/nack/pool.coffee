@@ -1,7 +1,6 @@
 {EventEmitter}  = require 'events'
 {createProcess} = require './process'
-
-{BufferedReadStream} = require './buffered'
+{pause}         = require './util'
 
 # A **Pool** manages multiple Ruby worker process.
 #
@@ -173,14 +172,13 @@ exports.Pool = class Pool extends EventEmitter
 
   # Proxies `http.ServerRequest` and `http.ServerResponse` to a worker.
   proxyRequest: (req, res, callback) ->
-    # Wrap the `http.ServerRequest` with a `BufferedReadStream`
-    # so we don't miss any `data` or `end` events.
-    reqBuf = new BufferedReadStream req
+    # Pause request so we don't miss any `data` or `end` events.
+    resume = pause req
 
     # Wait for a ready worker
     @onNext 'worker:ready', (worker) ->
       worker.createConnection (connection) ->
-        connection.proxyRequest reqBuf, res
+        connection.proxyRequest req, res
 
         if callback
           connection.on 'error', callback
@@ -188,7 +186,7 @@ exports.Pool = class Pool extends EventEmitter
 
         # Flush any events captured while we were establishing
         # our client connection
-        reqBuf.flush()
+        resume()
 
     # Tell any available workers to announce their state
     @announceReadyWorkers()
