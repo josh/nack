@@ -70,7 +70,7 @@ exports.Client = class Client extends Stream
     res = @_incoming
     @_incoming = null
 
-    if res.received is false
+    if res is null or res.received is false
       @emit 'error', new Error "Response was not received"
     else if res.completed is false and res.readable is true
       @emit 'error', new Error "Response was not completed"
