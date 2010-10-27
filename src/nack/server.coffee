@@ -32,6 +32,16 @@ exports.createServer = (config, options) ->
       if err
         next err
 
+  origClose = server.close
+  server.close = () ->
+    try
+      origClose.apply this
+    catch error
+      if error.message is "Not running"
+        @emit 'close'
+      else
+        throw error
+
   server.on 'close', ->
     pool.terminate()
 
