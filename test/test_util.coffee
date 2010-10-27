@@ -1,6 +1,6 @@
 {EventEmitter} = require 'events'
 
-{BufferedLineStream} = require 'nack/buffered'
+{LineBuffer} = require 'nack/util'
 
 class MockReadBuffer extends EventEmitter
   constructor: ->
@@ -15,12 +15,12 @@ class MockReadBuffer extends EventEmitter
 
   destroy: ->
 
-exports.testBufferedLineStream = (test) ->
+exports.testLineBuffer = (test) ->
   test.expect 5
 
   buffer = new MockReadBuffer
 
-  stream = new BufferedLineStream buffer
+  stream = new LineBuffer buffer
   test.ok stream.readable
 
   lines = []

@@ -1,3 +1,5 @@
+{EventEmitter} = require 'events'
+
 # Pauses Event Emitter
 #
 # Hack for http.ServerRequest#pause
@@ -14,3 +16,39 @@ exports.pause = (stream) ->
     for args in queue
       stream.emit args...
     stream.resume()
+
+# **LineBuffer** wraps any readable stream and buffers data until
+# it encounters a `\n` line break. It will emit `data` events as lines
+# instead of arbitrarily chunked text.
+#
+#     stdoutLines = new LineBuffer(stdoutStream)
+#     stdoutLines.on 'data', (line) ->
+#       if line.match "TO: "
+#         console.log line
+#
+exports.LineBuffer = class LineBuffer extends EventEmitter
+  constructor: (@stream) ->
+    @readable = true
+    @_buffer = ""
+
+    # Buffer `data` and `end` events from `@stream`
+    @stream.on 'data', (args...) => @write args...
+    @stream.on 'end',  (args...) => @end args...
+
+  write: (chunk) ->
+    # Write chunk to string buffer
+    @_buffer += chunk
+
+    # Check for `\n` in buffer
+    while (index = @_buffer.indexOf("\n")) != -1
+      line     = @_buffer[0...index]
+      @_buffer = @_buffer[index+1...@_buffer.length]
+
+      # Emit `data` line as a single line
+      @emit 'data', line
+
+  end: (args...) ->
+    if args.length > 0
+      @write args...
+
+    @emit 'end'

@@ -1,10 +1,9 @@
 client        = require './client'
 {spawn, exec} = require 'child_process'
 {exists}      = require 'path'
-{pause}       = require './util'
 
 {EventEmitter} = require 'events'
-{BufferedLineStream} = require './buffered'
+{pause, LineBuffer} = require './util'
 
 # **Process** manages a single Ruby worker process.
 #
@@ -132,7 +131,7 @@ exports.Process = class Process extends EventEmitter
           @changeState 'ready'
 
       # Wrap stdout with a line buffer
-      stdoutLines = new BufferedLineStream @stdout
+      stdoutLines = new LineBuffer @stdout
       stdoutLines.on 'data', readyLineHandler
 
       # When the child process exists, clear out state and
