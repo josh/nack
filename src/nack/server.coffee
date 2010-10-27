@@ -33,7 +33,7 @@ exports.createServer = (config, options) ->
         next err
 
   server.on 'close', ->
-    pool.quit()
+    pool.terminate()
 
   server.pool = pool
 
