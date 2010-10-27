@@ -31,7 +31,8 @@ exports.BufferedReadStream = class BufferedReadStream extends EventEmitter
 
     # Forward any properties to `@stream`
     for all name, fun of @stream when !this[name] and name[0] != '_'
-      @__defineGetter__ name, (args...) -> @stream[name]
+      @__defineGetter__ name, () -> @stream[name]
+      @__defineSetter__ name, (value) -> @stream[name] = value
 
   # Ignore requests to resume the stream
   resume: ->
