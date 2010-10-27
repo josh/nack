@@ -66,7 +66,7 @@ The ruby server is available on RubyGems.
 
 nack was design to be used as a local development proxy. You probably don't wanna try running a production app on it. I'm sure its slow too so don't send me any benchmarks.
 
-## License
+## LICENSE
 
 Copyright (c) 2010 Joshua Peek.
 
