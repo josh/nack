@@ -8,6 +8,11 @@ config = __dirname + "/fixtures/hello.ru"
 
 PORT = 8080
 
+createDuplexServer = if net.createServer().allowHalfOpen?
+  (listener) -> net.createServer allowHalfOpen: true, listener
+else
+  (listener) -> net.createServer listener
+
 exports.testClientRequestBeforeConnect = (test) ->
   test.expect 14
 
@@ -211,7 +216,7 @@ exports.testClientUncompletedResponse = (test) ->
 
   sockPath = "/tmp/nack.test.sock"
 
-  worker = net.Server (conn) ->
+  worker = createDuplexServer (conn) ->
     worker.close()
 
     conn.on 'end', () ->
@@ -238,7 +243,7 @@ exports.testClientUncompletedRequest = (test) ->
 
   sockPath = "/tmp/nack.test.sock"
 
-  worker = net.Server (conn) ->
+  worker = createDuplexServer (conn) ->
     worker.close()
 
     conn.on 'data', () ->
@@ -264,7 +269,7 @@ exports.testClientInvalidStatusResponse = (test) ->
 
   sockPath = "/tmp/nack.test.sock"
 
-  worker = net.Server (conn) ->
+  worker = createDuplexServer (conn) ->
     worker.close()
 
     conn.on 'end', () ->
@@ -293,7 +298,7 @@ exports.testClientInvalidHeadersResponse = (test) ->
 
   sockPath = "/tmp/nack.test.sock"
 
-  worker = net.Server (conn) ->
+  worker = createDuplexServer (conn) ->
     worker.close()
 
     conn.on 'end', () ->
@@ -322,7 +327,7 @@ exports.testClientMissingHeadersResponse = (test) ->
 
   sockPath = "/tmp/nack.test.sock"
 
-  worker = net.Server (conn) ->
+  worker = createDuplexServer (conn) ->
     worker.close()
 
     conn.on 'end', () ->
