@@ -32,33 +32,8 @@ module Nack
       self.request_count = 0
     end
 
-    def ready!
-      self.state = :ready
-      onready.call if onready
-      nil
-    end
-
-    def close
-      self.state = :quit
-      server.close
-      File.unlink(file) if file && File.exist?(file)
-      nil
-    end
-
-    def accept?
-      state == :ready && !server.closed?
-    end
-
-    def server
-      @_server ||= open_server
-    end
-
-    def start_server!
-      server
-    end
-
     def open_server
-      server = if file
+      if file
         File.unlink(file) if File.exist?(file)
         UNIXServer.open(file)
       elsif port
@@ -66,46 +41,60 @@ module Nack
       else
         raise Error, "no socket given"
       end
-
-      ready!
-
-      server
-    end
-
-    def install_handlers!
-      trap('TERM') { debug "Received TERM"; close; exit! 0 }
-      trap('INT')  { debug "Received INT"; close; exit! 0 }
-      trap('QUIT') { debug "Received QUIT"; close }
-    end
-
-    def accept!
-      if accept?
-        server.accept
-      else
-        nil
-      end
-    rescue Errno::EBADF, SystemExit
-      nil
-    rescue Exception => e
-      warn "#{e.class}: #{e.message}"
-      warn e.backtrace.join("\n")
-      nil
     end
 
     def start
-      start_server!
-      install_handlers!
+      server = open_server
 
-      while conn = accept!
+      close = proc do
+        self.state = :quit
+        server.close
+        File.unlink(file) if file && File.exist?(file)
+      end
+
+      self.state = :ready
+      onready.call if onready
+
+      trap('TERM') { debug "Received TERM"; close.call(); exit! 0 }
+      trap('INT')  { debug "Received INT"; close.call(); exit! 0 }
+      trap('QUIT') { debug "Received QUIT"; close.call() }
+
+      listeners = [server]
+      buffers = {}
+
+      loop do
         $0 = "nack worker [#{name}] (#{request_count})"
         debug "Waiting for connection"
-        handle conn
+
+        readable, writable = IO.select(listeners, nil, nil, 60)
+
+        if state != :ready || server.closed?
+          return nil
+        end
+
+        next unless readable
+
+        readable.each do |sock|
+          if sock == server
+            listeners << server.accept_nonblock
+          else
+            client, buf = sock, buffers[sock] ||= ''
+
+            begin
+              buf << client.read_nonblock(1024)
+            rescue EOFError
+              handle sock, StringIO.new(buf)
+              buffers.delete(client)
+              listeners.delete(client)
+            end
+          end
+        end
       end
 
       nil
     end
 
-    def handle(sock)
+    def handle(sock, buf)
       self.request_count += 1
       debug "Accepted connection"
 
@@ -113,13 +102,13 @@ module Nack
 
       env, input = nil, StringIO.new
       begin
-        NetString.read(sock) do |data|
+        NetString.read(buf) do |data|
           if env.nil?
             env = JSON.parse(data)
           elsif data.length > 0
             input.write(data)
           else
-            # break
+            break
           end
         end
       rescue Nack::Error, JSON::ParserError
