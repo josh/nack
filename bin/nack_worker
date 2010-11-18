@@ -16,6 +16,10 @@ opts = OptionParser.new("", 24, '  ') { |opts|
     options[:file] = file
   }
 
+  opts.on("--pipe PIPE", "ready pipe") { |pipe|
+    options[:pipe] = pipe
+  }
+
   opts.on("-d", "--debug", "set debugging flags (set $DEBUG to true)") {
     $DEBUG = true
   }
@@ -36,9 +40,6 @@ end
 cfgfile = File.read(config)
 app = eval "Nack::Builder.new {( " + cfgfile + "\n )}.to_app",
                  nil, config
-
-$stdout.sync = true
-options[:onready] = proc { puts "ready" }
 
 options[:name] = File.basename(File.dirname(config))
 

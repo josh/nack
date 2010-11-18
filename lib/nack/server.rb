@@ -11,22 +11,20 @@ module Nack
       new(*args).start
     end
 
-    attr_accessor :state, :app, :host, :port, :file, :onready
+    attr_accessor :app, :host, :port, :file, :pipe
     attr_accessor :name, :request_count
 
     def initialize(app, options = {})
       # Lazy require rack
       require 'rack'
 
-      self.state  = :starting
-      self.app    = app
+      self.app = app
 
       self.host = options[:host]
       self.port = options[:port]
-
       self.file = options[:file]
 
-      self.onready = options[:onready]
+      self.pipe = options[:pipe]
 
       self.name = options[:name] || "app"
       self.request_count = 0
@@ -47,13 +45,11 @@ module Nack
       server = open_server
 
       close = proc do
-        self.state = :quit
         server.close
-        File.unlink(file) if file && File.exist?(file)
-      end
 
-      self.state = :ready
-      onready.call if onready
+        File.unlink(file) if file && File.exist?(file)
+        File.unlink(pipe) if pipe && File.exist?(pipe)
+      end
 
       trap('TERM') { debug "Received TERM"; close.call(); exit! 0 }
       trap('INT')  { debug "Received INT"; close.call(); exit! 0 }
@@ -62,14 +58,20 @@ module Nack
       listeners = [server]
       buffers = {}
 
+      if pipe
+        a = open(pipe, 'w')
+        a.write $$.to_s
+        a.close
+      end
+
       loop do
         $0 = "nack worker [#{name}] (#{request_count})"
         debug "Waiting for connection"
 
         readable, writable = IO.select(listeners, nil, nil, 60)
 
-        if state != :ready || server.closed?
-          return nil
+        if server.closed?
+          break
         end
 
         next unless readable

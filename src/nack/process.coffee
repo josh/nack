@@ -1,9 +1,9 @@
-client        = require './client'
-{spawn, exec} = require 'child_process'
-{exists}      = require 'path'
-
+client         = require './client'
+fs             = require 'fs'
+{exists}       = require 'path'
+{pause}        = require './util'
+{spawn, exec}  = require 'child_process'
 {EventEmitter} = require 'events'
-{pause, LineBuffer} = require './util'
 
 # **Process** manages a single Ruby worker process.
 #
@@ -109,40 +109,49 @@ exports.Process = class Process extends EventEmitter
       return @emit 'error', err if err
 
       # Generate a random sock path
-      @sockPath = tmpSock()
+      tmp = tmpFile()
+      @sockPath = "#{tmp}.sock"
+      @pipePath = "#{tmp}.pipe"
 
-      args = ['--file', @sockPath]
-      args.push '--debug' if @debug
-      args.push @config
+      createPipeStream @pipePath, (err, stream) =>
+        return @emit 'error', err if err
 
-      # Spawn a Ruby server connecting to our `@sockPath`
-      @child = spawn nackWorker, args,
-        cwd: @cwd
-        env: process.env
+        args = ['--file', @sockPath, '--pipe', @pipePath]
+        args.push '--debug' if @debug
+        args.push @config
 
-      # Expose `stdout` and `stderr` on Process
-      @stdout = @child.stdout
-      @stderr = @child.stderr
+        # Spawn a Ruby server connecting to our `@sockPath`
+        @child = spawn nackWorker, args,
+          cwd: @cwd
+          env: process.env
 
-      # Listen for "ready" line on process stdout
-      readyLineHandler = (line) =>
-        if line.toString() is "ready"
+        # Expose `stdout` and `stderr` on Process
+        @stdout = @child.stdout
+        @stderr = @child.stderr
+
+        # Listen for data on pipe
+        readyLineHandler = (data) =>
           @stdout.removeListener 'data', readyLineHandler
+          @pipe = fs.createWriteStream @pipePath
           @changeState 'ready'
 
-      # Wrap stdout with a line buffer
-      stdoutLines = new LineBuffer @stdout
-      stdoutLines.on 'data', readyLineHandler
+        stream.on 'data', readyLineHandler
 
-      # When the child process exists, clear out state and
-      # emit `exit`
-      @child.on 'exit', (code, signal) =>
-        @clearTimeout()
-        @state = @sockPath = @child = null
-        @stdout = @stderr = null
-        @emit 'exit'
+        # When the child process exists, clear out state and
+        # emit `exit`
+        @child.on 'exit', (code, signal) =>
+          @clearTimeout()
 
-      @emit 'spawn'
+          @pipe.end() if @pipe
+          fs.unlink @pipePath, ->
+
+          @state = @sockPath = @pipePath = null
+          @child = @pipe = null
+          @stdout = @stderr = null
+
+          @emit 'exit'
+
+        @emit 'spawn'
 
     this
 
@@ -242,8 +251,16 @@ exports.Process = class Process extends EventEmitter
 exports.createProcess = (args...) ->
   new Process args...
 
-# Generates a random sock path.
-tmpSock = ->
+# Generates a random path.
+tmpFile = () ->
   pid  = process.pid
   rand = Math.floor Math.random() * 10000000000
-  "/tmp/nack." + pid + "." + rand + ".sock"
+  "/tmp/nack." + pid + "." + rand
+
+createPipeStream = (path, callback) ->
+  exec "mkfifo #{path}", (error, stdout, stderr) =>
+    if error?
+      callback error
+    else
+      stream = fs.createReadStream path
+      callback null, stream

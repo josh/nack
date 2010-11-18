@@ -79,6 +79,14 @@ module ServerTests
     rand = (rand() * 10000000000).floor
     "/tmp/nack.#{pid}.#{rand}.sock"
   end
+
+  def tmp_pipe
+    pid  = Process.pid
+    rand = (rand() * 10000000000).floor
+    path = "/tmp/nack.#{pid}.#{rand}.pipe"
+    system "mkfifo", path
+    path
+  end
 end
 
 class TestUnixServer < Test::Unit::TestCase
@@ -90,19 +98,17 @@ class TestUnixServer < Test::Unit::TestCase
     [200, {"Content-Type" => "text/plain", "Set-Cookie" => "foo=1\nbar=2"}, [body]]
   end
 
-  attr_accessor :sock, :pid
+  attr_accessor :sock, :pipe, :pid
 
   def setup
     self.sock = tmp_sock
-
-    rd, wr = IO.pipe
+    self.pipe = tmp_pipe
 
     self.pid = fork do
-      $stdout.reopen(wr)
-      Server.run(APP, :file => sock, :onready => proc { puts "ready" })
+      Server.run(APP, :file => sock, :pipe => pipe)
     end
 
-    assert_equal 'ready', rd.readline.chomp
+    assert_equal pid, open(pipe).read.to_i
   end
 
   def teardown
@@ -126,17 +132,16 @@ class TestTCPServer < Test::Unit::TestCase
   HOST = "localhost"
   PORT = 8080
 
-  attr_accessor :pid
+  attr_accessor :pipe, :pid
 
   def setup
-    rd, wr = IO.pipe
+    self.pipe = tmp_pipe
 
     self.pid = fork do
-      $stdout.reopen(wr)
-      Server.run(APP, :host => HOST, :port => PORT, :onready => proc { puts "ready" })
+      Server.run(APP, :host => HOST, :port => PORT, :pipe => pipe)
     end
 
-    assert_equal 'ready', rd.readline.chomp
+    assert_equal pid, open(pipe).read.to_i
   end
 
   def teardown
@@ -155,19 +160,17 @@ class TestNackWorker < Test::Unit::TestCase
 
   CONFIG = File.expand_path("../fixtures/echo.ru", __FILE__)
 
-  attr_accessor :sock, :pid
+  attr_accessor :sock, :pipe, :pid
 
   def setup
     self.sock = tmp_sock
-
-    rd, wr = IO.pipe
+    self.pipe = tmp_pipe
 
     self.pid = fork do
-      $stdout.reopen(wr)
-      exec "nack_worker", "--file", sock, CONFIG
+      exec "nack_worker", "--file", sock, "--pipe", pipe, CONFIG
     end
 
-    assert_equal 'ready', rd.readline.chomp
+    assert_equal pid, open(pipe).read.to_i
   end
 
   def teardown

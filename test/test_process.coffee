@@ -7,7 +7,7 @@ config = __dirname + "/fixtures/hello.ru"
 PORT = 8080
 
 exports.testCreateProcess = (test) ->
-  test.expect 10
+  test.expect 9
 
   process = createProcess config
   process.on 'spawn', ->
@@ -22,9 +22,6 @@ exports.testCreateProcess = (test) ->
 
     test.ok process.stdout
     test.ok process.stderr
-
-    process.stdout.on 'data', ->
-      test.ok true
 
   process.onNext 'ready', ->
     test.ok true
