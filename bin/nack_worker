@@ -13,11 +13,11 @@ opts = OptionParser.new("", 24, '  ') { |opts|
   }
 
   opts.on("-f", "--file SOCKET", "listen on SOCKET") { |file|
-    options[:file] = file
+    options[:file] = File.expand_path(file)
   }
 
   opts.on("--pipe PIPE", "ready pipe") { |pipe|
-    options[:pipe] = pipe
+    options[:pipe] = File.expand_path(pipe)
   }
 
   opts.on("-d", "--debug", "set debugging flags (set $DEBUG to true)") {
