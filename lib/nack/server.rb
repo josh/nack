@@ -1,3 +1,4 @@
+require 'fcntl'
 require 'json'
 require 'socket'
 require 'stringio'
@@ -43,9 +44,27 @@ module Nack
 
     def start
       server = open_server
+      ppid = Process.ppid
+      self_pipe = nil
+
+      if pipe
+        if !File.pipe?(pipe)
+          raise Errno::EPIPE, pipe
+        end
+
+        a = open(pipe, 'w')
+        a.write $$.to_s
+        a.close
+
+        self_pipe = open(pipe, 'r', Fcntl::O_NONBLOCK)
+        self_pipe.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+      end
 
       close = proc do
-        server.close
+        debug "Closing server"
+
+        server.close unless server.closed?
+        self_pipe.close if self_pipe
 
         File.unlink(file) if file && File.exist?(file)
         File.unlink(pipe) if pipe && File.exist?(pipe)
@@ -55,29 +74,31 @@ module Nack
       trap('INT')  { debug "Received INT"; close.call(); exit! 0 }
       trap('QUIT') { debug "Received QUIT"; close.call() }
 
-      listeners = [server]
+      listeners = [server, self_pipe]
       buffers = {}
-
-      if pipe
-        a = open(pipe, 'w')
-        a.write $$.to_s
-        a.close
-      end
 
       loop do
         $0 = "nack worker [#{name}] (#{request_count})"
-        debug "Waiting for connection"
 
-        readable, writable = IO.select(listeners, nil, nil, 60)
+        readable, writable = IO.select(listeners)
 
-        if server.closed?
-          break
+        if ppid != Process.ppid || server.closed?
+          close.call()
+          exit! 0
         end
 
         next unless readable
 
         readable.each do |sock|
-          if sock == server
+          if sock == self_pipe
+            begin
+              sock.read_nonblock(1024)
+            rescue EOFError
+              debug "Pipe closed"
+              close.call()
+              exit! 0
+            end
+          elsif sock == server
             listeners << server.accept_nonblock
           else
             client, buf = sock, buffers[sock] ||= ''

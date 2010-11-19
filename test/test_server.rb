@@ -74,6 +74,14 @@ module ServerTests
     assert_equal ["Bad Request"], body
   end
 
+  def test_close_pipe
+    status, headers, body = client.request({}, "foo=bar")
+    assert_equal 200, status
+
+    self_pipe.close
+    Process.wait(pid)
+  end
+
   def tmp_sock
     pid  = Process.pid
     rand = (rand() * 10000000000).floor
@@ -98,7 +106,7 @@ class TestUnixServer < Test::Unit::TestCase
     [200, {"Content-Type" => "text/plain", "Set-Cookie" => "foo=1\nbar=2"}, [body]]
   end
 
-  attr_accessor :sock, :pipe, :pid
+  attr_accessor :sock, :pipe, :pid, :self_pipe
 
   def setup
     self.sock = tmp_sock
@@ -109,11 +117,14 @@ class TestUnixServer < Test::Unit::TestCase
     end
 
     assert_equal pid, open(pipe).read.to_i
+    self.self_pipe = open(pipe, 'w')
   end
 
   def teardown
     Process.kill('TERM', pid)
     Process.wait(pid)
+    self_pipe.close
+  rescue Errno::ESRCH
   end
 
   def client
@@ -132,7 +143,7 @@ class TestTCPServer < Test::Unit::TestCase
   HOST = "localhost"
   PORT = 8080
 
-  attr_accessor :pipe, :pid
+  attr_accessor :pipe, :pid, :self_pipe
 
   def setup
     self.pipe = tmp_pipe
@@ -142,11 +153,14 @@ class TestTCPServer < Test::Unit::TestCase
     end
 
     assert_equal pid, open(pipe).read.to_i
+    self.self_pipe = open(pipe, 'w')
   end
 
   def teardown
     Process.kill('TERM', pid)
     Process.wait(pid)
+    self_pipe.close
+  rescue Errno::ESRCH
   end
 
   def client
@@ -160,7 +174,7 @@ class TestNackWorker < Test::Unit::TestCase
 
   CONFIG = File.expand_path("../fixtures/echo.ru", __FILE__)
 
-  attr_accessor :sock, :pipe, :pid
+  attr_accessor :sock, :pipe, :pid, :self_pipe
 
   def setup
     self.sock = tmp_sock
@@ -171,11 +185,14 @@ class TestNackWorker < Test::Unit::TestCase
     end
 
     assert_equal pid, open(pipe).read.to_i
+    self.self_pipe = open(pipe, 'w')
   end
 
   def teardown
     Process.kill('TERM', pid)
     Process.wait(pid)
+    self_pipe.close
+  rescue Errno::ESRCH
   end
 
   def client
