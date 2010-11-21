@@ -1,3 +1,4 @@
+fs   = require 'fs'
 http = require 'http'
 
 {createProcess} = require 'nack/process'
@@ -6,8 +7,16 @@ config = __dirname + "/fixtures/hello.ru"
 
 PORT = 8080
 
+fileExist = (path) ->
+  try
+    fs.statSync path
+  catch exception
+    false
+
 exports.testCreateProcess = (test) ->
-  test.expect 9
+  test.expect 13
+
+  sockPath = pipePath = null
 
   process = createProcess config
   process.on 'spawn', ->
@@ -18,8 +27,12 @@ exports.testCreateProcess = (test) ->
 
   process.on 'spawn', ->
     test.ok process.sockPath
-    test.ok process.child
+    test.ok process.pipePath
 
+    sockPath = process.sockPath
+    pipePath = process.pipePath
+
+    test.ok process.child
     test.ok process.stdout
     test.ok process.stderr
 
@@ -29,6 +42,11 @@ exports.testCreateProcess = (test) ->
     process.quit()
     process.on 'exit', ->
       test.ok !process.sockPath
+      test.ok !process.pipePath
+
+      test.ok !fileExist(sockPath)
+      test.ok !fileExist(pipePath)
+
       test.ok !process.child
 
       test.done()

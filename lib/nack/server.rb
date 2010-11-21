@@ -47,6 +47,20 @@ module Nack
       ppid = Process.ppid
       self_pipe = nil
 
+      at_exit do
+        debug "Closing server"
+
+        server.close unless server.closed?
+        self_pipe.close if self_pipe && !self_pipe.closed?
+
+        File.unlink(file) if file && File.exist?(file)
+        File.unlink(pipe) if pipe && File.exist?(pipe)
+      end
+
+      trap('TERM') { debug "Received TERM"; exit }
+      trap('INT')  { debug "Received INT"; exit }
+      trap('QUIT') { debug "Received QUIT"; server.close }
+
       if pipe
         if !File.pipe?(pipe)
           raise Errno::EPIPE, pipe
@@ -60,31 +74,28 @@ module Nack
         self_pipe.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
       end
 
-      close = proc do
-        debug "Closing server"
-
-        server.close unless server.closed?
-        self_pipe.close if self_pipe
-
-        File.unlink(file) if file && File.exist?(file)
-        File.unlink(pipe) if pipe && File.exist?(pipe)
-      end
-
-      trap('TERM') { debug "Received TERM"; close.call(); exit! 0 }
-      trap('INT')  { debug "Received INT"; close.call(); exit! 0 }
-      trap('QUIT') { debug "Received QUIT"; close.call() }
-
-      listeners = [server, self_pipe]
+      clients = []
       buffers = {}
 
       loop do
         $0 = "nack worker [#{name}] (#{request_count})"
 
-        readable, writable = IO.select(listeners)
+        listeners = clients + [self_pipe]
+        listeners << server unless server.closed?
 
-        if ppid != Process.ppid || server.closed?
-          close.call()
-          exit! 0
+        readable, writable = nil
+        begin
+          readable, writable = IO.select(listeners, nil, [self_pipe], 60)
+        rescue Errno::EBADF
+        end
+
+        if server.closed? && clients.empty?
+          debug "Server closed"
+          return
+        end
+
+        if ppid != Process.ppid
+          debug "Process is orphaned"
         end
 
         next unless readable
@@ -95,11 +106,10 @@ module Nack
               sock.read_nonblock(1024)
             rescue EOFError
               debug "Pipe closed"
-              close.call()
-              exit! 0
+              return
             end
           elsif sock == server
-            listeners << server.accept_nonblock
+            clients << server.accept_nonblock
           else
             client, buf = sock, buffers[sock] ||= ''
 
@@ -108,13 +118,14 @@ module Nack
             rescue EOFError
               handle sock, StringIO.new(buf)
               buffers.delete(client)
-              listeners.delete(client)
+              clients.delete(client)
             end
           end
         end
       end
 
       nil
+    rescue Errno::EINTR
     end
 
     def handle(sock, buf)

@@ -113,7 +113,7 @@ exports.Process = class Process extends EventEmitter
       @sockPath = "#{tmp}.sock"
       @pipePath = "#{tmp}.pipe"
 
-      createPipeStream @pipePath, (err, stream) =>
+      createPipeStream @pipePath, (err, pipe) =>
         return @emit 'error', err if err
 
         args = ['--file', @sockPath, '--pipe', @pipePath]
@@ -129,21 +129,17 @@ exports.Process = class Process extends EventEmitter
         @stdout = @child.stdout
         @stderr = @child.stderr
 
-        # Listen for data on pipe
-        readyLineHandler = (data) =>
-          @stdout.removeListener 'data', readyLineHandler
+        pipe.on 'end', () =>
+          pipe = null
           @pipe = fs.createWriteStream @pipePath
-          @changeState 'ready'
-
-        stream.on 'data', readyLineHandler
+          @pipe.on 'open', () =>
+            @changeState 'ready'
 
         # When the child process exists, clear out state and
         # emit `exit`
         @child.on 'exit', (code, signal) =>
           @clearTimeout()
-
           @pipe.end() if @pipe
-          fs.unlink @pipePath, ->
 
           @state = @sockPath = @pipePath = null
           @child = @pipe = null
