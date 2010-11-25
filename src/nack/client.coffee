@@ -30,27 +30,31 @@ exports.Client = class Client extends Stream
     # Incoming is used to point to the current response
     @_incoming = null
 
+    self = this
+
     # Once we've made the connect, process the next request
-    @on 'connect', => @_processRequest()
+    @on 'connect', -> self._processRequest()
     # Finalize the request on close
-    @on 'close', => @_finishRequest()
+    @on 'close', -> self._finishRequest()
 
     # Initialize the response netstring parser
     @_initResponseParser()
 
   _initResponseParser: ->
+    self = this
+
     # Initialize a Netstring stream parser
     nsStream = new ns.Stream this
 
     # Listen for data and hand it to our parser
-    nsStream.on 'data', (data) =>
-      if @_incoming
-        @_incoming._receiveData data
+    nsStream.on 'data', (data) ->
+      if self._incoming
+        self._incoming._receiveData data
 
     # Bubble any errors
-    nsStream.on 'error', (exception) =>
-      @_incoming = null
-      @emit 'error', exception
+    nsStream.on 'error', (exception) ->
+      self._incoming = null
+      self.emit 'error', exception
 
   _processRequest: ->
     # Process the request now if the socket is open and

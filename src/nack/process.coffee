@@ -73,7 +73,7 @@ exports.Process = class Process extends EventEmitter
 
     # Raise an exception unless `config` exists
     if @config?
-      exists @config, (ok) =>
+      exists @config, (ok) ->
         raiseConfigError() if !ok
     else
       raiseConfigError()
@@ -153,27 +153,29 @@ exports.Process = class Process extends EventEmitter
 
   # Register a callback to only run once on the next event.
   onNext: (event, listener) ->
-    callback = (args...) =>
-      @removeListener event, callback
+    self = this
+    callback = (args...) ->
+      self.removeListener event, callback
       listener args...
     @on event, callback
 
   # Change the current state and fire a corresponding event
   changeState: (state) ->
+    self = this
     if @state != state
       @state = state
       # State change events are always asynchronous
-      process.nextTick => @emit state
+      process.nextTick -> self.emit state
 
   # Wait for state and invoke the callback.
   onState: (state, callback) ->
+    self = this
     # If we're already in the state, just do it
     if @state == state
       callback()
     else
       # Wait for next state change and check again
-      @onNext state, =>
-        @onState state, callback
+      @onNext state, -> self.onState state, callback
 
   # Clear current timeout handler.
   clearTimeout: ->
@@ -182,34 +184,37 @@ exports.Process = class Process extends EventEmitter
 
   # Defer the current idle timer.
   deferTimeout: ->
+    self = this
     if @idle
       # Clear the current timer
       @clearTimeout()
 
-      callback = =>
-        @emit 'idle'
-        @quit()
+      callback = ->
+        self.emit 'idle'
+        self.quit()
 
       # Register a new timer
       @_timeoutId = setTimeout callback, @idle
 
   # Create a new **Client** connection
   createConnection: (callback) ->
+    self = this
+
     # Start child process if we haven't already
     @spawn()
 
     # Wait till the process is ready
-    @onState 'ready', =>
+    @onState 'ready', ->
       # Immediately flag process as `busy`
-      @changeState 'busy'
+      self.changeState 'busy'
 
       # Create a connection to our sock path
-      connection = client.createConnection @sockPath
+      connection = client.createConnection self.sockPath
 
       # When the connection closes, change the state back
       # to ready.
-      connection.on 'close', () =>
-        @changeState 'ready'
+      connection.on 'close', () ->
+        self.changeState 'ready'
 
       callback connection
 
@@ -254,7 +259,7 @@ tmpFile = () ->
   "/tmp/nack." + pid + "." + rand
 
 createPipeStream = (path, callback) ->
-  exec "mkfifo #{path}", (error, stdout, stderr) =>
+  exec "mkfifo #{path}", (error, stdout, stderr) ->
     if error?
       callback error
     else
