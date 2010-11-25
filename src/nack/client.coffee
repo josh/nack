@@ -38,7 +38,7 @@ exports.Client = class Client extends Stream
     # Initialize the response netstring parser
     @_initResponseParser()
 
-  _initResponseParser: () ->
+  _initResponseParser: ->
     # Initialize a Netstring stream parser
     nsStream = new ns.Stream this
 
@@ -52,7 +52,7 @@ exports.Client = class Client extends Stream
       @_incoming = null
       @emit 'error', exception
 
-  _processRequest: () ->
+  _processRequest: ->
     # Process the request now if the socket is open and
     # we aren't already handling a response
     if @readyState is 'open' and !@_incoming
@@ -64,7 +64,7 @@ exports.Client = class Client extends Stream
       # Try to reconnect and try again soon
       @reconnect()
 
-  _finishRequest: () ->
+  _finishRequest: ->
     @_outgoing.shift()
 
     res = @_incoming
