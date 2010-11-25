@@ -170,7 +170,7 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
 
     for key, value of headers
       # Upcase all header key values
-      key = key.toUpperCase().replace('-', '_')
+      key = key.toUpperCase().replace /-/g, '_'
       # Prepend `HTTP_` to them
       key = "HTTP_#{key}" unless key == 'CONTENT_TYPE' or key == 'CONTENT_LENGTH'
       # And merge them into the `@env` obj
