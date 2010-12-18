@@ -10,7 +10,7 @@
   { "type": "git"
   , "url": "http://github.com/josh/nack.git"
   }
-, "directories": { "doc": "./doc", "man": "./man", "lib": "./lib/nack" }
+, "directories": { "man": "./man", "lib": "./lib/nack" }
 , "bin": { "nack": "./bin/nack" }
 , "dependencies": {
     "connect": ">= 0.1.0"
