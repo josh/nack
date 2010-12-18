@@ -1,0 +1,9 @@
+*.gemspec
+*.md
+*.rb
+.git*
+Cakefile
+Rakefile
+doc/
+src/
+test/
