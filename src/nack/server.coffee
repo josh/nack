@@ -28,7 +28,7 @@ exports.createServer = (config, options) ->
   pool = createPool config, options
 
   server = createServer (req, res, next) ->
-    pool.proxyRequest req, res, (err) ->
+    pool.proxyRequest req, res, req.proxyMetaVariables, (err) ->
       if err
         next err
 

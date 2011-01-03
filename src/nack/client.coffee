@@ -97,10 +97,9 @@ exports.Client = class Client extends Stream
 
   # Proxy a `http.ServerRequest` and `http.serverResponse` between
   # the `Client`.
-  proxyRequest: (serverRequest, serverResponse) ->
-    metaVariables =
-      "REMOTE_ADDR": serverRequest.connection.remoteAddress
-      "REMOTE_PORT": serverRequest.connection.remotePort
+  proxyRequest: (serverRequest, serverResponse, metaVariables = {}) ->
+    metaVariables["REMOTE_ADDR"] ?= serverRequest.connection.remoteAddress
+    metaVariables["REMOTE_PORT"] ?= serverRequest.connection.remotePort
 
     clientRequest = @request serverRequest.method, serverRequest.url, serverRequest.headers, metaVariables
     util.pump serverRequest, clientRequest

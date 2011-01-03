@@ -177,14 +177,20 @@ exports.Pool = class Pool extends EventEmitter
       worker.quit()
 
   # Proxies `http.ServerRequest` and `http.ServerResponse` to a worker.
-  proxyRequest: (req, res, callback) ->
+  proxyRequest: (req, res, args...) ->
+    if args[0] and args[0].constructor and args[0].call and args[0].apply
+      callback = args[0]
+    else
+      metaVariables = args[0]
+      callback = args[1]
+
     # Pause request so we don't miss any `data` or `end` events.
     resume = pause req
 
     # Wait for a ready worker
     @onNext 'worker:ready', (worker) ->
       worker.createConnection (connection) ->
-        connection.proxyRequest req, res
+        connection.proxyRequest req, res, metaVariables
 
         if callback
           connection.on 'error', callback
