@@ -63,14 +63,3 @@ namespace :pages do
     rm_rf "pages/"
   end
 end
-
-require 'rake/gempackagetask'
-spec = eval(File.read("nack.gemspec"))
-gem_task = Rake::GemPackageTask.new(spec) do
-end
-
-task :release => :gem do
-  sh "gem push pkg/#{gem_task.gem_file}"
-  sh "rm -r pkg/"
-  sh "npm publish"
-end
