@@ -45,15 +45,9 @@ Theres a more friendly server API that returns a [Connect](http://senchalabs.git
 
 ## INSTALL
 
-nack is distributed as 2 packages.
-
-You can grab the javascript client from npm.
+You can grab the package from npm.
 
     npm install nack
-
-The ruby server is available on RubyGems.
-
-    gem install nack
 
 ### DEPENDENCIES
 
