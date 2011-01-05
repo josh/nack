@@ -1,4 +1,3 @@
-*.gemspec
 *.md
 .git*
 Cakefile
