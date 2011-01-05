@@ -5,6 +5,9 @@ fs             = require 'fs'
 {spawn, exec}  = require 'child_process'
 {EventEmitter} = require 'events'
 
+packageBin = fs.realpathSync "#{__dirname}/../../bin"
+packageLib = fs.realpathSync "#{__dirname}/.."
+
 # **Process** manages a single Ruby worker process.
 #
 # A Process requires a path to a rackup config file _(config.ru)_.
@@ -82,21 +85,6 @@ exports.Process = class Process extends EventEmitter
     @on 'busy', =>
       @deferTimeout()
 
-  # Expand path to `nack_worker` command
-  getNackWorkerPath: (callback) ->
-    if @nackWorkerPath?
-      callback null, @nackWorkerPath
-    else
-      exec 'which nack_worker', (error, stdout, stderr) =>
-        if error
-          # Throw an exception if `nack_worker` isn't in the `PATH`.
-          #
-          # Probably need to `gem install nack` or fix shitty rubygems
-          callback new Error "Couldn't find `nack_worker` in PATH"
-        else
-          @nackWorkerPath = stdout.replace /(\n|\r)+$/, ''
-          callback error, @nackWorkerPath
-
   spawn: () ->
     # Do nothing if the process is already started
     return if @state
@@ -104,52 +92,56 @@ exports.Process = class Process extends EventEmitter
     # Change start to `spawning` and fire an event
     @changeState 'spawning'
 
-    @getNackWorkerPath (err, nackWorker) =>
-      # Bubble error from `getNackWorkerPath`
+    # Generate a random sock path
+    tmp = tmpFile()
+    @sockPath = "#{tmp}.sock"
+    @pipePath = "#{tmp}.pipe"
+
+    # Copy process environment
+    env = {}
+    for key, value of process.env
+      env[key] = value
+
+    env['PATH']    = "#{packageBin}:#{env['PATH']}"
+    env['RUBYLIB'] = "#{packageLib}:#{env['RUBYLIB']}"
+
+    createPipeStream @pipePath, (err, pipe) =>
       return @emit 'error', err if err
 
-      # Generate a random sock path
-      tmp = tmpFile()
-      @sockPath = "#{tmp}.sock"
-      @pipePath = "#{tmp}.pipe"
+      args = ['--file', @sockPath, '--pipe', @pipePath]
+      args.push '--debug' if @debug
+      args.push @config
 
-      createPipeStream @pipePath, (err, pipe) =>
-        return @emit 'error', err if err
+      # Spawn a Ruby server connecting to our `@sockPath`
+      @child = spawn "nack_worker", args,
+        cwd: @cwd
+        env: env
 
-        args = ['--file', @sockPath, '--pipe', @pipePath]
-        args.push '--debug' if @debug
-        args.push @config
+      # Expose `stdout` and `stderr` on Process
+      @stdout = @child.stdout
+      @stderr = @child.stderr
 
-        # Spawn a Ruby server connecting to our `@sockPath`
-        @child = spawn nackWorker, args,
-          cwd: @cwd
-          env: process.env
+      pipe.on 'end', () =>
+        pipe = null
+        @pipe = fs.createWriteStream @pipePath
+        @pipe.on 'open', () =>
+          @changeState 'ready'
 
-        # Expose `stdout` and `stderr` on Process
-        @stdout = @child.stdout
-        @stderr = @child.stderr
+      # When the child process exists, clear out state and
+      # emit `exit`
+      @child.on 'exit', (code, signal) =>
+        @clearTimeout()
+        @pipe.end() if @pipe
 
-        pipe.on 'end', () =>
-          pipe = null
-          @pipe = fs.createWriteStream @pipePath
-          @pipe.on 'open', () =>
-            @changeState 'ready'
+        @state = @sockPath = @pipePath = null
+        @child = @pipe = null
+        @stdout = @stderr = null
 
-        # When the child process exists, clear out state and
-        # emit `exit`
-        @child.on 'exit', (code, signal) =>
-          @clearTimeout()
-          @pipe.end() if @pipe
+        @emit 'exit'
 
-          @state = @sockPath = @pipePath = null
-          @child = @pipe = null
-          @stdout = @stderr = null
+      @emit 'spawn'
 
-          @emit 'exit'
-
-        @emit 'spawn'
-
-    this
+    @
 
   # Register a callback to only run once on the next event.
   onNext: (event, listener) ->
