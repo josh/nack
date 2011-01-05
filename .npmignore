@@ -1,6 +1,5 @@
 *.gemspec
 *.md
-*.rb
 .git*
 Cakefile
 Rakefile
