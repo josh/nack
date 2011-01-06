@@ -1,5 +1,4 @@
 require 'nack'
-require 'nack/client'
 require 'nack/server'
 
 require 'test/unit'
@@ -31,7 +30,7 @@ class TestNackWorker < Test::Unit::TestCase
   end
 
   def test_request
-    status, headers, body = client.request({}, "foo=bar")
+    status, headers, body = request({}, "foo=bar")
 
     assert_equal 200, status
     assert_equal "text/plain", headers['Content-Type']
@@ -40,22 +39,22 @@ class TestNackWorker < Test::Unit::TestCase
   end
 
   def test_multiple_requests
-    status, headers, body = client.request
+    status, headers, body = request
     assert_equal 200, status
 
-    status, headers, body = client.request
+    status, headers, body = request
     assert_equal 200, status
   end
 
   def test_invalid_json_env
-    socket = client.socket
+    socket = UNIXSocket.open(sock)
 
-    Nack::NetString.write(socket, "")
+    NetString.write(socket, "")
     socket.close_write
 
     status, headers, body = nil, nil, []
 
-    Nack::NetString.read(socket) do |data|
+    NetString.read(socket) do |data|
       if status.nil?
         status = data.to_i
       elsif headers.nil?
@@ -74,14 +73,14 @@ class TestNackWorker < Test::Unit::TestCase
   end
 
   def test_invalid_netstring
-    socket = client.socket
+    socket = UNIXSocket.open(sock)
 
     socket.write("1:{},")
     socket.close_write
 
     status, headers, body = nil, nil, []
 
-    Nack::NetString.read(socket) do |data|
+    NetString.read(socket) do |data|
       if status.nil?
         status = data.to_i
       elsif headers.nil?
@@ -100,7 +99,7 @@ class TestNackWorker < Test::Unit::TestCase
   end
 
   def test_close_pipe
-    status, headers, body = client.request({}, "foo=bar")
+    status, headers, body = request({}, "foo=bar")
     assert_equal 200, status
 
     self_pipe.close
@@ -121,7 +120,29 @@ class TestNackWorker < Test::Unit::TestCase
     path
   end
 
-  def client
-    Client.open(sock)
+  def request(env = {}, body = nil)
+    socket = UNIXSocket.open(sock)
+
+    NetString.write(socket, env.to_json)
+    NetString.write(socket, body) if body
+    NetString.write(socket, "")
+
+    socket.close_write
+
+    status, headers, body = nil, nil, []
+
+    NetString.read(socket) do |data|
+      if status.nil?
+        status = data.to_i
+      elsif headers.nil?
+        headers = JSON.parse(data)
+      elsif data.length > 0
+        body << data
+      else
+        # break
+      end
+    end
+
+    [status, headers, body]
   end
 end

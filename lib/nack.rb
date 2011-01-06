@@ -1,5 +1,4 @@
 require 'nack/builder'
-require 'nack/client'
 require 'nack/error'
 require 'nack/netstring'
 require 'nack/server'
