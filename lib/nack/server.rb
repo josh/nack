@@ -12,7 +12,7 @@ module Nack
       new(*args).start
     end
 
-    attr_accessor :app, :host, :port, :file, :pipe
+    attr_accessor :app, :file, :pipe
     attr_accessor :name, :request_count
 
     def initialize(app, options = {})
@@ -21,10 +21,7 @@ module Nack
 
       self.app = app
 
-      self.host = options[:host]
-      self.port = options[:port]
       self.file = options[:file]
-
       self.pipe = options[:pipe]
 
       self.name = options[:name] || "app"
@@ -35,8 +32,6 @@ module Nack
       if file
         File.unlink(file) if File.exist?(file)
         UNIXServer.open(file)
-      elsif port
-        TCPServer.open(port)
       else
         raise Error, "no socket given"
       end

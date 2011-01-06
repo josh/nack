@@ -132,42 +132,6 @@ class TestUnixServer < Test::Unit::TestCase
   end
 end
 
-class TestTCPServer < Test::Unit::TestCase
-  include Nack
-  include ServerTests
-
-  APP = lambda do |env|
-    body = env["rack.input"].read
-    [200, {"Content-Type" => "text/plain", "Set-Cookie" => "foo=1\nbar=2"}, [body]]
-  end
-  HOST = "localhost"
-  PORT = 8080
-
-  attr_accessor :pipe, :pid, :self_pipe
-
-  def setup
-    self.pipe = tmp_pipe
-
-    self.pid = fork do
-      Server.run(APP, :host => HOST, :port => PORT, :pipe => pipe)
-    end
-
-    assert_equal pid, open(pipe).read.to_i
-    self.self_pipe = open(pipe, 'w')
-  end
-
-  def teardown
-    Process.kill('TERM', pid)
-    Process.wait(pid)
-    self_pipe.close
-  rescue Errno::ESRCH
-  end
-
-  def client
-    Client.open(HOST, PORT)
-  end
-end
-
 class TestNackWorker < Test::Unit::TestCase
   include Nack
   include ServerTests

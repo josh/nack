@@ -7,27 +7,15 @@ module Nack
       new(*args)
     end
 
-    attr_accessor :file, :host, :port,
-                  :socket
+    attr_accessor :file, :socket
 
     def initialize(*args)
-      case args.length
-      when 1
-        self.file = args[0]
-      when 2
-        self.host = args[0]
-        self.port = args[1]
-      end
-
+      self.file = args[0]
       self.socket = open_socket
     end
 
     def open_socket
-      if file
-        UNIXSocket.open(file)
-      elsif host && port
-        TCPSocket.open(host, port)
-      end
+      UNIXSocket.open(file)
     end
 
     def request(env = {}, body = nil)

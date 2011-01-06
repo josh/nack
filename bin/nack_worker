@@ -8,10 +8,6 @@ options = {}
 opts = OptionParser.new("", 24, '  ') { |opts|
   opts.banner = "Usage: nack_worker [options] [rackup config]"
 
-  opts.on("-p", "--port PORT", "listen on PORT") { |port|
-    options[:port] = port
-  }
-
   opts.on("-f", "--file SOCKET", "listen on SOCKET") { |file|
     options[:file] = File.expand_path(file)
   }
@@ -33,8 +29,8 @@ if !File.exist?(config)
   abort "configuration #{config} not found"
 end
 
-if !options[:port] && !options[:file]
-  abort "need a port number or socket path"
+if !options[:file]
+  abort "need a socket path"
 end
 
 cfgfile = File.read(config)
