@@ -1,6 +1,5 @@
 #!/usr/bin/env ruby
 
-require 'nack'
 require 'optparse'
 
 options = {}
@@ -33,10 +32,12 @@ if !options[:file]
   abort "need a socket path"
 end
 
+require 'nack/builder'
 cfgfile = File.read(config)
 app = eval "Nack::Builder.new {( " + cfgfile + "\n )}.to_app",
                  nil, config
 
 options[:name] = File.basename(File.dirname(config))
 
+require 'nack/server'
 Nack::Server.run(app, options)

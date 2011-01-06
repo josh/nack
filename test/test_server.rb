@@ -1,4 +1,3 @@
-require 'nack'
 require 'nack/server'
 
 require 'test/unit'

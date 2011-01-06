@@ -3,6 +3,9 @@ require 'json'
 require 'socket'
 require 'stringio'
 
+require 'nack/error'
+require 'nack/netstring'
+
 module Nack
   class Server
     SERVER_ERROR = [500, { "Content-Type" => "text/html" }, ["Internal Server Error"]]

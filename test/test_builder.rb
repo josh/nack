@@ -1,4 +1,4 @@
-require 'nack'
+require 'nack/builder'
 
 require 'test/unit'
 

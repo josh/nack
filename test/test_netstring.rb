@@ -1,6 +1,5 @@
 # encoding: utf-8
 
-require 'nack'
 require 'nack/netstring'
 
 require 'test/unit'
