@@ -4,7 +4,32 @@ require 'nack/server'
 
 require 'test/unit'
 
-module ServerTests
+class TestNackWorker < Test::Unit::TestCase
+  include Nack
+
+  CONFIG = File.expand_path("../fixtures/echo.ru", __FILE__)
+
+  attr_accessor :sock, :pipe, :pid, :self_pipe
+
+  def setup
+    self.sock = tmp_sock
+    self.pipe = tmp_pipe
+
+    self.pid = fork do
+      exec "nack_worker", "--file", sock, "--pipe", pipe, CONFIG
+    end
+
+    assert_equal pid, open(pipe).read.to_i
+    self.self_pipe = open(pipe, 'w')
+  end
+
+  def teardown
+    Process.kill('TERM', pid)
+    Process.wait(pid)
+    self_pipe.close
+  rescue Errno::ESRCH
+  end
+
   def test_request
     status, headers, body = client.request({}, "foo=bar")
 
@@ -94,69 +119,6 @@ module ServerTests
     path = "/tmp/nack.#{pid}.#{rand}.pipe"
     system "mkfifo", path
     path
-  end
-end
-
-class TestUnixServer < Test::Unit::TestCase
-  include Nack
-  include ServerTests
-
-  APP = lambda do |env|
-    body = env["rack.input"].read
-    [200, {"Content-Type" => "text/plain", "Set-Cookie" => "foo=1\nbar=2"}, [body]]
-  end
-
-  attr_accessor :sock, :pipe, :pid, :self_pipe
-
-  def setup
-    self.sock = tmp_sock
-    self.pipe = tmp_pipe
-
-    self.pid = fork do
-      Server.run(APP, :file => sock, :pipe => pipe)
-    end
-
-    assert_equal pid, open(pipe).read.to_i
-    self.self_pipe = open(pipe, 'w')
-  end
-
-  def teardown
-    Process.kill('TERM', pid)
-    Process.wait(pid)
-    self_pipe.close
-  rescue Errno::ESRCH
-  end
-
-  def client
-    Client.open(sock)
-  end
-end
-
-class TestNackWorker < Test::Unit::TestCase
-  include Nack
-  include ServerTests
-
-  CONFIG = File.expand_path("../fixtures/echo.ru", __FILE__)
-
-  attr_accessor :sock, :pipe, :pid, :self_pipe
-
-  def setup
-    self.sock = tmp_sock
-    self.pipe = tmp_pipe
-
-    self.pid = fork do
-      exec "nack_worker", "--file", sock, "--pipe", pipe, CONFIG
-    end
-
-    assert_equal pid, open(pipe).read.to_i
-    self.self_pipe = open(pipe, 'w')
-  end
-
-  def teardown
-    Process.kill('TERM', pid)
-    Process.wait(pid)
-    self_pipe.close
-  rescue Errno::ESRCH
   end
 
   def client
