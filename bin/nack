@@ -5,7 +5,7 @@ var port   = process.argv[3] || 3000;
 
 var connect    = require('connect');
 var nack       = require('nack');
-var nackServer = nack.createServer(config)
+var nackServer = nack.createServer(config);
 
 var util = require(process.binding('natives').util ? 'util' : 'sys');
 util.pump(nackServer.pool.stdout, process.stdout);
