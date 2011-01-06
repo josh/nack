@@ -16,7 +16,7 @@ exports.pause = (stream) ->
   stream.on 'data', (args...) -> queue.push ['data', args...]
   stream.on 'end',  (args...) -> queue.push ['end', args...]
 
-  () ->
+  ->
     for args in queue
       stream.emit args...
     stream.resume()

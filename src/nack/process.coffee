@@ -85,7 +85,7 @@ exports.Process = class Process extends EventEmitter
     @on 'busy', =>
       @deferTimeout()
 
-  spawn: () ->
+  spawn: ->
     # Do nothing if the process is already started
     return if @state
 
@@ -121,10 +121,10 @@ exports.Process = class Process extends EventEmitter
       @stdout = @child.stdout
       @stderr = @child.stderr
 
-      pipe.on 'end', () =>
+      pipe.on 'end', =>
         pipe = null
         @pipe = fs.createWriteStream @pipePath
-        @pipe.on 'open', () =>
+        @pipe.on 'open', =>
           @changeState 'ready'
 
       # When the child process exists, clear out state and
@@ -205,7 +205,7 @@ exports.Process = class Process extends EventEmitter
 
       # When the connection closes, change the state back
       # to ready.
-      connection.on 'close', () ->
+      connection.on 'close', ->
         self.changeState 'ready'
 
       callback connection
@@ -251,7 +251,7 @@ exports.createProcess = (args...) ->
   new Process args...
 
 # Generates a random path.
-tmpFile = () ->
+tmpFile = ->
   pid  = process.pid
   rand = Math.floor Math.random() * 10000000000
   "/tmp/nack." + pid + "." + rand

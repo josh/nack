@@ -33,7 +33,7 @@ exports.createServer = (config, options) ->
         next err
 
   origClose = server.close
-  server.close = () ->
+  server.close = ->
     try
       origClose.apply this
     catch error

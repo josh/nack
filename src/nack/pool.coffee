@@ -73,14 +73,14 @@ exports.Pool = class Pool extends EventEmitter
     # When a worker becomes ready, check if the ready worker count moved
     # from 0 to 1
     previousReadyWorkerCount = 0
-    @on 'worker:ready', () ->
+    @on 'worker:ready', ->
       newReadyWorkerCount = self.getReadyWorkerCount()
       if previousReadyWorkerCount is 0 and newReadyWorkerCount > 0
         self.emit 'ready'
       previousReadyWorkerCount = newReadyWorkerCount
 
     # When a worker exists, check if the alive worker count goes down to 0
-    @on 'worker:exit', () ->
+    @on 'worker:exit', ->
       if self.getAliveWorkerCount() is 0
         self.emit 'exit'
 
@@ -97,14 +97,14 @@ exports.Pool = class Pool extends EventEmitter
     @on event, callback
 
   # Get number of workers whose state is not null
-  getAliveWorkerCount: () ->
+  getAliveWorkerCount: ->
     count = 0
     for worker in @workers when worker.state
       count++
     count
 
   # Get number of workers whose state is 'ready'
-  getReadyWorkerCount: () ->
+  getReadyWorkerCount: ->
     count = 0
     for worker in @workers when worker.state is 'ready'
       count++
