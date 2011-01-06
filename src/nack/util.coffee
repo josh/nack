@@ -1,5 +1,9 @@
 {EventEmitter} = require 'events'
 
+# Is a given value a function?
+exports.isFunction = (obj) ->
+  if obj and obj.constructor and obj.call and obj.apply then true else false
+
 # Pauses Event Emitter
 #
 # Hack for http.ServerRequest#pause

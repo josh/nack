@@ -1,9 +1,9 @@
-client         = require './client'
-fs             = require 'fs'
-{exists}       = require 'path'
-{pause}        = require './util'
-{spawn, exec}  = require 'child_process'
-{EventEmitter} = require 'events'
+client              = require './client'
+fs                  = require 'fs'
+{exists}            = require 'path'
+{pause, isFunction} = require './util'
+{spawn, exec}       = require 'child_process'
+{EventEmitter}      = require 'events'
 
 packageBin = fs.realpathSync "#{__dirname}/../../bin"
 packageLib = fs.realpathSync "#{__dirname}/.."
@@ -212,7 +212,7 @@ exports.Process = class Process extends EventEmitter
 
   # Proxies a `http.ServerRequest` and `http.ServerResponse` to the process
   proxyRequest: (req, res, args...) ->
-    if args[0] and args[0].constructor and args[0].call and args[0].apply
+    if isFunction args[0]
       callback = args[0]
     else
       metaVariables = args[0]

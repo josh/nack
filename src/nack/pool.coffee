@@ -1,6 +1,6 @@
-{EventEmitter}  = require 'events'
-{createProcess} = require './process'
-{pause}         = require './util'
+{EventEmitter}      = require 'events'
+{createProcess}     = require './process'
+{pause, isFunction} = require './util'
 
 # A **Pool** manages multiple Ruby worker process.
 #
@@ -178,7 +178,7 @@ exports.Pool = class Pool extends EventEmitter
 
   # Proxies `http.ServerRequest` and `http.ServerResponse` to a worker.
   proxyRequest: (req, res, args...) ->
-    if args[0] and args[0].constructor and args[0].call and args[0].apply
+    if isFunction args[0]
       callback = args[0]
     else
       metaVariables = args[0]
