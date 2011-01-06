@@ -7,9 +7,9 @@ var connect    = require('connect');
 var nack       = require('nack');
 var nackServer = nack.createServer(config)
 
-var sys = require('sys');
-sys.pump(nackServer.pool.stdout, process.stdout);
-sys.pump(nackServer.pool.stderr, process.stdout);
+var util = require(process.binding('natives').util ? 'util' : 'sys');
+util.pump(nackServer.pool.stdout, process.stdout);
+util.pump(nackServer.pool.stderr, process.stdout);
 
 var server = connect.createServer(
   connect.logger(),
@@ -18,4 +18,4 @@ var server = connect.createServer(
 );
 
 server.listen(port, "127.0.0.1");
-sys.puts("Listening on http://127.0.0.1:" + port);
+util.puts("Listening on http://127.0.0.1:" + port);
