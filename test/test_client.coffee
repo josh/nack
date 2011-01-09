@@ -9,7 +9,10 @@ config = __dirname + "/fixtures/hello.ru"
 PORT = 8080
 
 createDuplexServer = if net.createServer().allowHalfOpen?
-  (listener) -> net.createServer allowHalfOpen: true, listener
+  (listener) ->
+    server = net.createServer allowHalfOpen: true
+    server.on 'connection', listener
+    server
 else
   (listener) -> net.createServer listener
 
