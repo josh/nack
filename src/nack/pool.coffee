@@ -79,6 +79,9 @@ exports.Pool = class Pool extends EventEmitter
         self.emit 'ready'
       previousReadyWorkerCount = newReadyWorkerCount
 
+    @on 'worker:error', (process, error) ->
+      self.emit 'error', error
+
     # When a worker exists, check if the alive worker count goes down to 0
     @on 'worker:exit', ->
       if self.getAliveWorkerCount() is 0
@@ -131,6 +134,9 @@ exports.Pool = class Pool extends EventEmitter
 
     process.on 'busy', ->
       self.emit 'worker:busy', process
+
+    process.on 'error', (error) ->
+      self.emit 'worker:error', process, error
 
     process.on 'exit', ->
       self.emit 'worker:exit', process
