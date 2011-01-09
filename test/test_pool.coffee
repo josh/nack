@@ -135,3 +135,39 @@ exports.testProxyRequestWithClientException = (test) ->
     http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
       test.ok err
       test.done()
+
+# exports.testErrorCreatingPool = (test) ->
+#   test.expect 2
+
+#   pool = createPool "#{__dirname}/fixtures/crash.ru", size: 1
+
+#   pool.on 'error', (error) ->
+#     test.same "b00m", error.message
+
+#   pool.on 'exit', ->
+#     test.ok true
+#     test.done()
+
+#   pool.spawn()
+
+# exports.testErrorCreatingProcessOnProxy = (test) ->
+#   test.expect 3
+
+#   pool = createPool "#{__dirname}/fixtures/crash.ru", size: 1
+
+#   pool.on 'exit', ->
+#     test.ok true
+
+#   server = http.createServer (req, res) ->
+#     server.close()
+
+#     pool.proxyRequest req, res, (err) ->
+#       test.ok err
+#       res.end()
+#       pool.quit()
+
+#   server.listen PORT
+#   server.on 'listening', ->
+#     http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+#       test.ok err
+#       test.done()
