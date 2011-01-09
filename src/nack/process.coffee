@@ -2,6 +2,7 @@ client              = require './client'
 fs                  = require 'fs'
 {exists}            = require 'path'
 {pause, isFunction} = require './util'
+{LineBuffer}        = require './util'
 {spawn, exec}       = require 'child_process'
 {EventEmitter}      = require 'events'
 
@@ -121,6 +122,13 @@ exports.Process = class Process extends EventEmitter
       @stdout = @child.stdout
       @stderr = @child.stderr
 
+      # Log last stderr line for spawn exceptions
+      lastLine = null
+      stderrLines = new LineBuffer @stderr
+      stderrListener = (line) -> lastLine = line
+      stderrLines.on 'data', stderrListener
+      @onNext 'ready', -> stderrLines.removeListener 'data', stderrListener
+
       pipe.on 'end', =>
         pipe = null
         @pipe = fs.createWriteStream @pipePath
@@ -136,6 +144,10 @@ exports.Process = class Process extends EventEmitter
         @state = @sockPath = @pipePath = null
         @child = @pipe = null
         @stdout = @stderr = null
+
+        if code isnt 0
+          exception = (try JSON.parse lastLine) or lastLine
+          @emit 'error', exception or "unknown spawn error"
 
         @emit 'exit'
 

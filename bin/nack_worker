@@ -32,10 +32,24 @@ if !options[:file]
   abort "need a socket path"
 end
 
-require 'nack/builder'
-cfgfile = File.read(config)
-app = eval "Nack::Builder.new {( " + cfgfile + "\n )}.to_app",
-                 nil, config
+begin
+  require 'nack/builder'
+  cfgfile = File.read(config)
+  app = eval("Nack::Builder.new {( #{cfgfile}\n )}.to_app", nil, config)
+rescue Exception => e
+  File.unlink(options[:file]) if options[:file] && File.exist?(options[:file])
+  File.unlink(options[:pipe]) if options[:pipe] && File.exist?(options[:pipe])
+
+  require 'json'
+  exception = {
+    :name    => e.class,
+    :message => e.message,
+    :stack   => e.backtrace
+  }
+
+  warn exception.to_json
+  exit 1
+end
 
 options[:name] = File.basename(File.dirname(config))
 

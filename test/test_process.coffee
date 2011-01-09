@@ -247,3 +247,61 @@ exports.testQuitUnspawned = (test) ->
 
   process.quit()
   test.done()
+
+exports.testErrorCreatingProcess = (test) ->
+  test.expect 5
+
+  process = createProcess __dirname + "/fixtures/crash.ru"
+
+  process.on 'spawning', ->
+    test.ok true
+
+  process.on 'error', (error) ->
+    test.same "b00m", error.message
+
+  process.on 'exit', ->
+    test.ok !process.sockPath
+    test.ok !process.pipePath
+
+    test.ok !process.child
+
+    test.done()
+
+  process.spawn()
+
+exports.testErrorCreatingProcessOnConnection = (test) ->
+  test.expect 2
+
+  process = createProcess __dirname + "/fixtures/crash.ru"
+
+  process.on 'error', (error) ->
+    test.same "b00m", error.message
+
+  process.on 'exit', ->
+    test.ok true
+    test.done()
+
+  process.createConnection ->
+    test.ok false
+
+exports.testErrorCreatingProcessOnProxy = (test) ->
+  test.expect 3
+
+  process = createProcess __dirname + "/fixtures/crash.ru"
+
+  process.on 'exit', ->
+    test.ok true
+
+  server = http.createServer (req, res) ->
+    server.close()
+
+    process.proxyRequest req, res, (err) ->
+      test.ok err
+      res.end()
+      process.quit()
+
+  server.listen PORT
+  server.on 'listening', ->
+    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+      test.ok err
+      test.done()
