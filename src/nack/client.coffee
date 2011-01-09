@@ -285,6 +285,12 @@ exports.ClientResponse = class ClientResponse extends EventEmitter
           rawHeaders = JSON.parse data
           assert.equal typeof rawHeaders, 'object', "Headers must be an object"
 
+          if exception = rawHeaders['X-Nack-Error']
+            error       = new Error exception.message
+            error.name  = exception.name
+            error.stack = exception.stack
+            throw error
+
           for k, vs of rawHeaders
             # Split multiline Rack headers
             v = vs.split "\n"

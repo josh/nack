@@ -352,3 +352,27 @@ exports.testClientMissingHeadersResponse = (test) ->
     request = client.request 'GET', '/', {}
     test.ok request
     request.end()
+
+exports.testClientException = (test) ->
+  test.expect 4
+
+  process = createProcess __dirname + "/fixtures/error.ru"
+  process.spawn()
+
+  process.onNext 'ready', ->
+    client = createConnection process.sockPath
+    test.ok client
+
+    client.on 'close', ->
+      process.quit()
+
+    client.on 'error', (exception) ->
+      test.ok exception
+
+    request = client.request 'GET', '/', {}
+    test.ok request
+    request.end()
+
+  process.on 'exit', ->
+    test.ok true
+    test.done()

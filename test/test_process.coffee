@@ -82,6 +82,30 @@ exports.testCreateConnection = (test) ->
 
         process.quit()
 
+exports.testCreateConnectionWithClientException = (test) ->
+  test.expect 5
+
+  process = createProcess "#{__dirname}/fixtures/error.ru"
+
+  process.onNext 'ready', ->
+    test.ok true
+
+  process.on 'exit', ->
+    test.ok true
+    test.done()
+
+  process.createConnection (client) ->
+    test.ok client
+
+    client.on 'close', ->
+      process.quit()
+
+    client.on 'error', (exception) ->
+      test.ok exception
+
+    request = client.request 'GET', '/', {}
+    test.ok request
+    request.end()
 
 exports.testProxyRequest = (test) ->
   test.expect 6
@@ -112,6 +136,37 @@ exports.testProxyRequest = (test) ->
   server.on 'listening', ->
     http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
       test.ifError err
+
+exports.testProxyRequestWithClientException = (test) ->
+  test.expect 6
+
+  process = createProcess "#{__dirname}/fixtures/error.ru"
+
+  process.onNext 'ready', ->
+    test.ok true
+
+  process.on 'exit', ->
+    test.ok true
+    test.done()
+
+  server = http.createServer (req, res) ->
+    server.close()
+
+    process.onNext 'busy', ->
+      test.ok true
+
+    process.onNext 'ready', ->
+      test.ok true
+
+    process.proxyRequest req, res, (err) ->
+      test.ok err
+      res.end()
+      process.quit()
+
+  server.listen PORT
+  server.on 'listening', ->
+    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+      test.ok err
 
 exports.testOnReadyState = (test) ->
   test.expect 2

@@ -8,9 +8,6 @@ require 'nack/netstring'
 
 module Nack
   class Server
-    SERVER_ERROR = [500, { "Content-Type" => "text/html" }, ["Internal Server Error"]]
-    BAD_REQUEST  = [400, { "Content-Type" => "text/html" }, ["Bad Request"]]
-
     def self.run(*args)
       new(*args).start
     end
@@ -130,7 +127,9 @@ module Nack
       self.request_count += 1
       debug "Accepted connection"
 
-      status, headers, body = SERVER_ERROR
+      status  = 500
+      headers = { 'Content-Type' => 'text/html' }
+      body    = ["Internal Server Error"]
 
       env, input = nil, StringIO.new
       begin
@@ -167,13 +166,21 @@ module Nack
         begin
           status, headers, body = app.call(env)
         rescue Exception => e
-          warn "#{e.class}: #{e.message}"
-          warn e.backtrace.join("\n")
-          status, headers, body = SERVER_ERROR
+          status  = 500
+          headers = { 'Content-Type' => 'text/html' }
+          body    = ["Internal Server Error"]
+
+          headers['X-Nack-Error'] = {
+            :name    => e.class,
+            :message => e.message,
+            :stack   => e.backtrace
+          }
         end
       else
         debug "Received bad request"
-        status, headers, body = BAD_REQUEST
+        status  = 400
+        headers = { 'Content-Type' => 'text/html' }
+        body    = ["Bad Request"]
       end
 
       begin

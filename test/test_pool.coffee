@@ -104,3 +104,34 @@ exports.testProxyRequest = (test) ->
   server.on 'listening', ->
     http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
       test.ifError err
+
+exports.testProxyRequestWithClientException = (test) ->
+  test.expect 5
+
+  pool = createPool "#{__dirname}/fixtures/error.ru"
+
+  pool.onNext 'ready', ->
+    test.ok true
+
+  pool.on 'exit', ->
+    test.ok true
+
+  server = http.createServer (req, res) ->
+    server.close()
+
+    pool.onNext 'worker:busy', ->
+      test.ok true
+
+    pool.onNext 'worker:ready', ->
+      test.ok true
+
+    pool.proxyRequest req, res, (err) ->
+      test.ok err
+      res.end()
+      pool.quit()
+
+  server.listen PORT
+  server.on 'listening', ->
+    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+      test.ok err
+      test.done()
