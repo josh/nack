@@ -14,13 +14,11 @@ fileExist = (path) ->
     false
 
 exports.testCreateProcess = (test) ->
-  test.expect 13
+  test.expect 12
 
   sockPath = pipePath = null
 
   process = createProcess config
-  process.on 'spawn', ->
-    test.ok true
 
   process.on 'spawning', ->
     test.ok true
@@ -98,6 +96,8 @@ exports.testProxyRequest = (test) ->
     test.done()
 
   server = http.createServer (req, res) ->
+    server.close()
+
     process.onNext 'busy', ->
       test.ok true
 
@@ -111,8 +111,7 @@ exports.testProxyRequest = (test) ->
   server.listen PORT
   server.on 'listening', ->
     http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
-      test.ok !err
-      server.close()
+      test.ifError err
 
 exports.testOnReadyState = (test) ->
   test.expect 2
@@ -144,6 +143,9 @@ exports.testTerminate = (test) ->
   process.onNext 'quitting', () ->
     test.ok true
 
+  process.on 'error', (error) ->
+    test.ifError error
+
   process.onNext 'exit', ->
     test.ok true
     test.done()
@@ -165,6 +167,9 @@ exports.testQuitSpawned = (test) ->
   process.onNext 'quitting', () ->
     test.ok true
 
+  process.on 'error', (error) ->
+    test.ifError error
+
   process.onNext 'exit', ->
     test.ok true
     test.done()
@@ -178,6 +183,9 @@ exports.testQuitUnspawned = (test) ->
 
   process.onNext 'quitting', () ->
     test.ok false
+
+  process.on 'error', (error) ->
+    test.ifError error
 
   process.on 'exit', ->
     test.ok false

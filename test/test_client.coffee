@@ -206,7 +206,7 @@ exports.testProxyRequest = (test) ->
     server.listen PORT
     server.on 'listening', ->
       http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
-        test.ok !err
+        test.ifError err
         test.same "Hello World\n", data
         server.close()
 

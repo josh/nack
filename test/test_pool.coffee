@@ -9,19 +9,22 @@ PORT = 8080
 exports.testCreatePoolEvents = (test) ->
   test.expect 5
 
-  pool = createPool config, size: 3
-  test.same 3, pool.workers.length
+  pool = createPool config, size: 2
+  test.same 2, pool.workers.length
   test.same 0, pool.getReadyWorkerCount()
 
   pool.onNext 'ready', ->
     test.ok pool.getReadyWorkerCount() > 0
 
   pool.on 'worker:ready', ->
-    if pool.getReadyWorkerCount() == 3
+    if pool.getReadyWorkerCount() == 2
       pool.quit()
 
+  pool.on 'error', (error) ->
+    test.ifError error
+
   pool.on 'exit', ->
-    test.same 3, pool.workers.length
+    test.same 2, pool.workers.length
     test.same 0, pool.getReadyWorkerCount()
     test.done()
 
@@ -32,15 +35,15 @@ exports.testCreatePoolWorkerEvents = (test) ->
 
   count = 0
 
-  pool = createPool config, size: 3
-  test.same 3, pool.workers.length
+  pool = createPool config, size: 2
+  test.same 2, pool.workers.length
   test.same 0, pool.getReadyWorkerCount()
 
   pool.on 'worker:ready', ->
     count++
 
-    if pool.getReadyWorkerCount() == 3
-      test.same 3, pool.workers.length
+    if pool.getReadyWorkerCount() == 2
+      test.same 2, pool.workers.length
       pool.quit()
 
   pool.on 'worker:exit', ->
@@ -49,6 +52,9 @@ exports.testCreatePoolWorkerEvents = (test) ->
     if count is 0
       test.same 0, pool.getReadyWorkerCount()
       test.done()
+
+  pool.on 'error', (error) ->
+    test.ifError error
 
   pool.spawn()
 
@@ -82,6 +88,8 @@ exports.testProxyRequest = (test) ->
     test.done()
 
   server = http.createServer (req, res) ->
+    server.close()
+
     pool.onNext 'worker:busy', ->
       test.ok true
 
@@ -95,5 +103,4 @@ exports.testProxyRequest = (test) ->
   server.listen PORT
   server.on 'listening', ->
     http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
-      test.ok !err
-      server.close()
+      test.ifError err
