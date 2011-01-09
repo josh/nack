@@ -212,6 +212,8 @@ exports.Process = class Process extends EventEmitter
 
   # Proxies a `http.ServerRequest` and `http.ServerResponse` to the process
   proxyRequest: (req, res, args...) ->
+    self = this
+
     if isFunction args[0]
       callback = args[0]
     else
@@ -221,12 +223,23 @@ exports.Process = class Process extends EventEmitter
     # Pause request so we don't miss any `data` or `end` events.
     resume = pause req
 
+    if callback
+      errorListener = (error) ->
+        self.removeListener 'error', errorListener
+        callback error
+      @on 'error', errorListener
+
     @createConnection (connection) ->
       connection.proxyRequest req, res, metaVariables
 
       if callback
-        connection.on 'error', callback
         connection.on 'close', callback
+        connection.on 'error', (error) ->
+          connection.removeListener 'close', callback
+          callback error
+
+        # Disconnect process error listener
+        self.removeListener 'error', errorListener
 
       # Flush any events captured while we were establishing
       # our client connection
