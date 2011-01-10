@@ -147,4 +147,15 @@ class TestNackWorker < Test::Unit::TestCase
       Process.wait(pid)
     end
   end
+
+  def test_app_error
+    start_app :error do
+      status, headers, body = request({}, "foo=bar")
+
+      assert_equal 500, status
+      assert headers.key?('X-Nack-Error')
+      assert_equal "b00m", headers['X-Nack-Error']['message']
+      assert_equal ["Internal Server Error"], body
+    end
+  end
 end
