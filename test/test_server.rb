@@ -7,7 +7,7 @@ class TestNackWorker < Test::Unit::TestCase
 
   attr_accessor :sock, :pipe, :pid, :self_pipe
 
-  def start_app(fixture = :echo)
+  def spawn(fixture)
     config = File.expand_path("../fixtures/#{fixture}.ru", __FILE__)
 
     pid  = Process.pid
@@ -18,21 +18,37 @@ class TestNackWorker < Test::Unit::TestCase
 
     system "mkfifo", pipe
 
+    rd, wr = IO.pipe
+
     self.pid = fork do
+      $stdout.reopen wr
+      $stderr.reopen wr
+      rd.close
+
       exec "nack_worker", "--file", sock, "--pipe", pipe, config
     end
+
+    wr.close
+
+    rd
+  end
+
+  def wait
+    Process.kill('TERM', self.pid)
+    Process.wait(self.pid)
+    self_pipe.close
+  rescue Errno::ESRCH
+  end
+
+  def start(fixture = :echo)
+    spawn(fixture)
 
     assert_equal self.pid, open(pipe).read.to_i
     self.self_pipe = open(pipe, 'w')
 
     yield
   ensure
-    begin
-      Process.kill('TERM', self.pid)
-      Process.wait(self.pid)
-      self_pipe.close
-    rescue Errno::ESRCH
-    end
+    wait
   end
 
   def request(env = {}, body = nil)
@@ -62,7 +78,7 @@ class TestNackWorker < Test::Unit::TestCase
   end
 
   def test_request
-    start_app do
+    start do
       status, headers, body = request({}, "foo=bar")
 
       assert_equal 200, status
@@ -73,7 +89,7 @@ class TestNackWorker < Test::Unit::TestCase
   end
 
   def test_multiple_requests
-    start_app do
+    start do
       status, headers, body = request
       assert_equal 200, status
 
@@ -83,7 +99,7 @@ class TestNackWorker < Test::Unit::TestCase
   end
 
   def test_invalid_json_env
-    start_app do
+    start do
       socket = UNIXSocket.open(sock)
 
       NetString.write(socket, "")
@@ -111,7 +127,7 @@ class TestNackWorker < Test::Unit::TestCase
   end
 
   def test_invalid_netstring
-    start_app do
+    start do
       socket = UNIXSocket.open(sock)
 
       socket.write("1:{},")
@@ -139,7 +155,7 @@ class TestNackWorker < Test::Unit::TestCase
   end
 
   def test_close_pipe
-    start_app do
+    start do
       status, headers, body = request({}, "foo=bar")
       assert_equal 200, status
 
@@ -149,7 +165,7 @@ class TestNackWorker < Test::Unit::TestCase
   end
 
   def test_app_error
-    start_app :error do
+    start :error do
       status, headers, body = request({}, "foo=bar")
 
       assert_equal 500, status
@@ -157,5 +173,10 @@ class TestNackWorker < Test::Unit::TestCase
       assert_equal "b00m", headers['X-Nack-Error']['message']
       assert_equal ["Internal Server Error"], body
     end
+  end
+
+  def test_spawn_error
+    out = spawn :crash
+    assert_match "b00m", out.read
   end
 end
