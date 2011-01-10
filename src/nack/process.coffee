@@ -125,7 +125,7 @@ exports.Process = class Process extends EventEmitter
       pipeError = null
 
       pipe.on 'data', (data) =>
-        unless data.toString() is @child.pid.toString()
+        if !@child or data.toString() isnt @child.pid.toString()
           try
             exception       = JSON.parse data
             pipeError       = new Error exception.message
