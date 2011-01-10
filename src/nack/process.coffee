@@ -122,18 +122,23 @@ exports.Process = class Process extends EventEmitter
       @stdout = @child.stdout
       @stderr = @child.stderr
 
-      # Log last stderr line for spawn exceptions
-      lastLine = null
-      stderrLines = new LineBuffer @stderr
-      stderrListener = (line) -> lastLine = line
-      stderrLines.on 'data', stderrListener
-      @onNext 'ready', -> stderrLines.removeListener 'data', stderrListener
+      pipeError = null
+
+      pipe.on 'data', (data) =>
+        unless data.toString() is @child.pid.toString()
+          try
+            exception       = JSON.parse data
+            pipeError       = new Error exception.message
+            pipeError.name  = exception.name
+            pipeError.stack = exception.stack
+          catch e
+            pipeError = new Error "unknown spawn error"
 
       pipe.on 'end', =>
         pipe = null
-        @pipe = fs.createWriteStream @pipePath
-        @pipe.on 'open', =>
-          @changeState 'ready'
+        unless pipeError
+          @pipe = fs.createWriteStream @pipePath
+          @pipe.on 'open', => @changeState 'ready'
 
       # When the child process exists, clear out state and
       # emit `exit`
@@ -145,9 +150,8 @@ exports.Process = class Process extends EventEmitter
         @child = @pipe = null
         @stdout = @stderr = null
 
-        if code isnt 0
-          exception = (try JSON.parse lastLine) or lastLine
-          @emit 'error', exception or "unknown spawn error"
+        if code isnt 0 and pipeError
+          @emit 'error', pipeError
 
         @emit 'exit'
 

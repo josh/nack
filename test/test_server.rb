@@ -18,19 +18,9 @@ class TestNackWorker < Test::Unit::TestCase
 
     system "mkfifo", pipe
 
-    rd, wr = IO.pipe
-
     self.pid = fork do
-      $stdout.reopen wr
-      $stderr.reopen wr
-      rd.close
-
       exec "nack_worker", "--file", sock, "--pipe", pipe, config
     end
-
-    wr.close
-
-    rd
   end
 
   def wait
@@ -177,6 +167,6 @@ class TestNackWorker < Test::Unit::TestCase
 
   def test_spawn_error
     out = spawn :crash
-    assert_match "b00m", out.read
+    assert_match "b00m", open(pipe).read
   end
 end

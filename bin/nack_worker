@@ -37,17 +37,25 @@ begin
   cfgfile = File.read(config)
   app = eval("Nack::Builder.new {( #{cfgfile}\n )}.to_app", nil, config)
 rescue Exception => e
-  File.unlink(options[:file]) if options[:file] && File.exist?(options[:file])
-  File.unlink(options[:pipe]) if options[:pipe] && File.exist?(options[:pipe])
+  if File.exist?(options[:file])
+    File.unlink options[:file]
+  end
 
-  require 'json'
-  exception = {
-    :name    => e.class,
-    :message => e.message,
-    :stack   => e.backtrace
-  }
+  if options[:pipe] && File.pipe?(options[:pipe])
+    require 'json'
+    exception = {
+      :name    => e.class,
+      :message => e.message,
+      :stack   => e.backtrace
+    }
 
-  warn exception.to_json
+    a = open(options[:pipe], 'w')
+    a.write exception.to_json
+    a.close
+
+    File.unlink options[:pipe]
+  end
+
   exit 1
 end
 
