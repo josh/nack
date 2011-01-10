@@ -32,31 +32,56 @@ if !options[:file]
   abort "need a socket path"
 end
 
-begin
-  require 'nack/builder'
-  cfgfile = File.read(config)
-  app = eval("Nack::Builder.new {( #{cfgfile}\n )}.to_app", nil, config)
-rescue Exception => e
+abort_with_exception = lambda do |e|
   if File.exist?(options[:file])
     File.unlink options[:file]
   end
 
   if options[:pipe] && File.pipe?(options[:pipe])
-    require 'json'
     exception = {
-      :name    => e.class,
+      :name    => e.class.name,
       :message => e.message,
       :stack   => e.backtrace.join("\n")
     }
 
     a = open(options[:pipe], 'w')
-    a.write exception.to_json
+
+    if exception.respond_to?(:to_json)
+      a.write exception.to_json
+    else
+      a.write <<-JSON
+        { "name": #{exception[:name].inspect},
+          "message": #{exception[:message].inspect},
+          "stack": #{exception[:stack].inspect} }
+      JSON
+    end
+
     a.close
 
     File.unlink options[:pipe]
   end
 
   exit 1
+end
+
+# Explicitly load json before application
+begin
+  require 'json'
+rescue LoadError
+  begin
+    require 'rubygems'
+    require 'json'
+  rescue LoadError => e
+    abort_with_exception[e]
+  end
+end
+
+begin
+  require 'nack/builder'
+  cfgfile = File.read(config)
+  app = eval("Nack::Builder.new {( #{cfgfile}\n )}.to_app", nil, config)
+rescue Exception => e
+  abort_with_exception[e]
 end
 
 options[:name] = File.basename(File.dirname(config))
