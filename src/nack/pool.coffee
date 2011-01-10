@@ -79,9 +79,6 @@ exports.Pool = class Pool extends EventEmitter
         self.emit 'ready'
       previousReadyWorkerCount = newReadyWorkerCount
 
-    @on 'worker:error', (process, error) ->
-      self.emit 'error', error
-
     # When a worker exists, check if the alive worker count goes down to 0
     @on 'worker:exit', ->
       if self.getAliveWorkerCount() is 0
@@ -135,9 +132,6 @@ exports.Pool = class Pool extends EventEmitter
     process.on 'busy', ->
       self.emit 'worker:busy', process
 
-    process.on 'error', (error) ->
-      self.emit 'worker:error', process, error
-
     process.on 'exit', ->
       self.emit 'worker:exit', process
 
@@ -184,40 +178,16 @@ exports.Pool = class Pool extends EventEmitter
 
   # Proxies `http.ServerRequest` and `http.ServerResponse` to a worker.
   proxyRequest: (req, res, args...) ->
-    self = this
-
-    if isFunction args[0]
-      callback = args[0]
-    else
-      metaVariables = args[0]
-      callback = args[1]
-
     # Pause request so we don't miss any `data` or `end` events.
     resume = pause req
 
-    if callback
-      errorListener = (error) ->
-        self.removeListener 'error', errorListener
-        callback error
-      self.on 'error', errorListener
-
     # Wait for a ready worker
     @onNext 'worker:ready', (worker) ->
-      worker.createConnection (connection) ->
-        connection.proxyRequest req, res, metaVariables
+      worker.proxyRequest req, res, args...
 
-        if callback
-          connection.on 'close', callback
-          connection.on 'error', (error) ->
-            connection.removeListener 'close', callback
-            callback error
-
-          # Disconnect process error listener
-          self.removeListener 'error', errorListener
-
-        # Flush any events captured while we were establishing
-        # our client connection
-        resume()
+      # Flush any events captured while we were establishing
+      # our client connection
+      resume()
 
     # Tell any available workers to announce their state
     @announceReadyWorkers()
