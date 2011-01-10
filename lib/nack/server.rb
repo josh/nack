@@ -173,7 +173,7 @@ module Nack
           headers['X-Nack-Error'] = {
             :name    => e.class,
             :message => e.message,
-            :stack   => e.backtrace
+            :stack   => e.backtrace.join("\n")
           }
         end
       else
