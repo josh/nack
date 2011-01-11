@@ -67,7 +67,6 @@ exports.Process = class Process extends EventEmitter
     options ?= {}
     @idle  = options.idle
     @cwd   = options.cwd
-    @debug = options.debug
 
     # Set initial state to `null`
     @state = null
@@ -110,7 +109,6 @@ exports.Process = class Process extends EventEmitter
       return @emit 'error', err if err
 
       args = ['--file', @sockPath, '--pipe', @pipePath]
-      args.push '--debug' if @debug
       args.push @config
 
       # Spawn a Ruby server connecting to our `@sockPath`

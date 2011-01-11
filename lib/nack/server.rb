@@ -39,8 +39,6 @@ module Nack
       self_pipe = nil
 
       at_exit do
-        debug "Closing server"
-
         server.close unless server.closed?
         self_pipe.close if self_pipe && !self_pipe.closed?
 
@@ -48,9 +46,9 @@ module Nack
         File.unlink(pipe) if pipe && File.exist?(pipe)
       end
 
-      trap('TERM') { debug "Received TERM"; exit }
-      trap('INT')  { debug "Received INT"; exit }
-      trap('QUIT') { debug "Received QUIT"; server.close }
+      trap('TERM') { exit }
+      trap('INT')  { exit }
+      trap('QUIT') { server.close }
 
       if pipe
         if !File.pipe?(pipe)
@@ -79,12 +77,10 @@ module Nack
         end
 
         if server.closed? && clients.empty?
-          debug "Server closed"
           return
         end
 
         if ppid != Process.ppid
-          debug "Process is orphaned"
           return
         end
 
@@ -95,7 +91,6 @@ module Nack
             begin
               sock.read_nonblock(1024)
             rescue EOFError
-              debug "Pipe closed"
               return
             end
           elsif sock == server
@@ -119,8 +114,6 @@ module Nack
     end
 
     def handle(sock, buf)
-      debug "Accepted connection"
-
       status  = 500
       headers = { 'Content-Type' => 'text/html' }
       body    = ["Internal Server Error"]
@@ -144,7 +137,6 @@ module Nack
 
       if env
         method, path = env['REQUEST_METHOD'], env['PATH_INFO']
-        debug "Received request: #{method} #{path}"
 
         env = env.merge({
           "rack.version" => Rack::VERSION,
@@ -170,14 +162,12 @@ module Nack
           }
         end
       else
-        debug "Received bad request"
         status  = 400
         headers = { 'Content-Type' => 'text/html' }
         body    = ["Bad Request"]
       end
 
       begin
-        debug "Sending response: #{status}"
         NetString.write(sock, status.to_s)
         NetString.write(sock, headers.to_json)
 
@@ -193,10 +183,6 @@ module Nack
       warn e.backtrace.join("\n")
     ensure
       sock.close_write
-    end
-
-    def debug(msg)
-      warn msg if $DEBUG
     end
   end
 end
