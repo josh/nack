@@ -108,8 +108,7 @@ exports.Process = class Process extends EventEmitter
     createPipeStream @pipePath, (err, pipe) =>
       return @emit 'error', err if err
 
-      args = ['--file', @sockPath, '--pipe', @pipePath]
-      args.push @config
+      args = [@config, @sockPath, @pipePath]
 
       # Spawn a Ruby server connecting to our `@sockPath`
       @child = spawn "nack_worker", args,
@@ -123,7 +122,7 @@ exports.Process = class Process extends EventEmitter
       pipeError = null
 
       pipe.on 'data', (data) =>
-        if !@child or data.toString() isnt @child.pid.toString()
+        if !@child or !@child.pid or data.toString() isnt @child.pid.toString()
           try
             exception       = JSON.parse data
             pipeError       = new Error exception.message

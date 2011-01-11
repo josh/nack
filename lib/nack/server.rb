@@ -1,8 +1,8 @@
 require 'fcntl'
-require 'json'
 require 'socket'
 require 'stringio'
 
+require 'nack/builder'
 require 'nack/error'
 require 'nack/netstring'
 
@@ -12,56 +12,72 @@ module Nack
       new(*args).start
     end
 
-    attr_accessor :app, :file, :pipe
+    attr_accessor :config, :app, :file, :pipe
+    attr_accessor :ppid, :server, :self_pipe
 
-    def initialize(app, options = {})
-      # Lazy require rack
-      require 'rack'
-
-      self.app = app
+    def initialize(config, options = {})
+      self.config = config
 
       self.file = options[:file]
       self.pipe = options[:pipe]
+
+      at_exit { cleanup }
+
+      File.unlink(file) if File.exist?(file)
+
+      if !File.pipe?(pipe)
+        raise Errno::EPIPE, pipe
+      end
+
+      self.ppid = Process.ppid
+
+      load_json_lib!
+      self.app = load_config
+    rescue Exception => e
+      if File.pipe?(pipe)
+        open(pipe, 'w') { |a|  a.write exception_to_json(e) }
+        exit 1
+      else
+        raise e
+      end
     end
 
-    def open_server
-      if file
-        File.unlink(file) if File.exist?(file)
-        UNIXServer.open(file)
-      else
-        raise Error, "no socket given"
+    def cleanup
+      server.close if server && !server.closed?
+      self_pipe.close if self_pipe && !self_pipe.closed?
+
+      File.unlink(file) if file && File.exist?(file)
+      File.unlink(pipe) if pipe && File.exist?(pipe)
+    end
+
+    def load_json_lib!
+      begin
+        require 'json'
+      rescue LoadError
+        require 'rubygems'
+        require 'json'
       end
+    end
+
+    def load_config
+      cfgfile = File.read(config)
+      eval("Nack::Builder.new {( #{cfgfile}\n )}.to_app", TOPLEVEL_BINDING, config)
     end
 
     def start
-      server = open_server
-      ppid = Process.ppid
-      self_pipe = nil
-
-      at_exit do
-        server.close unless server.closed?
-        self_pipe.close if self_pipe && !self_pipe.closed?
-
-        File.unlink(file) if file && File.exist?(file)
-        File.unlink(pipe) if pipe && File.exist?(pipe)
-      end
+      self.server = UNIXServer.open(file)
+      self.self_pipe = nil
 
       trap('TERM') { exit }
       trap('INT')  { exit }
       trap('QUIT') { server.close }
 
-      if pipe
-        if !File.pipe?(pipe)
-          raise Errno::EPIPE, pipe
-        end
-
-        a = open(pipe, 'w')
+      open(pipe, 'w') do |a|
         a.write $$.to_s
-        a.close
-
-        self_pipe = open(pipe, 'r', Fcntl::O_NONBLOCK)
-        self_pipe.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
       end
+
+      self.self_pipe = open(pipe, 'r', Fcntl::O_NONBLOCK)
+      self.self_pipe.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
       clients = []
       buffers = {}
@@ -155,11 +171,7 @@ module Nack
           headers = { 'Content-Type' => 'text/html' }
           body    = ["Internal Server Error"]
 
-          headers['X-Nack-Error'] = {
-            :name    => e.class,
-            :message => e.message,
-            :stack   => e.backtrace.join("\n")
-          }
+          headers['X-Nack-Error'] = exception_as_json(e)
         end
       else
         status  = 400
@@ -183,6 +195,25 @@ module Nack
       warn e.backtrace.join("\n")
     ensure
       sock.close_write
+    end
+
+    def exception_as_json(e)
+      { :name    => e.class.name,
+        :message => e.message,
+        :stack   => e.backtrace.join("\n") }
+    end
+
+    def exception_to_json(e)
+      exception = exception_as_json(e)
+      if exception.respond_to?(:to_json)
+        exception.to_json
+      else
+        <<-JSON
+          { "name": #{exception[:name].inspect},
+            "message": #{exception[:message].inspect},
+            "stack": #{exception[:stack].inspect} }
+        JSON
+      end
     end
   end
 end

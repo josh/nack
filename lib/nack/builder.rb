@@ -5,6 +5,7 @@ module Nack
     end
 
     def _builder
+      require 'rack'
       require 'rack/builder'
       @_builder ||= Rack::Builder.new
     end

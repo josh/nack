@@ -1,4 +1,5 @@
 require 'nack/server'
+require 'json'
 
 require 'test/unit'
 
@@ -19,7 +20,7 @@ class TestNackWorker < Test::Unit::TestCase
     system "mkfifo", pipe
 
     self.pid = fork do
-      exec "nack_worker", "--file", sock, "--pipe", pipe, config
+      exec "nack_worker", config, sock, pipe
     end
   end
 
