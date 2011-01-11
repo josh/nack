@@ -261,6 +261,13 @@ exports.Process = class Process extends EventEmitter
       # our client connection
       resume()
 
+  # Send `SIGKILL` to process.
+  # This will kill it for sure.
+  kill: ->
+    if @child
+      @changeState 'quitting'
+      @child.kill 'SIGKILL'
+
   # Send `SIGTERM` to process.
   # This will immediately kill it.
   terminate: ->
@@ -268,12 +275,16 @@ exports.Process = class Process extends EventEmitter
       @changeState 'quitting'
       @child.kill 'SIGTERM'
 
+      setTimeout @kill.bind(@), 1000
+
   # Send `SIGTERM` to process.
   # The process will finish serving its request and gracefully quit.
   quit: ->
     if @child
       @changeState 'quitting'
       @child.kill 'SIGQUIT'
+
+      setTimeout @terminate.bind(@), 1000
 
 # Public API for creating a **Process**
 exports.createProcess = (args...) ->
