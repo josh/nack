@@ -88,13 +88,13 @@ exports.Pool = class Pool extends EventEmitter
     for n in [1..options.size]
       @increment()
 
-  # Register a callback to only run once on the next event.
-  onNext: (event, listener) ->
-    self = this
-    callback = (args...) ->
-      self.removeListener event, callback
-      listener args...
-    @on event, callback
+  if not EventEmitter.prototype.once
+    once: (event, listener) ->
+      self = this
+      callback = (args...) ->
+        self.removeListener event, callback
+        listener args...
+      @on event, callback
 
   # Get number of workers whose state is not null
   getAliveWorkerCount: ->
@@ -199,7 +199,7 @@ exports.Pool = class Pool extends EventEmitter
     resume = pause req
 
     # Wait for a ready worker
-    @onNext 'worker:ready', (worker) ->
+    @once 'worker:ready', (worker) ->
       # Disconnect worker error listener
       self.removeListener 'worker:error', errorListener
 

@@ -22,7 +22,7 @@ exports.testClientRequestBeforeConnect = (test) ->
   process = createProcess config
   process.spawn()
 
-  process.onNext 'ready', ->
+  process.once 'ready', ->
     client = createConnection process.sockPath
     test.ok client
 
@@ -65,7 +65,7 @@ exports.testClientRequestAfterConnect = (test) ->
   process = createProcess config
   process.spawn()
 
-  process.onNext 'ready', ->
+  process.once 'ready', ->
     client = createConnection process.sockPath
     test.ok client
 
@@ -111,7 +111,7 @@ exports.testClientMultipleRequest = (test) ->
   process = createProcess config
   process.spawn()
 
-  process.onNext 'ready', ->
+  process.once 'ready', ->
     client = createConnection process.sockPath
     test.ok client
 
@@ -151,7 +151,7 @@ exports.testClientRequestWithCookies = (test) ->
   process = createProcess __dirname + "/fixtures/echo.ru"
   process.spawn()
 
-  process.onNext 'ready', ->
+  process.once 'ready', ->
     client = createConnection process.sockPath
     test.ok client
 
@@ -202,7 +202,7 @@ exports.testProxyRequest = (test) ->
         test.ok true
         process.quit()
 
-  process.onNext 'ready', ->
+  process.once 'ready', ->
     server.listen PORT
     server.on 'listening', ->
       http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
@@ -359,7 +359,7 @@ exports.testClientException = (test) ->
   process = createProcess __dirname + "/fixtures/error.ru"
   process.spawn()
 
-  process.onNext 'ready', ->
+  process.once 'ready', ->
     client = createConnection process.sockPath
     test.ok client
 

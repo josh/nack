@@ -159,13 +159,13 @@ exports.Process = class Process extends EventEmitter
 
     @
 
-  # Register a callback to only run once on the next event.
-  onNext: (event, listener) ->
-    self = this
-    callback = (args...) ->
-      self.removeListener event, callback
-      listener args...
-    @on event, callback
+  if not EventEmitter.prototype.once
+    once: (event, listener) ->
+      self = this
+      callback = (args...) ->
+        self.removeListener event, callback
+        listener args...
+      @on event, callback
 
   # Change the current state and fire a corresponding event
   changeState: (state) ->
@@ -183,7 +183,7 @@ exports.Process = class Process extends EventEmitter
       callback()
     else
       # Wait for next state change and check again
-      @onNext state, -> self.onState state, callback
+      @once state, -> self.onState state, callback
 
   # Clear current timeout handler.
   clearTimeout: ->

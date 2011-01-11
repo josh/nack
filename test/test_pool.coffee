@@ -13,7 +13,7 @@ exports.testCreatePoolEvents = (test) ->
   test.same 2, pool.workers.length
   test.same 0, pool.getReadyWorkerCount()
 
-  pool.onNext 'ready', ->
+  pool.once 'ready', ->
     test.ok pool.getReadyWorkerCount() > 0
 
   pool.on 'worker:ready', ->
@@ -80,7 +80,7 @@ exports.testProxyRequest = (test) ->
 
   pool = createPool config
 
-  pool.onNext 'ready', ->
+  pool.once 'ready', ->
     test.ok true
 
   pool.on 'exit', ->
@@ -90,10 +90,10 @@ exports.testProxyRequest = (test) ->
   server = http.createServer (req, res) ->
     server.close()
 
-    pool.onNext 'worker:busy', ->
+    pool.once 'worker:busy', ->
       test.ok true
 
-    pool.onNext 'worker:ready', ->
+    pool.once 'worker:ready', ->
       test.ok true
 
     pool.proxyRequest req, res, ->
@@ -110,7 +110,7 @@ exports.testProxyRequestWithClientException = (test) ->
 
   pool = createPool "#{__dirname}/fixtures/error.ru"
 
-  pool.onNext 'ready', ->
+  pool.once 'ready', ->
     test.ok true
 
   pool.on 'exit', ->
@@ -119,10 +119,10 @@ exports.testProxyRequestWithClientException = (test) ->
   server = http.createServer (req, res) ->
     server.close()
 
-    pool.onNext 'worker:busy', ->
+    pool.once 'worker:busy', ->
       test.ok true
 
-    pool.onNext 'worker:ready', ->
+    pool.once 'worker:ready', ->
       test.ok true
 
     pool.proxyRequest req, res, (err) ->

@@ -34,7 +34,7 @@ exports.testCreateProcess = (test) ->
     test.ok process.stdout
     test.ok process.stderr
 
-  process.onNext 'ready', ->
+  process.once 'ready', ->
     test.ok true
 
     process.quit()
@@ -56,7 +56,7 @@ exports.testCreateConnection = (test) ->
 
   process = createProcess config
 
-  process.onNext 'ready', ->
+  process.once 'ready', ->
     test.ok true
 
   process.on 'exit', ->
@@ -87,7 +87,7 @@ exports.testCreateConnectionWithClientException = (test) ->
 
   process = createProcess "#{__dirname}/fixtures/error.ru"
 
-  process.onNext 'ready', ->
+  process.once 'ready', ->
     test.ok true
 
   process.on 'exit', ->
@@ -112,7 +112,7 @@ exports.testProxyRequest = (test) ->
 
   process = createProcess config
 
-  process.onNext 'ready', ->
+  process.once 'ready', ->
     test.ok true
 
   process.on 'exit', ->
@@ -122,10 +122,10 @@ exports.testProxyRequest = (test) ->
   server = http.createServer (req, res) ->
     server.close()
 
-    process.onNext 'busy', ->
+    process.once 'busy', ->
       test.ok true
 
-    process.onNext 'ready', ->
+    process.once 'ready', ->
       test.ok true
 
     process.proxyRequest req, res, ->
@@ -142,7 +142,7 @@ exports.testProxyRequestWithClientException = (test) ->
 
   process = createProcess "#{__dirname}/fixtures/error.ru"
 
-  process.onNext 'ready', ->
+  process.once 'ready', ->
     test.ok true
 
   process.on 'exit', ->
@@ -152,10 +152,10 @@ exports.testProxyRequestWithClientException = (test) ->
   server = http.createServer (req, res) ->
     server.close()
 
-    process.onNext 'busy', ->
+    process.once 'busy', ->
       test.ok true
 
-    process.onNext 'ready', ->
+    process.once 'ready', ->
       test.ok true
 
     process.proxyRequest req, res, (err) ->
@@ -191,17 +191,17 @@ exports.testTerminate = (test) ->
 
   process = createProcess config
 
-  process.onNext 'ready', ->
+  process.once 'ready', ->
     test.ok true
     process.terminate()
 
-  process.onNext 'quitting', () ->
+  process.once 'quitting', () ->
     test.ok true
 
   process.on 'error', (error) ->
     test.ifError error
 
-  process.onNext 'exit', ->
+  process.once 'exit', ->
     test.ok true
     test.done()
 
@@ -215,17 +215,17 @@ exports.testQuitSpawned = (test) ->
   process.on 'spawn', ->
     test.ok true
 
-  process.onNext 'ready', ->
+  process.once 'ready', ->
     test.ok true
     process.quit()
 
-  process.onNext 'quitting', () ->
+  process.once 'quitting', () ->
     test.ok true
 
   process.on 'error', (error) ->
     test.ifError error
 
-  process.onNext 'exit', ->
+  process.once 'exit', ->
     test.ok true
     test.done()
 
@@ -236,7 +236,7 @@ exports.testQuitUnspawned = (test) ->
 
   process = createProcess config
 
-  process.onNext 'quitting', () ->
+  process.once 'quitting', () ->
     test.ok false
 
   process.on 'error', (error) ->
