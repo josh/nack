@@ -13,7 +13,6 @@ module Nack
     end
 
     attr_accessor :app, :file, :pipe
-    attr_accessor :name, :request_count
 
     def initialize(app, options = {})
       # Lazy require rack
@@ -23,9 +22,6 @@ module Nack
 
       self.file = options[:file]
       self.pipe = options[:pipe]
-
-      self.name = options[:name] || "app"
-      self.request_count = 0
     end
 
     def open_server
@@ -73,8 +69,6 @@ module Nack
       buffers = {}
 
       loop do
-        $0 = "nack worker [#{name}] (#{request_count})"
-
         listeners = clients + [self_pipe]
         listeners << server unless server.closed?
 
@@ -125,7 +119,6 @@ module Nack
     end
 
     def handle(sock, buf)
-      self.request_count += 1
       debug "Accepted connection"
 
       status  = 500
@@ -152,7 +145,6 @@ module Nack
       if env
         method, path = env['REQUEST_METHOD'], env['PATH_INFO']
         debug "Received request: #{method} #{path}"
-        $0 = "nack worker [#{name}] (#{request_count}) #{method} #{path}"
 
         env = env.merge({
           "rack.version" => Rack::VERSION,
