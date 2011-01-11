@@ -91,6 +91,7 @@ module Nack
 
         if ppid != Process.ppid
           debug "Process is orphaned"
+          return
         end
 
         next unless readable
