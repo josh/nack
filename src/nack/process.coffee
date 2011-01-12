@@ -67,6 +67,7 @@ exports.Process = class Process extends EventEmitter
     options ?= {}
     @idle  = options.idle
     @cwd   = options.cwd
+    @env   = options.env ? {}
 
     # Set initial state to `null`
     @state = null
@@ -100,6 +101,9 @@ exports.Process = class Process extends EventEmitter
     # Copy process environment
     env = {}
     for key, value of process.env
+      env[key] = value
+
+    for key, value of @env
       env[key] = value
 
     env['PATH']    = "#{packageBin}:#{env['PATH']}"
