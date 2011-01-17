@@ -58,6 +58,31 @@ exports.testCreatePoolWorkerEvents = (test) ->
 
   pool.spawn()
 
+exports.testPoolRestart = (test) ->
+  test.expect 2
+
+  pool = createPool config, size: 2
+
+  onAllReady = (callback) ->
+    onReady = ->
+      if pool.getReadyWorkerCount() == 2
+        pool.removeListener 'worker:ready', onReady
+        callback()
+    pool.on 'worker:ready', onReady
+
+  onAllReady ->
+    test.ok true
+    pool.restart()
+
+    onAllReady ->
+      test.ok true
+
+      pool.on 'exit', ->
+        test.done()
+      pool.quit()
+
+  pool.spawn()
+
 exports.testPoolIncrement = (test) ->
   test.expect 3
 

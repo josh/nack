@@ -276,7 +276,11 @@ exports.Process = class Process extends EventEmitter
       @changeState 'quitting'
       @child.kill 'SIGTERM'
 
-      setTimeout @kill.bind(@), 1000
+      timeout = setTimeout =>
+        if @state is 'quitting'
+          @kill()
+      , 1000
+      @once 'exit', -> clearTimeout timeout
 
   # Send `SIGTERM` to process.
   # The process will finish serving its request and gracefully quit.
@@ -285,7 +289,16 @@ exports.Process = class Process extends EventEmitter
       @changeState 'quitting'
       @child.kill 'SIGQUIT'
 
-      setTimeout @terminate.bind(@), 1000
+      timeout = setTimeout =>
+        if @state is 'quitting'
+          @terminate()
+      , 1000
+      @once 'exit', -> clearTimeout timeout
+
+  # Quit and respawn process
+  restart: ->
+    @once 'exit', => @spawn()
+    @quit()
 
 # Public API for creating a **Process**
 exports.createProcess = (args...) ->

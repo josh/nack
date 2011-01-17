@@ -265,7 +265,7 @@ exports.testQuitSpawned = (test) ->
     test.ok true
     process.quit()
 
-  process.once 'quitting', () ->
+  process.once 'quitting', ->
     test.ok true
 
   process.on 'error', (error) ->
@@ -282,7 +282,7 @@ exports.testQuitUnspawned = (test) ->
 
   process = createProcess config
 
-  process.once 'quitting', () ->
+  process.once 'quitting', ->
     test.ok false
 
   process.on 'error', (error) ->
@@ -293,6 +293,29 @@ exports.testQuitUnspawned = (test) ->
 
   process.quit()
   test.done()
+
+exports.testRestart = (test) ->
+  test.expect 3
+
+  process = createProcess config
+
+  process.once 'ready', ->
+    process.on 'error', (error) ->
+      test.ifError error
+
+    process.once 'quitting', ->
+      test.ok true
+
+    process.on 'exit', ->
+      test.ok true
+
+    process.on 'ready', ->
+      test.ok true
+      test.done()
+
+    process.restart()
+
+  process.spawn()
 
 exports.testErrorCreatingProcess = (test) ->
   test.expect 5

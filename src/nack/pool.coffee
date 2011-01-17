@@ -179,6 +179,11 @@ exports.Pool = class Pool extends EventEmitter
     for worker in @workers
       worker.quit()
 
+  # Restart active workers
+  restart: ->
+    for worker in @workers when worker.state
+      worker.restart()
+
   # Proxies `http.ServerRequest` and `http.ServerResponse` to a worker.
   proxyRequest: (req, res, args...) ->
     self = @
