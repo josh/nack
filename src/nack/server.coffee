@@ -35,6 +35,9 @@ exports.createServer = (config, options) ->
   pool.on 'error', (error) ->
     server.emit 'error', error
 
+  # DEPRECATED
+  server.pool = pool
+
   server.stdout = pool.stdout
   server.stderr = pool.stderr
 
