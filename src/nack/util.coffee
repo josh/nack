@@ -12,13 +12,21 @@ exports.isFunction = (obj) ->
 exports.pause = (stream) ->
   queue = []
 
+  onData = (args...) -> queue.push ['data', args...]
+  onEnd  = (args...) -> queue.push ['end', args...]
+
+  stream.on 'data', onData
+  stream.on 'end', onEnd
+
   stream.pause()
-  stream.on 'data', (args...) -> queue.push ['data', args...]
-  stream.on 'end',  (args...) -> queue.push ['end', args...]
 
   ->
+    stream.removeListener 'data', onData
+    stream.removeListener 'end', onEnd
+
     for args in queue
       stream.emit args...
+
     stream.resume()
 
 # **LineBuffer** wraps any readable stream and buffers data until
