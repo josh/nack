@@ -69,7 +69,7 @@ exports.testProxyCookies = (test) ->
   server.listen PORT
   server.on 'listening', ->
     http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
-      test.ok !err
+      test.ifError err
       server.close()
 
 exports.testCloseServer = (test) ->
@@ -96,3 +96,36 @@ exports.testCloseUnstartedServer = (test) ->
     test.done()
 
   server.close()
+
+exports.testRestartServerWithActiveWorkers = (test) ->
+  test.expect 3
+
+  server = createServer __dirname + "/fixtures/echo.ru"
+
+  server.on 'close', ->
+    test.ok true
+    test.done()
+
+  server.listen PORT
+  server.on 'listening', ->
+    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+      test.ifError err
+
+      server.restart ->
+        test.ok true
+        server.close()
+
+exports.testRestartServerWithNoActiveWorkers = (test) ->
+  test.expect 2
+
+  server = createServer __dirname + "/fixtures/hello.ru"
+
+  server.on 'close', ->
+    test.ok true
+    test.done()
+
+  server.listen PORT
+  server.on 'listening', ->
+    server.restart ->
+      test.ok true
+      server.close()

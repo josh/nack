@@ -48,6 +48,11 @@ exports.createServer = (config, options) ->
   server.on 'close', ->
     pool.quit()
 
-  server.pool = pool
+  server.restart = (callback) ->
+    if pool.getAliveWorkerCount() is 0
+      callback() if callback?
+    else
+      pool.once 'worker:ready', -> callback() if callback?
+      pool.restart()
 
   server
