@@ -35,6 +35,9 @@ exports.createServer = (config, options) ->
   pool.on 'error', (error) ->
     server.emit 'error', error
 
+  server.stdout = pool.stdout
+  server.stderr = pool.stderr
+
   origClose = server.close
   server.close = ->
     try
