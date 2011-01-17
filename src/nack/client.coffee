@@ -283,6 +283,7 @@ exports.ClientResponse = class ClientResponse extends EventEmitter
 
           # Parse the headers
           rawHeaders = JSON.parse data
+          assert.ok rawHeaders, "Headers can not be null"
           assert.equal typeof rawHeaders, 'object', "Headers must be an object"
 
           if exception = rawHeaders['X-Nack-Error']
