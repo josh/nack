@@ -1,6 +1,6 @@
-{EventEmitter}      = require 'events'
-{createProcess}     = require './process'
-{pause, isFunction} = require './util'
+{EventEmitter}  = require 'events'
+{createProcess} = require './process'
+{isFunction}    = require './util'
 
 # A **Pool** manages multiple Ruby worker process.
 #
