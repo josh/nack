@@ -35,7 +35,9 @@ module Nack
       self.app = load_config
     rescue Exception => e
       if File.pipe?(pipe)
-        open(pipe, 'w') { |a|  a.write exception_to_json(e) }
+        open(pipe, Fcntl::O_WRONLY | Fcntl::O_NONBLOCK) do |a|
+          a.write_nonblock exception_to_json(e)
+        end
         exit 1
       else
         raise e
@@ -72,8 +74,8 @@ module Nack
       trap('INT')  { exit }
       trap('QUIT') { server.close }
 
-      open(pipe, 'w') do |a|
-        a.write $$.to_s
+      open(pipe, Fcntl::O_WRONLY | Fcntl::O_NONBLOCK) do |a|
+        a.write_nonblock $$.to_s
       end
 
       self.self_pipe = open(pipe, 'r', Fcntl::O_NONBLOCK)
