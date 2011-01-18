@@ -52,7 +52,7 @@ exports.testCreateProcess = (test) ->
   process.spawn()
 
 exports.testCreateConnection = (test) ->
-  test.expect 6
+  test.expect 7
 
   process = createProcess config
 
@@ -63,8 +63,12 @@ exports.testCreateConnection = (test) ->
     test.ok true
     test.done()
 
-  process.createConnection (client) ->
+  process.createConnection (err, client) ->
+    test.ifError err
     test.ok client
+
+    client.on 'error', (err) ->
+      test.ifError err
 
     request = client.request 'GET', '/foo', {}
     request.end()
@@ -83,7 +87,7 @@ exports.testCreateConnection = (test) ->
         process.quit()
 
 exports.testCreateMultipleConnections = (test) ->
-  test.expect 8
+  test.expect 10
 
   process = createProcess config
 
@@ -102,7 +106,9 @@ exports.testCreateMultipleConnections = (test) ->
 
   openConnections = 0
 
-  process.createConnection (client) ->
+  process.createConnection (err, client) ->
+    test.ifError err
+
     openConnections++
     client.on 'close', -> openConnections--
     test.same 1, openConnections
@@ -115,7 +121,9 @@ exports.testCreateMultipleConnections = (test) ->
       test.ok response
       response.on 'end', -> quit()
 
-  process.createConnection (client) ->
+  process.createConnection (err, client) ->
+    test.ifError err
+
     openConnections++
     client.on 'close', -> openConnections--
     test.same 1, openConnections
@@ -129,7 +137,7 @@ exports.testCreateMultipleConnections = (test) ->
       response.on 'end', -> quit()
 
 exports.testCreateConnectionWithClientException = (test) ->
-  test.expect 5
+  test.expect 6
 
   process = createProcess "#{__dirname}/fixtures/error.ru"
 
@@ -140,7 +148,8 @@ exports.testCreateConnectionWithClientException = (test) ->
     test.ok true
     test.done()
 
-  process.createConnection (client) ->
+  process.createConnection (err, client) ->
+    test.ifError err
     test.ok client
 
     client.on 'close', ->
@@ -325,15 +334,10 @@ exports.testErrorCreatingProcessOnConnection = (test) ->
 
   process = createProcess __dirname + "/fixtures/crash.ru"
 
-  process.on 'error', (error) ->
-    test.same "b00m", error.message
-
-  process.on 'exit', ->
-    test.ok true
+  process.createConnection (err) ->
+    test.ok err
+    test.same "b00m", err.message
     test.done()
-
-  process.createConnection ->
-    test.ok false
 
 exports.testErrorCreatingProcessOnProxy = (test) ->
   test.expect 3

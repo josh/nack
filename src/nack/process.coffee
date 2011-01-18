@@ -64,6 +64,8 @@ packageLib = fs.realpathSync "#{__dirname}/.."
 #
 exports.Process = class Process extends EventEmitter
   constructor: (@config, options) ->
+    self = @
+
     options ?= {}
     @idle  = options.idle
     @cwd   = options.cwd
@@ -72,8 +74,11 @@ exports.Process = class Process extends EventEmitter
     # Set initial state to `null`
     @state = null
 
-    raiseConfigError = =>
-      @emit 'error', new Error "configuration \"#{@config}\" doesn't exist"
+    @_connectionQueue = []
+    @_activeConnection = null
+
+    raiseConfigError = ->
+      self.emit 'error', new Error "configuration \"#{@config}\" doesn't exist"
 
     # Raise an exception unless `config` exists
     if @config?
@@ -82,9 +87,21 @@ exports.Process = class Process extends EventEmitter
     else
       raiseConfigError()
 
+    @on 'ready', ->
+      self._processConnections()
+
+    @on 'error', (error) ->
+      callback = self._activeConnection
+      self._activeConnection = null
+
+      if callback
+        callback error
+      else if self.listeners('error').length <= 1
+        throw error
+
     # Push back the idle time everytime a request is handled
-    @on 'busy', =>
-      @deferTimeout()
+    @on 'busy', ->
+      self.deferTimeout()
 
   spawn: ->
     # Do nothing if the process is already started
@@ -154,6 +171,9 @@ exports.Process = class Process extends EventEmitter
         if code isnt 0 and pipeError
           @emit 'error', pipeError
 
+        @_connectionQueue = []
+        @_activeConnection = null
+
         @emit 'exit'
 
       @emit 'spawn'
@@ -176,16 +196,6 @@ exports.Process = class Process extends EventEmitter
       # State change events are always asynchronous
       process.nextTick -> self.emit state
 
-  # Wait for state and invoke the callback.
-  onState: (state, callback) ->
-    self = this
-    # If we're already in the state, just do it
-    if @state == state
-      callback()
-    else
-      # Wait for next state change and check again
-      @once state, -> self.onState state, callback
-
   # Clear current timeout handler.
   clearTimeout: ->
     if @_timeoutId
@@ -205,27 +215,33 @@ exports.Process = class Process extends EventEmitter
       # Register a new timer
       @_timeoutId = setTimeout callback, @idle
 
-  # Create a new **Client** connection
-  createConnection: (callback) ->
-    self = this
+  _processConnections: ->
+    self = @
 
-    # Start child process if we haven't already
-    @spawn()
+    unless @_activeConnection
+      @_activeConnection = @_connectionQueue.shift()
 
-    # Wait till the process is ready
-    @onState 'ready', ->
+    if @_activeConnection and @state is 'ready'
       # Immediately flag process as `busy`
-      self.changeState 'busy'
+      @changeState 'busy'
 
       # Create a connection to our sock path
-      connection = client.createConnection self.sockPath
+      connection = client.createConnection @sockPath
 
-      # When the connection closes, change the state back
-      # to ready.
+      # When the connection closes, change the state back to ready.
       connection.on 'close', ->
+        self._activeConnection = null
         self.changeState 'ready'
 
-      callback connection
+      @_activeConnection null, connection
+    else
+      @spawn()
+
+  # Create a new **Client** connection
+  createConnection: (callback) ->
+    @_connectionQueue.push callback
+    @_processConnections()
+    @
 
   # Proxies a `http.ServerRequest` and `http.ServerResponse` to the process
   proxyRequest: (req, res, args...) ->
@@ -240,23 +256,18 @@ exports.Process = class Process extends EventEmitter
     # Pause request so we don't miss any `data` or `end` events.
     resume = pause req
 
-    if callback
-      errorListener = (error) ->
-        self.removeListener 'error', errorListener
-        callback error
-      @on 'error', errorListener
+    @createConnection (err, connection) ->
+      if err
+        if callback then callback err
+        else self.emit 'error', err
+      else
+        if callback
+          connection.on 'close', callback
+          connection.on 'error', (error) ->
+            connection.removeListener 'close', callback
+            callback error
 
-    @createConnection (connection) ->
-      connection.proxyRequest req, res, metaVariables
-
-      if callback
-        connection.on 'close', callback
-        connection.on 'error', (error) ->
-          connection.removeListener 'close', callback
-          callback error
-
-        # Disconnect process error listener
-        self.removeListener 'error', errorListener
+        connection.proxyRequest req, res, metaVariables
 
       # Flush any events captured while we were establishing
       # our client connection
