@@ -58,6 +58,7 @@ exports.Pool = class Pool extends EventEmitter
     options.size ?= 1
 
     @workers = []
+    @round = 0
 
     @processOptions =
       idle:  options.idle
@@ -68,7 +69,7 @@ exports.Pool = class Pool extends EventEmitter
     @stdout = new AggregateStream
     @stderr = new AggregateStream
 
-    self = this
+    self = @
 
     # When a worker becomes ready, check if the ready worker count moved
     # from 0 to 1
@@ -110,6 +111,18 @@ exports.Pool = class Pool extends EventEmitter
       count++
     count
 
+  # Returns the next worker
+  nextWorker: ->
+    # Prefer ready workers
+    for worker in @workers when worker.state is 'ready'
+      return worker
+
+    # Choose next round robin style
+    worker = @workers[@round]
+    @round += 1
+    @round %= @workers.length
+    worker
+
   # Add a process to the pool
   increment: ->
     # Create a new process
@@ -147,23 +160,6 @@ exports.Pool = class Pool extends EventEmitter
       # and tell it to quit
       worker.quit()
 
-  # Tell workers to announce their state if they're ready
-  announceReadyWorkers: ->
-    self = this
-    # Flag to see if we have at least one worker ready
-    oneReady = false
-    for worker in @workers
-      # If a worker is ready, reemit 'worker:ready'
-      if worker.state is 'ready'
-        oneReady = true
-        process.nextTick ->
-          self.emit 'worker:ready', worker
-      # We have no ready workers yet and this worker hasn't started
-      else if oneReady is false and !worker.state
-        oneReady = true
-        # Tell them to wake up!
-        process.nextTick -> worker.spawn()
-
   # Eager spawn all the workers in the pool
   spawn: ->
     for worker in @workers
@@ -185,37 +181,9 @@ exports.Pool = class Pool extends EventEmitter
       worker.restart()
 
   # Proxies `http.ServerRequest` and `http.ServerResponse` to a worker.
-  proxyRequest: (req, res, args...) ->
-    self = @
-
-    if isFunction args[0]
-      callback = args[0]
-    else
-      metaVariables = args[0]
-      callback = args[1]
-
-    if callback
-      errorListener = (process, error) ->
-        self.removeListener 'worker:error', errorListener
-        callback error
-      @on 'worker:error', errorListener
-
-    # Pause request so we don't miss any `data` or `end` events.
-    resume = pause req
-
-    # Wait for a ready worker
-    @once 'worker:ready', (worker) ->
-      # Disconnect worker error listener
-      self.removeListener 'worker:error', errorListener
-
-      worker.proxyRequest req, res, args...
-
-      # Flush any events captured while we were establishing
-      # our client connection
-      resume()
-
-    # Tell any available workers to announce their state
-    @announceReadyWorkers()
+  proxyRequest: (args...) ->
+    worker = @nextWorker()
+    worker.proxyRequest args...
 
 # Public API for creating a **Pool*
 exports.createPool = (args...) ->

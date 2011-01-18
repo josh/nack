@@ -101,29 +101,17 @@ exports.testPoolIncrement = (test) ->
   test.done()
 
 exports.testProxyRequest = (test) ->
-  test.expect 6
+  test.expect 2
 
   pool = createPool config
-
-  pool.once 'ready', ->
-    test.ok true
-
-  pool.on 'exit', ->
-    test.ok true
-    test.done()
 
   server = http.createServer (req, res) ->
     server.close()
 
-    pool.once 'worker:busy', ->
-      test.ok true
-
-    pool.once 'worker:ready', ->
-      test.ok true
-
-    pool.proxyRequest req, res, ->
-      test.ok true
+    pool.proxyRequest req, res, (err) ->
+      test.ifError err
       pool.quit()
+      test.done()
 
   server.listen PORT
   server.on 'listening', ->
@@ -131,24 +119,12 @@ exports.testProxyRequest = (test) ->
       test.ifError err
 
 exports.testProxyRequestWithClientException = (test) ->
-  test.expect 5
+  test.expect 2
 
   pool = createPool "#{__dirname}/fixtures/error.ru"
 
-  pool.once 'ready', ->
-    test.ok true
-
-  pool.on 'exit', ->
-    test.ok true
-
   server = http.createServer (req, res) ->
     server.close()
-
-    pool.once 'worker:busy', ->
-      test.ok true
-
-    pool.once 'worker:ready', ->
-      test.ok true
 
     pool.proxyRequest req, res, (err) ->
       test.ok err

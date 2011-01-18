@@ -334,6 +334,9 @@ exports.testErrorCreatingProcessOnConnection = (test) ->
 
   process = createProcess __dirname + "/fixtures/crash.ru"
 
+  process.on 'error', (err) ->
+    test.ifError err
+
   process.createConnection (err) ->
     test.ok err
     test.same "b00m", err.message

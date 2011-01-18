@@ -245,7 +245,7 @@ exports.Process = class Process extends EventEmitter
 
   # Proxies a `http.ServerRequest` and `http.ServerResponse` to the process
   proxyRequest: (req, res, args...) ->
-    self = this
+    self = @
 
     if isFunction args[0]
       callback = args[0]
