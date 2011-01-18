@@ -15,26 +15,21 @@ exports.pause = (stream) ->
   onData  = (args...) -> queue.push ['data', args...]
   onEnd   = (args...) -> queue.push ['end', args...]
   onClose = -> removeListeners()
-  onError = -> removeListeners()
 
   removeListeners = ->
     stream.removeListener 'data', onData
     stream.removeListener 'end', onEnd
+    stream.removeListener 'close', onClose
 
   stream.on 'data', onData
   stream.on 'end', onEnd
   stream.on 'close', onClose
-
-  stream.pause()
 
   ->
     removeListeners()
 
     for args in queue
       stream.emit args...
-
-    if stream.readable
-      stream.resume()
 
 # **LineBuffer** wraps any readable stream and buffers data until
 # it encounters a `\n` line break. It will emit `data` events as lines

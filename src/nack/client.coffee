@@ -102,9 +102,15 @@ exports.Client = class Client extends Stream
     metaVariables["REMOTE_PORT"] ?= serverRequest.connection.remotePort
 
     clientRequest = @request serverRequest.method, serverRequest.url, serverRequest.headers, metaVariables
-    util.pump serverRequest, clientRequest
 
-    clientRequest.on "response", (clientResponse) ->
+    # ServerRequest#pause is FUBAR, so we need to avoid pump
+    # util.pump serverRequest, clientRequest
+    serverRequest.on 'data', (data) -> clientRequest.write data
+    serverRequest.on 'end', -> clientRequest.end()
+    serverRequest.on 'error', -> clientRequest.end()
+    clientRequest.on 'error', -> serverRequest.destroy()
+
+    clientRequest.on 'response', (clientResponse) ->
       serverResponse.writeHead clientResponse.statusCode, clientResponse.headers
       util.pump clientResponse, serverResponse
 
