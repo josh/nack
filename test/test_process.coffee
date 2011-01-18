@@ -214,24 +214,6 @@ exports.testProxyRequestWithClientException = (test) ->
     http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
       test.ok err
 
-exports.testOnReadyState = (test) ->
-  test.expect 2
-
-  process = createProcess config
-
-  process.onState 'ready', ->
-    test.ok true
-
-    process.onState 'ready', ->
-      test.ok true
-
-      process.on 'exit', ->
-        test.done()
-
-      process.quit()
-
-  process.spawn()
-
 exports.testTerminate = (test) ->
   test.expect 3
 
