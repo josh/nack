@@ -367,7 +367,7 @@ exports.testClientException = (test) ->
       process.quit()
 
     client.on 'error', (exception) ->
-      test.ok exception
+      test.same "b00m", exception.message
 
     request = client.request 'GET', '/', {}
     test.ok request

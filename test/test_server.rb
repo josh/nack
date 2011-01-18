@@ -96,24 +96,15 @@ class TestNackWorker < Test::Unit::TestCase
       NetString.write(socket, "")
       socket.close_write
 
-      status, headers, body = nil, nil, []
+      error = nil
 
       NetString.read(socket) do |data|
-        if status.nil?
-          status = data.to_i
-        elsif headers.nil?
-          headers = JSON.parse(data)
-        elsif data.length > 0
-          body << data
-        else
-          socket.close
-          break
-        end
+        error = JSON.parse(data)
       end
 
-      assert_equal 400, status
-      assert_equal({ "Content-Type" => "text/html" }, headers)
-      assert_equal ["Bad Request"], body
+      assert error
+      assert_equal "JSON::ParserError", error['name']
+      assert_equal "source did not contain any JSON!", error['message']
     end
   end
 
@@ -126,22 +117,15 @@ class TestNackWorker < Test::Unit::TestCase
 
       status, headers, body = nil, nil, []
 
+      error = nil
+
       NetString.read(socket) do |data|
-        if status.nil?
-        status = data.to_i
-        elsif headers.nil?
-          headers = JSON.parse(data)
-        elsif data.length > 0
-          body << data
-        else
-          socket.close
-          break
-        end
+        error = JSON.parse(data)
       end
 
-      assert_equal 400, status
-      assert_equal({ "Content-Type" => "text/html" }, headers)
-      assert_equal ["Bad Request"], body
+      assert error
+      assert_equal "Nack::Error", error['name']
+      assert_equal "Invalid netstring length, expected to be 1", error['message']
     end
   end
 
@@ -157,12 +141,23 @@ class TestNackWorker < Test::Unit::TestCase
 
   def test_app_error
     start :error do
-      status, headers, body = request({}, "foo=bar")
+      socket = UNIXSocket.open(sock)
 
-      assert_equal 500, status
-      assert headers.key?('X-Nack-Error')
-      assert_equal "b00m", headers['X-Nack-Error']['message']
-      assert_equal ["Internal Server Error"], body
+      NetString.write(socket, {}.to_json)
+      NetString.write(socket, "foo=bar")
+      NetString.write(socket, "")
+
+      socket.close_write
+
+      error = nil
+
+      NetString.read(socket) do |data|
+        error = JSON.parse(data)
+      end
+
+      assert error
+      assert_equal "RuntimeError", error['name']
+      assert_equal "b00m", error['message']
     end
   end
 

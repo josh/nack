@@ -292,12 +292,6 @@ exports.ClientResponse = class ClientResponse extends EventEmitter
           assert.ok rawHeaders, "Headers can not be null"
           assert.equal typeof rawHeaders, 'object', "Headers must be an object"
 
-          if exception = rawHeaders['X-Nack-Error']
-            error       = new Error exception.message
-            error.name  = exception.name
-            error.stack = exception.stack
-            throw error
-
           for k, vs of rawHeaders
             # Split multiline Rack headers
             v = vs.split "\n"
@@ -325,6 +319,13 @@ exports.ClientResponse = class ClientResponse extends EventEmitter
         @emit 'end'
 
     catch error
+      # See if payload is an exception backtrace
+      exception = try JSON.parse data
+      if exception and exception.name and exception.message
+        error       = new Error exception.message
+        error.name  = exception.name
+        error.stack = exception.stack
+
       # Mark as not readable to stop parsing
       @readable = false
 

@@ -137,49 +137,33 @@ module Nack
       body    = ["Internal Server Error"]
 
       env, input = nil, StringIO.new
-      begin
-        NetString.read(buf) do |data|
-          if env.nil?
-            env = JSON.parse(data)
-          elsif data.length > 0
-            input.write(data)
-          else
-            break
-          end
+
+      NetString.read(buf) do |data|
+        if env.nil?
+          env = JSON.parse(data)
+        elsif data.length > 0
+          input.write(data)
+        else
+          break
         end
-      rescue Nack::Error, JSON::ParserError
       end
 
       sock.close_read
       input.rewind
 
-      if env
-        method, path = env['REQUEST_METHOD'], env['PATH_INFO']
+      method, path = env['REQUEST_METHOD'], env['PATH_INFO']
 
-        env = env.merge({
-          "rack.version" => Rack::VERSION,
-          "rack.input" => input,
-          "rack.errors" => $stderr,
-          "rack.multithread" => false,
-          "rack.multiprocess" => true,
-          "rack.run_once" => false,
-          "rack.url_scheme" => ["yes", "on", "1"].include?(env["HTTPS"]) ? "https" : "http"
-        })
+      env = env.merge({
+        "rack.version" => Rack::VERSION,
+        "rack.input" => input,
+        "rack.errors" => $stderr,
+        "rack.multithread" => false,
+        "rack.multiprocess" => true,
+        "rack.run_once" => false,
+        "rack.url_scheme" => ["yes", "on", "1"].include?(env["HTTPS"]) ? "https" : "http"
+      })
 
-        begin
-          status, headers, body = app.call(env)
-        rescue Exception => e
-          status  = 500
-          headers = { 'Content-Type' => 'text/html' }
-          body    = ["Internal Server Error"]
-
-          headers['X-Nack-Error'] = exception_as_json(e)
-        end
-      else
-        status  = 400
-        headers = { 'Content-Type' => 'text/html' }
-        body    = ["Bad Request"]
-      end
+      status, headers, body = app.call(env)
 
       begin
         NetString.write(sock, status.to_s)
@@ -193,8 +177,7 @@ module Nack
         body.close if body.respond_to?(:close)
       end
     rescue Exception => e
-      warn "#{e.class}: #{e.message}"
-      warn e.backtrace.join("\n")
+      NetString.write(sock, exception_to_json(e))
     ensure
       sock.close_write
     end
