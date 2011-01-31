@@ -12,44 +12,30 @@ module Nack
       new(*args).start
     end
 
-    attr_accessor :config, :app, :file, :pipe
-    attr_accessor :ppid, :server, :self_pipe
+    attr_accessor :config, :app, :file
+    attr_accessor :ppid, :server, :heartbeat
 
     def initialize(config, options = {})
       self.config = config
+      self.file   = options[:file]
+      self.ppid   = Process.ppid
 
-      self.file = options[:file]
-      self.pipe = options[:pipe]
+      at_exit { close }
 
-      at_exit { cleanup }
+      self.server = UNIXServer.open(file)
+      self.server.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
-      File.unlink(file) if File.exist?(file)
+      self.heartbeat = server.accept
+      self.heartbeat.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
-      if !File.pipe?(pipe)
-        raise Errno::EPIPE, pipe
-      end
-
-      self.ppid = Process.ppid
+      trap('TERM') { exit }
+      trap('INT')  { exit }
+      trap('QUIT') { close }
 
       load_json_lib!
       self.app = load_config
     rescue Exception => e
-      if File.pipe?(pipe)
-        open(pipe, Fcntl::O_WRONLY | Fcntl::O_NONBLOCK) do |a|
-          a.write_nonblock exception_to_json(e)
-        end
-        exit 1
-      else
-        raise e
-      end
-    end
-
-    def cleanup
-      server.close if server && !server.closed?
-      self_pipe.close if self_pipe && !self_pipe.closed?
-
-      File.unlink(file) if file && File.exist?(file)
-      File.unlink(pipe) if pipe && File.exist?(pipe)
+      handle_exception(e)
     end
 
     def load_json_lib!
@@ -66,53 +52,46 @@ module Nack
       eval("Nack::Builder.new {( #{cfgfile}\n )}.to_app", TOPLEVEL_BINDING, config)
     end
 
+    def close
+      server.close if server && !server.closed?
+      heartbeat.close if heartbeat && !heartbeat.closed?
+      File.unlink(file) if file && File.exist?(file)
+    end
+
     def start
-      self.server = UNIXServer.open(file)
-      self.self_pipe = nil
-
-      trap('TERM') { exit }
-      trap('INT')  { exit }
-      trap('QUIT') { server.close }
-
-      open(pipe, Fcntl::O_WRONLY | Fcntl::O_NONBLOCK) do |a|
-        a.write_nonblock $$.to_s
-      end
-
-      self.self_pipe = open(pipe, 'r', Fcntl::O_NONBLOCK)
-      self.self_pipe.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+      heartbeat.write "#{$$}\n"
+      heartbeat.flush
 
       clients = []
       buffers = {}
 
       loop do
-        listeners = clients + [self_pipe]
+        listeners = clients + [heartbeat]
         listeners << server unless server.closed?
 
         readable, writable = nil
         begin
-          readable, writable = IO.select(listeners, nil, [self_pipe], 60)
+          readable, writable = IO.select(listeners, nil, nil, 60)
         rescue Errno::EBADF
         end
 
-        if server.closed? && clients.empty?
-          return
+        if (server.closed? || heartbeat.closed?) && clients.empty?
+          return close
         end
 
         if ppid != Process.ppid
-          return
+          return close
         end
 
         next unless readable
 
         readable.each do |sock|
-          if sock == self_pipe
-            begin
-              sock.read_nonblock(1024)
-            rescue EOFError
-              return
-            end
+          if sock == heartbeat && heartbeat.eof?
+            return close
           elsif sock == server
-            clients << server.accept_nonblock
+            client = server.accept_nonblock
+            client.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+            clients << client
           else
             client, buf = sock, buffers[sock] ||= ''
 
@@ -128,7 +107,10 @@ module Nack
       end
 
       nil
-    rescue Errno::EINTR
+    rescue SystemExit, Errno::EINTR
+      # Ignore
+    rescue Exception => e
+      handle_exception(e)
     end
 
     def handle(sock, buf)
@@ -180,6 +162,17 @@ module Nack
       NetString.write(sock, exception_to_json(e))
     ensure
       sock.close_write
+    end
+
+    def handle_exception(e)
+      if heartbeat && !heartbeat.closed?
+        heartbeat.write("#{exception_to_json(e)}\n")
+        heartbeat.flush
+        heartbeat.close
+        exit 1
+      else
+        raise e
+      end
     end
 
     def exception_as_json(e)

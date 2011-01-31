@@ -154,10 +154,16 @@ exports.testErrorCreatingPool = (test) ->
 exports.testErrorCreatingProcessOnProxy = (test) ->
   test.expect 3
 
+  count = 3
+  done = ->
+    if --count is 0
+      test.done()
+
   pool = createPool "#{__dirname}/fixtures/crash.ru", size: 1
 
   pool.on 'exit', ->
     test.ok true
+    done()
 
   server = http.createServer (req, res) ->
     server.close()
@@ -166,9 +172,10 @@ exports.testErrorCreatingProcessOnProxy = (test) ->
       test.ok err
       res.end()
       pool.quit()
+      done()
 
   server.listen PORT
   server.on 'listening', ->
     http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
       test.ok err
-      test.done()
+      done()

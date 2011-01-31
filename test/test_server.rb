@@ -6,7 +6,7 @@ require 'test/unit'
 class TestNackWorker < Test::Unit::TestCase
   include Nack
 
-  attr_accessor :sock, :pipe, :pid, :self_pipe
+  attr_accessor :sock, :pid, :heartbeat
 
   def spawn(fixture)
     config = File.expand_path("../fixtures/#{fixture}.ru", __FILE__)
@@ -15,28 +15,25 @@ class TestNackWorker < Test::Unit::TestCase
     rand = (rand() * 10000000000).floor
 
     self.sock = "/tmp/nack.#{pid}.#{rand}.sock"
-    self.pipe = "/tmp/nack.#{pid}.#{rand}.pipe"
-
-    system "mkfifo", pipe
 
     self.pid = fork do
-      exec "nack_worker", config, sock, pipe
+      exec "nack_worker", config, sock
     end
+
+    until File.exist?(sock); end
+    self.heartbeat = UNIXSocket.open(sock)
   end
 
   def wait
     Process.kill('TERM', self.pid)
     Process.wait(self.pid)
-    self_pipe.close
+    self.heartbeat.close if self.heartbeat
   rescue Errno::ESRCH
   end
 
   def start(fixture = :echo)
     spawn(fixture)
-
-    assert_equal self.pid, open(pipe).read.to_i
-    self.self_pipe = open(pipe, 'w')
-
+    assert_equal "#{self.pid}\n", heartbeat.readline
     yield
   ensure
     wait
@@ -129,12 +126,12 @@ class TestNackWorker < Test::Unit::TestCase
     end
   end
 
-  def test_close_pipe
+  def test_close_heartbeat
     start do
       status, headers, body = request({}, "foo=bar")
       assert_equal 200, status
 
-      self_pipe.close
+      heartbeat.close
       Process.wait(pid)
     end
   end
@@ -163,6 +160,10 @@ class TestNackWorker < Test::Unit::TestCase
 
   def test_spawn_error
     out = spawn :crash
-    assert_match "b00m", open(pipe).read
+    error = JSON.parse(heartbeat.read)
+
+    assert error
+    assert_equal "RuntimeError", error['name']
+    assert_equal "b00m", error['message']
   end
 end

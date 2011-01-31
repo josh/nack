@@ -14,9 +14,9 @@ fileExist = (path) ->
     false
 
 exports.testCreateProcess = (test) ->
-  test.expect 12
+  test.expect 9
 
-  sockPath = pipePath = null
+  sockPath = null
 
   process = createProcess config
 
@@ -24,11 +24,7 @@ exports.testCreateProcess = (test) ->
     test.ok true
 
   process.on 'spawn', ->
-    test.ok process.sockPath
-    test.ok process.pipePath
-
-    sockPath = process.sockPath
-    pipePath = process.pipePath
+    test.ok sockPath = process.sockPath
 
     test.ok process.child
     test.ok process.stdout
@@ -40,10 +36,7 @@ exports.testCreateProcess = (test) ->
     process.quit()
     process.on 'exit', ->
       test.ok !process.sockPath
-      test.ok !process.pipePath
-
       test.ok !fileExist(sockPath)
-      test.ok !fileExist(pipePath)
 
       test.ok !process.child
 
@@ -309,7 +302,12 @@ exports.testRestart = (test) ->
   process.spawn()
 
 exports.testErrorCreatingProcess = (test) ->
-  test.expect 5
+  test.expect 4
+
+  count = 2
+  done = ->
+    if --count is 0
+      test.done()
 
   process = createProcess __dirname + "/fixtures/crash.ru"
 
@@ -318,34 +316,47 @@ exports.testErrorCreatingProcess = (test) ->
 
   process.on 'error', (error) ->
     test.same "b00m", error.message
+    done()
 
   process.on 'exit', ->
     test.ok !process.sockPath
-    test.ok !process.pipePath
-
     test.ok !process.child
-
-    test.done()
+    done()
 
   process.spawn()
 
 exports.testErrorCreatingProcessOnConnection = (test) ->
-  test.expect 2
-
-  process = createProcess __dirname + "/fixtures/crash.ru"
-
-  process.createConnection (err) ->
-    test.ok err
-    test.same "b00m", err.message
-    test.done()
-
-exports.testErrorCreatingProcessOnProxy = (test) ->
   test.expect 3
+
+  count = 2
+  done = ->
+    if --count is 0
+      test.done()
 
   process = createProcess __dirname + "/fixtures/crash.ru"
 
   process.on 'exit', ->
     test.ok true
+    done()
+
+  process.createConnection (err) ->
+    test.ok err
+    test.same "b00m", err.message
+    done()
+
+exports.testErrorCreatingProcessOnProxy = (test) ->
+  test.expect 3
+
+  count = 3
+  done = ->
+    if --count is 0
+      test.done()
+
+  process = createProcess __dirname + "/fixtures/crash.ru"
+
+  process.on 'exit', ->
+    test.ok true
+    done()
 
   server = http.createServer (req, res) ->
     server.close()
@@ -354,9 +365,10 @@ exports.testErrorCreatingProcessOnProxy = (test) ->
       test.ok err
       res.end()
       process.quit()
+      done()
 
   server.listen PORT
   server.on 'listening', ->
     http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
       test.ok err
-      test.done()
+      done()

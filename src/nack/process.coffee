@@ -5,6 +5,7 @@ fs                  = require 'fs'
 {LineBuffer}        = require './util'
 {spawn, exec}       = require 'child_process'
 {EventEmitter}      = require 'events'
+{Stream}            = require 'net'
 
 packageBin = fs.realpathSync "#{__dirname}/../../bin"
 packageLib = fs.realpathSync "#{__dirname}/.."
@@ -65,6 +66,7 @@ packageLib = fs.realpathSync "#{__dirname}/.."
 exports.Process = class Process extends EventEmitter
   constructor: (@config, options) ->
     self = @
+    @id = Math.floor Math.random() * 1000
 
     options ?= {}
     @idle  = options.idle
@@ -113,7 +115,6 @@ exports.Process = class Process extends EventEmitter
     # Generate a random sock path
     tmp = tmpFile()
     @sockPath = "#{tmp}.sock"
-    @pipePath = "#{tmp}.pipe"
 
     # Copy process environment
     env = {}
@@ -126,57 +127,49 @@ exports.Process = class Process extends EventEmitter
     env['PATH']    = "#{packageBin}:#{env['PATH']}"
     env['RUBYLIB'] = "#{packageLib}:#{env['RUBYLIB']}"
 
-    createPipeStream @pipePath, (err, pipe) =>
-      return @emit 'error', err if err
+    @heartbeat = new Stream
 
-      args = [@config, @sockPath, @pipePath]
-
-      # Spawn a Ruby server connecting to our `@sockPath`
-      @child = spawn "nack_worker", args,
-        cwd: @cwd
-        env: env
-
-      # Expose `stdout` and `stderr` on Process
-      @stdout = @child.stdout
-      @stderr = @child.stderr
-
-      pipeError = null
-
-      pipe.on 'data', (data) =>
-        if !@child or !@child.pid or data.toString() isnt @child.pid.toString()
-          try
-            exception       = JSON.parse data
-            pipeError       = new Error exception.message
-            pipeError.name  = exception.name
-            pipeError.stack = exception.stack
-          catch e
-            pipeError = new Error "unknown spawn error"
-
-      pipe.on 'end', =>
-        pipe = null
-        unless pipeError
-          @pipe = fs.createWriteStream @pipePath
-          @pipe.on 'open', => @changeState 'ready'
-
-      # When the child process exists, clear out state and
-      # emit `exit`
-      @child.on 'exit', (code, signal) =>
-        @clearTimeout()
-        @pipe.end() if @pipe
-
-        @state = @sockPath = @pipePath = null
-        @child = @pipe = null
-        @stdout = @stderr = null
-
-        if code isnt 0 and pipeError
-          @emit 'error', pipeError
-
-        @_connectionQueue = []
-        @_activeConnection = null
-
-        @emit 'exit'
-
+    @heartbeat.on 'connect', =>
       @emit 'spawn'
+
+    @heartbeat.on 'data', (data) =>
+      if "#{@child.pid}\n" is data.toString()
+        @changeState 'ready'
+      else
+        try
+          exception   = JSON.parse data
+          error       = new Error exception.message
+          error.name  = exception.name
+          error.stack = exception.stack
+          @emit 'error', error
+        catch e
+          @emit 'error', new Error "unknown process error"
+
+    tryConnect @heartbeat, @sockPath, (err) =>
+      @emit 'error', err if err
+
+    # Spawn a Ruby server connecting to our `@sockPath`
+    @child = spawn "nack_worker", [@config, @sockPath],
+      cwd: @cwd
+      env: env
+
+    # Expose `stdout` and `stderr` on Process
+    @stdout = @child.stdout
+    @stderr = @child.stderr
+
+    # When the child process exists, clear out state and emit `exit`
+    @child.on 'exit', (code, signal) =>
+      @clearTimeout()
+      @heartbeat.destroy() if @heartbeat
+
+      @state = @sockPath = null
+      @child = @heartbeat = null
+      @stdout = @stderr = null
+
+      @_connectionQueue = []
+      @_activeConnection = null
+
+      @emit 'exit'
 
     @
 
@@ -290,7 +283,7 @@ exports.Process = class Process extends EventEmitter
       timeout = setTimeout =>
         if @state is 'quitting'
           @kill()
-      , 1000
+      , 10000
       @once 'exit', -> clearTimeout timeout
 
   # Send `SIGTERM` to process.
@@ -303,7 +296,7 @@ exports.Process = class Process extends EventEmitter
       timeout = setTimeout =>
         if @state is 'quitting'
           @terminate()
-      , 1000
+      , 3000
       @once 'exit', -> clearTimeout timeout
 
   # Quit and respawn process
@@ -321,10 +314,34 @@ tmpFile = ->
   rand = Math.floor Math.random() * 10000000000
   "/tmp/nack." + pid + "." + rand
 
-createPipeStream = (path, callback) ->
-  exec "mkfifo #{path}", (error, stdout, stderr) ->
-    if error?
-      callback error
+# TODO: Don't poll FS
+onceFileExists = (path, callback, count = 0) ->
+  if count > 1000
+    return callback new Error "timeout"
+
+  fs.stat path, (err, stats) ->
+    if not err
+      callback err, path
     else
-      stream = fs.createReadStream path
-      callback null, stream
+      process.nextTick ->
+        onceFileExists path, callback, count+1
+
+tryConnect = (connection, path, callback) ->
+  errors = 0
+
+  onError = (err) ->
+    if ++errors > 3
+      connection.removeListener 'error', onError
+      callback err
+    else
+      connection.connect path
+
+  connection.on 'error', onError
+
+  connection.on 'connect', ->
+    connection.removeListener 'error', onError
+    callback null, connection
+
+  onceFileExists path, (err) ->
+    return callback err if err
+    connection.connect path
