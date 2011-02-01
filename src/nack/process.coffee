@@ -272,6 +272,7 @@ exports.Process = class Process extends EventEmitter
     if @child
       @changeState 'quitting'
       @child.kill 'SIGKILL'
+      @heartbeat.destroy() if @heartbeat
 
   # Send `SIGTERM` to process.
   # This will immediately kill it.
@@ -279,6 +280,7 @@ exports.Process = class Process extends EventEmitter
     if @child
       @changeState 'quitting'
       @child.kill 'SIGTERM'
+      @heartbeat.destroy() if @heartbeat
 
       timeout = setTimeout =>
         if @state is 'quitting'
@@ -292,6 +294,7 @@ exports.Process = class Process extends EventEmitter
     if @child
       @changeState 'quitting'
       @child.kill 'SIGQUIT'
+      @heartbeat.destroy() if @heartbeat
 
       timeout = setTimeout =>
         if @state is 'quitting'
