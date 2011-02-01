@@ -5,8 +5,6 @@ http = require 'http'
 
 config = __dirname + "/fixtures/hello.ru"
 
-PORT = 8080
-
 fileExist = (path) ->
   try
     fs.statSync path
@@ -180,9 +178,9 @@ exports.testProxyRequest = (test) ->
       test.ok true
       process.quit()
 
-  server.listen PORT
+  server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
       test.ifError err
 
 exports.testProxyRequestWithClientException = (test) ->
@@ -211,9 +209,9 @@ exports.testProxyRequestWithClientException = (test) ->
       res.end()
       process.quit()
 
-  server.listen PORT
+  server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
       test.ok err
 
 exports.testTerminate = (test) ->
@@ -367,8 +365,8 @@ exports.testErrorCreatingProcessOnProxy = (test) ->
       process.quit()
       done()
 
-  server.listen PORT
+  server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
       test.ok err
       done()

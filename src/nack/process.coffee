@@ -317,26 +317,32 @@ tmpFile = ->
   "/tmp/nack." + pid + "." + rand
 
 # TODO: Don't poll FS
-onceFileExists = (path, callback, count = 0) ->
-  if count > 1000
-    return callback new Error "timeout"
+onceFileExists = (path, callback, errors = 0) ->
+  if errors > 10
+    return callback new Error "timeout: waiting for #{path}"
 
-  fs.stat path, (err, stats) ->
-    if not err
+  fs.stat path, (err, stat) ->
+    if !err and stat.isSocket()
       callback err, path
     else
-      process.nextTick ->
-        onceFileExists path, callback, count+1
+      setTimeout ->
+        onceFileExists path, callback, errors+1
+      , 1
 
 tryConnect = (connection, path, callback) ->
   errors = 0
 
-  onError = (err) ->
-    if ++errors > 3
-      connection.removeListener 'error', onError
-      callback err
-    else
+  reconnect = ->
+    onceFileExists path, (err) ->
+      return callback err if err
       connection.connect path
+
+  onError = (err) ->
+    if err and ++errors > 3
+      connection.removeListener 'error', onError
+      callback new Error "timeout: couldn't connect to #{path}"
+    else
+      reconnect()
 
   connection.on 'error', onError
 
@@ -344,6 +350,4 @@ tryConnect = (connection, path, callback) ->
     connection.removeListener 'error', onError
     callback null, connection
 
-  onceFileExists path, (err) ->
-    return callback err if err
-    connection.connect path
+  reconnect()

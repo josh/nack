@@ -6,7 +6,10 @@ net  = require 'net'
 
 config = __dirname + "/fixtures/hello.ru"
 
-PORT = 8080
+tmpFile = ->
+  pid  = process.pid
+  rand = Math.floor Math.random() * 10000000000
+  "/tmp/nack." + pid + "." + rand
 
 createDuplexServer = if net.createServer().allowHalfOpen?
   (listener) ->
@@ -37,7 +40,7 @@ exports.testClientRequestBeforeConnect = (test) ->
 
     request.end()
 
-    request.on 'drain', () ->
+    request.on 'drain', ->
       test.ok true
 
     request.on 'response', (response) ->
@@ -81,7 +84,7 @@ exports.testClientRequestAfterConnect = (test) ->
 
       request.end()
 
-      request.on 'drain', () ->
+      request.on 'drain', ->
         test.ok false
 
       request.on 'response', (response) ->
@@ -203,9 +206,9 @@ exports.testProxyRequest = (test) ->
         process.quit()
 
   process.once 'ready', ->
-    server.listen PORT
+    server.listen 0
     server.on 'listening', ->
-      http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+      http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
         test.ifError err
         test.same "Hello World\n", data
         server.close()
@@ -217,7 +220,7 @@ exports.testProxyRequest = (test) ->
 exports.testClientUncompletedResponse = (test) ->
   test.expect 3
 
-  sockPath = "/tmp/nack.test.sock"
+  sockPath = tmpFile()
 
   worker = createDuplexServer (conn) ->
     worker.close()
@@ -244,7 +247,7 @@ exports.testClientUncompletedResponse = (test) ->
 exports.testClientUncompletedRequest = (test) ->
   test.expect 3
 
-  sockPath = "/tmp/nack.test.sock"
+  sockPath = tmpFile()
 
   worker = createDuplexServer (conn) ->
     worker.close()
@@ -270,18 +273,18 @@ exports.testClientUncompletedRequest = (test) ->
 exports.testClientInvalidStatusResponse = (test) ->
   test.expect 3
 
-  sockPath = "/tmp/nack.test.sock"
+  sockPath = tmpFile()
 
   worker = createDuplexServer (conn) ->
     worker.close()
 
-    conn.on 'end', () ->
+    conn.on 'end', ->
       conn.write "2:{},"
       conn.write "2:{},"
       conn.write "0:,"
       conn.end()
 
-  worker.listen sockPath, () ->
+  worker.listen sockPath, ->
     client = createConnection sockPath
 
     client.on 'close', ->
@@ -299,18 +302,18 @@ exports.testClientInvalidStatusResponse = (test) ->
 exports.testClientInvalidHeadersResponse = (test) ->
   test.expect 3
 
-  sockPath = "/tmp/nack.test.sock"
+  sockPath = tmpFile()
 
   worker = createDuplexServer (conn) ->
     worker.close()
 
-    conn.on 'end', () ->
+    conn.on 'end', ->
       conn.write "3:200,"
       conn.write "3:100,"
       conn.write "0:,"
       conn.end()
 
-  worker.listen sockPath, () ->
+  worker.listen sockPath, ->
     client = createConnection sockPath
 
     client.on 'close', ->
@@ -328,17 +331,17 @@ exports.testClientInvalidHeadersResponse = (test) ->
 exports.testClientMissingHeadersResponse = (test) ->
   test.expect 3
 
-  sockPath = "/tmp/nack.test.sock"
+  sockPath = tmpFile()
 
   worker = createDuplexServer (conn) ->
     worker.close()
 
-    conn.on 'end', () ->
+    conn.on 'end', ->
       conn.write "3:200,"
       conn.write "0:,"
       conn.end()
 
-  worker.listen sockPath, () ->
+  worker.listen sockPath, ->
     client = createConnection sockPath
 
     client.on 'close', ->

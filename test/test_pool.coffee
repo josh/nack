@@ -4,8 +4,6 @@ http = require 'http'
 
 config = __dirname + "/fixtures/hello.ru"
 
-PORT = 8080
-
 exports.testCreatePoolEvents = (test) ->
   test.expect 5
 
@@ -113,9 +111,9 @@ exports.testProxyRequest = (test) ->
       pool.quit()
       test.done()
 
-  server.listen PORT
+  server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
       test.ifError err
 
 exports.testProxyRequestWithClientException = (test) ->
@@ -131,9 +129,9 @@ exports.testProxyRequestWithClientException = (test) ->
       res.end()
       pool.quit()
 
-  server.listen PORT
+  server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
       test.ok err
       test.done()
 
@@ -174,8 +172,8 @@ exports.testErrorCreatingProcessOnProxy = (test) ->
       pool.quit()
       done()
 
-  server.listen PORT
+  server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
       test.ok err
       done()

@@ -2,8 +2,6 @@ http = require 'http'
 
 {createServer} = require 'nack/server'
 
-PORT = 8080
-
 exports.testProxyRequest = (test) ->
   test.expect 2
 
@@ -13,9 +11,9 @@ exports.testProxyRequest = (test) ->
     test.ok true
     test.done()
 
-  server.listen PORT
+  server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
       test.ok !err
       server.close()
 
@@ -32,9 +30,9 @@ exports.testProxyRequestWithClientException = (test) ->
     test.ok true
     test.done()
 
-  server.listen PORT
+  server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
       test.ok err
       server.close()
 
@@ -51,9 +49,9 @@ exports.testProxyRequestWithErrorCreatingProcess = (test) ->
     test.ok true
     test.done()
 
-  server.listen PORT
+  server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
       test.ok err
       server.close()
 
@@ -66,9 +64,9 @@ exports.testProxyCookies = (test) ->
     test.ok true
     test.done()
 
-  server.listen PORT
+  server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
       test.ifError err
       server.close()
 
@@ -81,7 +79,7 @@ exports.testCloseServer = (test) ->
     test.ok true
     test.done()
 
-  server.listen PORT
+  server.listen 0
   server.on 'listening', ->
     test.ok true
     server.close()
@@ -106,9 +104,9 @@ exports.testRestartServerWithActiveWorkers = (test) ->
     test.ok true
     test.done()
 
-  server.listen PORT
+  server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{PORT}/", "utf8", (err, data) ->
+    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
       test.ifError err
 
       server.restart ->
@@ -124,7 +122,7 @@ exports.testRestartServerWithNoActiveWorkers = (test) ->
     test.ok true
     test.done()
 
-  server.listen PORT
+  server.listen 0
   server.on 'listening', ->
     server.restart ->
       test.ok true
