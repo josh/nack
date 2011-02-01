@@ -25,6 +25,8 @@ url    = require 'url'
 #
 exports.Client = class Client extends Stream
   constructor: ->
+    super
+
     # Initialize outgoing array to hold pending requests
     @_outgoing = []
     # Incoming is used to point to the current response
