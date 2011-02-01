@@ -102,7 +102,7 @@ exports.testRestartServerWithActiveWorkers = (test) ->
 
   server = createServer __dirname + "/fixtures/echo.ru"
 
-  server.on 'close', ->
+  server.on 'exit', ->
     test.ok true
     test.done()
 

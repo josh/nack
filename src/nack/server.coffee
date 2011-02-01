@@ -2,6 +2,11 @@
 {createPool}   = require './pool'
 {dirname}      = require 'path'
 
+poolEvents = [
+  'error', 'ready', 'exit',
+  'worker:ready', 'worker:spawn', 'worker:busy', 'worker:exit'
+]
+
 # Creates a [Connect](http://senchalabs.github.com/connect/)
 # compatible server.
 #
@@ -32,8 +37,9 @@ exports.createServer = (config, options) ->
       if err
         next err
 
-  pool.on 'error', (error) ->
-    server.emit 'error', error
+  poolEvents.forEach (type) ->
+    pool.on type, (args...) ->
+      server.emit type, args...
 
   # DEPRECATED
   server.pool = pool

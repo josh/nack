@@ -113,8 +113,7 @@ exports.Process = class Process extends EventEmitter
     @changeState 'spawning'
 
     # Generate a random sock path
-    tmp = tmpFile()
-    @sockPath = "#{tmp}.sock"
+    @sockPath = "#{tmpFile()}.sock"
 
     # Copy process environment
     env = {}
