@@ -1,6 +1,7 @@
 {createServer} = require 'connect'
 {createPool}   = require './pool'
 {dirname}      = require 'path'
+http           = require 'http'
 
 poolEvents = [
   'error', 'ready', 'exit',
@@ -46,6 +47,10 @@ exports.createServer = (config, options) ->
 
   server.stdout = pool.stdout
   server.stderr = pool.stderr
+
+  server.listen = ->
+    http.Server.prototype.listen.apply @, arguments
+    @
 
   origClose = server.close
   server.close = ->
