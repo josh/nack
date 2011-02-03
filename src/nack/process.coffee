@@ -145,7 +145,10 @@ exports.Process = class Process extends EventEmitter
           @emit 'error', new Error "unknown process error"
 
     tryConnect @heartbeat, @sockPath, (err) =>
-      @emit 'error', err if err
+      if err and out
+        @emit 'error', new Error out
+      else if err
+        @emit 'error', err
 
     # Spawn a Ruby server connecting to our `@sockPath`
     @child = spawn "nack_worker", [@config, @sockPath],
@@ -155,6 +158,20 @@ exports.Process = class Process extends EventEmitter
     # Expose `stdout` and `stderr` on Process
     @stdout = @child.stdout
     @stderr = @child.stderr
+
+    out = null
+    logData = (data) ->
+      out ?= ""
+      out += data.toString()
+
+    @stdout.on 'data', logData
+    @stderr.on 'data', logData
+
+    @on 'spawn', =>
+      out = null
+      @stdout.removeListener 'data', logData
+      @stderr.removeListener 'data', logData
+
 
     # When the child process exists, clear out state and emit `exit`
     @child.on 'exit', (code, signal) =>
