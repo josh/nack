@@ -25,8 +25,15 @@ module Nack
       self.server = UNIXServer.open(file)
       self.server.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
-      self.heartbeat = server.accept
-      self.heartbeat.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+      readable, writable = IO.select([self.server], nil, nil, 3)
+
+      if readable && readable.first == self.server
+        self.heartbeat = server.accept_nonblock
+        self.heartbeat.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
+      else
+        warn "No heartbeat connected"
+        exit 1
+      end
 
       trap('TERM') { exit }
       trap('INT')  { exit }
