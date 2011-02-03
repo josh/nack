@@ -334,17 +334,26 @@ tmpFile = ->
   "/tmp/nack." + pid + "." + rand
 
 # TODO: Don't poll FS
-onceFileExists = (path, callback, errors = 0) ->
-  if errors > 10
-    return callback new Error "timeout: waiting for #{path}"
+onceFileExists = (path, callback, timeout = 3000) ->
+  timeoutError = null
+  timeoutId = setTimeout ->
+    timeoutError = new Error "timeout: waiting for #{path}"
+  , timeout
 
-  fs.stat path, (err, stat) ->
-    if !err and stat.isSocket()
+  decay = 1
+
+  statPath = (err, stat) ->
+    if !err and stat and stat.isSocket()
+      clearTimeout timeoutId
       callback err, path
+    else if timeoutError
+      callback timeoutError, path
     else
       setTimeout ->
-        onceFileExists path, callback, errors+1
-      , 1
+        fs.stat path, statPath
+      , decay *= 2
+
+  statPath()
 
 tryConnect = (connection, path, callback) ->
   errors = 0
