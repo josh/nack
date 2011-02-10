@@ -1,4 +1,4 @@
-{EventEmitter} = require 'events'
+{Stream} = require 'stream'
 
 # Is a given value a function?
 exports.isFunction = (obj) ->
@@ -40,7 +40,7 @@ exports.pause = (stream) ->
 #       if line.match "TO: "
 #         console.log line
 #
-exports.LineBuffer = class LineBuffer extends EventEmitter
+exports.LineBuffer = class LineBuffer extends Stream
   constructor: (@stream) ->
     @readable = true
     @_buffer = ""
