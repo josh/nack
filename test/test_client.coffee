@@ -6,13 +6,10 @@ net  = require 'net'
 
 config = __dirname + "/fixtures/hello.ru"
 
-createDuplexServer = if net.createServer().allowHalfOpen?
-  (listener) ->
-    server = net.createServer allowHalfOpen: true
-    server.on 'connection', listener
-    server
-else
-  (listener) -> net.createServer listener
+createDuplexServer = (listener) ->
+  server = net.createServer allowHalfOpen: true
+  server.on 'connection', listener
+  server
 
 exports.testClientRequestBeforeConnect = (test) ->
   test.expect 14
