@@ -1,7 +1,6 @@
 assert = require 'assert'
 ns     = require './ns'
 url    = require 'url'
-util   = require 'util'
 
 {Socket} = require 'net'
 {Stream} = require 'stream'
@@ -105,8 +104,6 @@ exports.Client = class Client extends Socket
 
     clientRequest = @request serverRequest.method, serverRequest.url, serverRequest.headers, metaVariables
 
-    # ServerRequest#pause is FUBAR, so we need to avoid pump
-    # util.pump serverRequest, clientRequest
     serverRequest.on 'data', (data) -> clientRequest.write data
     serverRequest.on 'end', -> clientRequest.end()
     serverRequest.on 'error', -> clientRequest.end()
@@ -114,7 +111,7 @@ exports.Client = class Client extends Socket
 
     clientRequest.on 'response', (clientResponse) ->
       serverResponse.writeHead clientResponse.statusCode, clientResponse.headers
-      util.pump clientResponse, serverResponse
+      clientResponse.pipe serverResponse
 
     clientRequest
 
