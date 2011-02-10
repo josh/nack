@@ -192,9 +192,9 @@ exports.ClientRequest = class ClientRequest extends Stream
       @env[key] = value
 
   # Write chunk to client
-  write: (chunk) ->
+  write: (chunk, encoding) ->
     # Netstring encode chunk
-    nsChunk = ns.nsWrite chunk
+    nsChunk = ns.nsWrite chunk, 0, chunk.length, null, 0, encoding
 
     if @_writeQueue
       @_writeQueue.push nsChunk
@@ -204,9 +204,9 @@ exports.ClientRequest = class ClientRequest extends Stream
       @socket.write nsChunk
 
   # Closes writting socket.
-  end: (chunk) ->
+  end: (chunk, encoding) ->
     if (chunk)
-      @write chunk
+      @write chunk, encoding
 
     flushed = if @_writeQueue
       @_writeQueue.push END_OF_FILE
