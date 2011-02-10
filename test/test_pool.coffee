@@ -126,13 +126,14 @@ exports.testProxyRequestWithClientException = (test) ->
 
     pool.proxyRequest req, res, (err) ->
       test.ok err
+      res.writeHead 500
       res.end()
       pool.quit()
 
   server.listen 0
   server.on 'listening', ->
     http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.ok err
+      test.same 500, err
       test.done()
 
 exports.testErrorCreatingPool = (test) ->
@@ -168,6 +169,7 @@ exports.testErrorCreatingProcessOnProxy = (test) ->
 
     pool.proxyRequest req, res, (err) ->
       test.ok err
+      res.writeHead 500
       res.end()
       pool.quit()
       done()
@@ -175,5 +177,5 @@ exports.testErrorCreatingProcessOnProxy = (test) ->
   server.listen 0
   server.on 'listening', ->
     http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.ok err
+      test.same 500, err
       done()

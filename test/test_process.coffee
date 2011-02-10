@@ -206,13 +206,14 @@ exports.testProxyRequestWithClientException = (test) ->
 
     process.proxyRequest req, res, (err) ->
       test.ok err
+      res.writeHead 500
       res.end()
       process.quit()
 
   server.listen 0
   server.on 'listening', ->
     http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.ok err
+      test.same 500, err
 
 exports.testTerminate = (test) ->
   test.expect 3
@@ -361,6 +362,7 @@ exports.testErrorCreatingProcessOnProxy = (test) ->
 
     process.proxyRequest req, res, (err) ->
       test.ok err
+      res.writeHead 500
       res.end()
       process.quit()
       done()
@@ -368,5 +370,5 @@ exports.testErrorCreatingProcessOnProxy = (test) ->
   server.listen 0
   server.on 'listening', ->
     http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.ok err
+      test.same 500, err
       done()
