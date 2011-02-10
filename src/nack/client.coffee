@@ -1,10 +1,10 @@
 assert = require 'assert'
+net    = require 'net'
 ns     = require './ns'
-util   = require 'util'
 url    = require 'url'
+util   = require 'util'
 
-{Stream}       = require 'net'
-{EventEmitter} = require 'events'
+{Stream} = require 'stream'
 
 # A **Client** establishes a connection to a worker process.
 #
@@ -23,7 +23,7 @@ url    = require 'url'
 #       });
 #     });
 #
-exports.Client = class Client extends Stream
+exports.Client = class Client extends net.Stream
   constructor: ->
     super
 
@@ -143,7 +143,7 @@ END_OF_FILE = ns.nsWrite ""
 # > emitted only once. The response argument will be an instance of
 # > `ClientResponse`.
 #
-exports.ClientRequest = class ClientRequest extends EventEmitter
+exports.ClientRequest = class ClientRequest extends Stream
   constructor: (@socket, @method, @path, headers, metaVariables) ->
     @writeable = true
 
@@ -265,7 +265,7 @@ exports.ClientRequest = class ClientRequest extends EventEmitter
 # >
 # > Emitted when an error occurs.
 #
-exports.ClientResponse = class ClientResponse extends EventEmitter
+exports.ClientResponse = class ClientResponse extends Stream
   constructor: (@socket, @request) ->
     @client     = @socket
     @readable   = true
