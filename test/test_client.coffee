@@ -12,7 +12,7 @@ createDuplexServer = (listener) ->
   server
 
 exports.testClientRequestBeforeConnect = (test) ->
-  test.expect 14
+  test.expect 15
 
   process = createProcess config
   process.spawn()
@@ -38,6 +38,7 @@ exports.testClientRequestBeforeConnect = (test) ->
     request.on 'response', (response) ->
       test.ok response
       test.same 200, response.statusCode
+      test.same '1.1', response.httpVersion
       test.equals client, response.client
 
       body = ""

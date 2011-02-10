@@ -267,12 +267,13 @@ exports.ClientRequest = class ClientRequest extends Stream
 #
 exports.ClientResponse = class ClientResponse extends Stream
   constructor: (@socket, @request) ->
-    @client     = @socket
-    @readable   = true
-    @received   = false
-    @completed  = false
-    @statusCode = null
-    @headers    = null
+    @client      = @socket
+    @readable    = true
+    @received    = false
+    @completed   = false
+    @statusCode  = null
+    @httpVersion = '1.1'
+    @headers     = null
 
   _receiveData: (data) ->
     return if !@readable or @completed
