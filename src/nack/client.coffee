@@ -1,6 +1,6 @@
 assert = require 'assert'
 ns     = require './ns'
-util   = require if process.binding('natives').util then 'util' else 'sys'
+util   = require 'util'
 url    = require 'url'
 
 {Stream}       = require 'net'
