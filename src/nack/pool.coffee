@@ -89,14 +89,6 @@ exports.Pool = class Pool extends EventEmitter
     for n in [1..options.size]
       @increment()
 
-  if not EventEmitter.prototype.once
-    once: (event, listener) ->
-      self = this
-      callback = (args...) ->
-        self.removeListener event, callback
-        listener args...
-      @on event, callback
-
   # Get number of workers whose state is not null
   getAliveWorkerCount: ->
     count = 0

@@ -189,14 +189,6 @@ exports.Process = class Process extends EventEmitter
 
     @
 
-  if not EventEmitter.prototype.once
-    once: (event, listener) ->
-      self = this
-      callback = (args...) ->
-        self.removeListener event, callback
-        listener args...
-      @on event, callback
-
   # Change the current state and fire a corresponding event
   changeState: (state) ->
     self = this
