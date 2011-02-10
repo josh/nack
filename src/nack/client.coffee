@@ -1,9 +1,9 @@
 assert = require 'assert'
-net    = require 'net'
 ns     = require './ns'
 url    = require 'url'
 util   = require 'util'
 
+{Socket} = require 'net'
 {Stream} = require 'stream'
 
 # A **Client** establishes a connection to a worker process.
@@ -23,7 +23,7 @@ util   = require 'util'
 #       });
 #     });
 #
-exports.Client = class Client extends net.Stream
+exports.Client = class Client extends Socket
   constructor: ->
     super
 
