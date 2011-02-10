@@ -210,6 +210,49 @@ exports.testProxyRequest = (test) ->
     test.ok true
     test.done()
 
+exports.testClientPauseResumeResponse = (test) ->
+  test.expect 9
+
+  process = createProcess config
+  process.spawn()
+
+  process.once 'ready', ->
+    client = createConnection process.sockPath
+    test.ok client
+
+    request = client.request 'GET', '/foo', {}
+    request.end()
+
+    request.on 'response', (response) ->
+      test.ok response
+      test.same 200, response.statusCode
+
+      response.on 'pause', ->
+        test.ok true
+
+      response.on 'resume', ->
+        test.ok true
+
+      response.pause()
+
+      body = ""
+      response.on 'data', (chunk) ->
+        body += chunk
+
+      response.on 'end', ->
+        test.same "Hello World\n", body
+        test.ok response.completed
+
+        process.quit()
+
+       global.process.nextTick ->
+         test.same "", body
+         response.resume()
+
+  process.on 'exit', ->
+    test.ok true
+    test.done()
+
 exports.testClientUncompletedResponse = (test) ->
   test.expect 3
 
