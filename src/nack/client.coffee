@@ -63,14 +63,16 @@ exports.Client = class Client extends Socket
     if @readyState is 'open' and !@_incoming
       if request = @_outgoing[0]
         @_incoming = new ClientResponse this, request
+
         # Flush the request buffer into socket
-        request.flush()
+        request.assignSocket @
     else
       # Try to reconnect and try again soon
       @reconnect()
 
   _finishRequest: ->
-    @_outgoing.shift()
+    request = @_outgoing.shift()
+    request.detachSocket @
 
     res = @_incoming
     @_incoming = null
@@ -91,7 +93,7 @@ exports.Client = class Client extends Socket
 
   # Start the connection and create a ClientRequest.
   request: (args...) ->
-    request = new ClientRequest this, args...
+    request = new ClientRequest args...
     @_outgoing.push request
     @_processRequest()
     request
@@ -141,7 +143,7 @@ END_OF_FILE = ns.nsWrite ""
 # > `ClientResponse`.
 #
 exports.ClientRequest = class ClientRequest extends Stream
-  constructor: (@socket, @method, @path, headers, metaVariables) ->
+  constructor: (@method, @path, headers, metaVariables) ->
     @writeable = true
 
     # Initialize writeQueue since socket is still connecting
@@ -188,6 +190,14 @@ exports.ClientRequest = class ClientRequest extends Stream
     for key, value of metaVariables
       @env[key] = value
 
+  assignSocket: (socket) ->
+    @socket = @connection = socket
+    @_flush()
+
+  detachSocket: (socket) ->
+    @writeable = false
+    @socket = @connection = null
+
   # Write chunk to client
   write: (chunk, encoding) ->
     # Netstring encode chunk
@@ -197,8 +207,8 @@ exports.ClientRequest = class ClientRequest extends Stream
       @_writeQueue.push nsChunk
       # Return false because data was buffered
       false
-    else
-      @socket.write nsChunk
+    else if @connection
+      @connection.write nsChunk
 
   # Closes writting socket.
   end: (chunk, encoding) ->
@@ -209,18 +219,18 @@ exports.ClientRequest = class ClientRequest extends Stream
       @_writeQueue.push END_OF_FILE
       # Return false because data was buffered
       false
-    else
-      @socket.end END_OF_FILE
+    else if @connection
+      @connection.end END_OF_FILE
 
-    # Mark stream as closed
-    @writeable = false
+    @detachSocket @socket
 
     flushed
 
   destroy: ->
+    @detachSocket @socket
     @socket.destroy()
 
-  flush: ->
+  _flush: ->
     while @_writeQueue and @_writeQueue.length
       data = @_writeQueue.shift()
 
