@@ -105,7 +105,11 @@ exports.Client = class Client extends Socket
     metaVariables["REMOTE_PORT"] ?= serverRequest.connection.remotePort
 
     clientRequest = @request serverRequest.method, serverRequest.url, serverRequest.headers, metaVariables
-    serverRequest.pipe clientRequest
+
+    serverRequest.on 'data', (data) -> clientRequest.write data
+    serverRequest.on 'end', -> clientRequest.end()
+    serverRequest.on 'error', -> clientRequest.end()
+    clientRequest.on 'error', -> serverRequest.destroy()
 
     clientRequest.on 'response', (clientResponse) ->
       serverResponse.writeHead clientResponse.statusCode, clientResponse.headers
