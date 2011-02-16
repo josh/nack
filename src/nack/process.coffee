@@ -110,6 +110,8 @@ exports.Process = class Process extends EventEmitter
     # Do nothing if the process is already started
     return if @state
 
+    debug "spawning process"
+
     # Change start to `spawning` and fire an event
     @changeState 'spawning'
 

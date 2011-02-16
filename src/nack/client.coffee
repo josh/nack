@@ -343,6 +343,8 @@ exports.ClientResponse = class ClientResponse extends Stream
 
       # Empty string means EOF
       else
+        debug "response complete"
+
         assert.ok @statusCode, "Missing status code"
         assert.ok @headers, "Missing headers"
 
