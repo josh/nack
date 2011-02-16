@@ -4,6 +4,7 @@ url    = require 'url'
 
 {Socket} = require 'net'
 {Stream} = require 'stream'
+{debug}  = require './util'
 
 # A **Client** establishes a connection to a worker process.
 #
@@ -25,6 +26,8 @@ url    = require 'url'
 exports.Client = class Client extends Socket
   constructor: ->
     super
+
+    debug "client created"
 
     # Initialize outgoing array to hold pending requests
     @_outgoing = []
@@ -62,6 +65,8 @@ exports.Client = class Client extends Socket
     # we aren't already handling a response
     if @readyState is 'open' and !@_incoming
       if request = @_outgoing[0]
+        debug "processing outgoing request 1/#{@_outgoing.length}"
+
         @_incoming = new ClientResponse this, request
 
         # Flush the request buffer into socket
@@ -71,6 +76,8 @@ exports.Client = class Client extends Socket
       @reconnect()
 
   _finishRequest: ->
+    debug "finishing request"
+
     request = @_outgoing.shift()
     request.detachSocket @
 
@@ -89,6 +96,7 @@ exports.Client = class Client extends Socket
   # Reconnect if the connection is closed.
   reconnect: ->
     if @readyState is 'closed'
+      debug "connecting to #{@port}"
       @connect @port, @host
 
   # Start the connection and create a ClientRequest.
@@ -144,6 +152,8 @@ END_OF_FILE = ns.nsWrite ""
 #
 exports.ClientRequest = class ClientRequest extends Stream
   constructor: (@method, @path, headers, metaVariables) ->
+    debug "requesting #{@method} #{@path}"
+
     @writeable = true
 
     # Initialize writeQueue since socket is still connecting
@@ -152,6 +162,7 @@ exports.ClientRequest = class ClientRequest extends Stream
 
     # Build an `@env` obj from headers and metaVariables
     @_parseEnv headers, metaVariables
+
     # Then write it to the socket
     @write JSON.stringify @env
 
@@ -191,6 +202,7 @@ exports.ClientRequest = class ClientRequest extends Stream
       @env[key] = value
 
   assignSocket: (socket) ->
+    debug "socket assigned, flushing request"
     @socket = @connection = socket
     @_flush()
 
@@ -204,10 +216,12 @@ exports.ClientRequest = class ClientRequest extends Stream
     nsChunk = ns.nsWrite chunk, 0, chunk.length, null, 0, encoding
 
     if @_writeQueue
+      debug "queueing #{nsChunk.length} bytes"
       @_writeQueue.push nsChunk
       # Return false because data was buffered
       false
     else if @connection
+      debug "writing #{nsChunk.length} bytes"
       @connection.write nsChunk
 
   # Closes writting socket.
@@ -216,10 +230,12 @@ exports.ClientRequest = class ClientRequest extends Stream
       @write chunk, encoding
 
     flushed = if @_writeQueue
+      debug "queueing close"
       @_writeQueue.push END_OF_FILE
       # Return false because data was buffered
       false
     else if @connection
+      debug "closing connection"
       @connection.end END_OF_FILE
 
     @detachSocket @socket
@@ -238,6 +254,7 @@ exports.ClientRequest = class ClientRequest extends Stream
       if data is END_OF_FILE
         @socket.end data
       else
+        debug "flushing #{data.length} bytes"
         @socket.write data
 
     # Clear queue, remaining writes won't buffer
@@ -284,6 +301,8 @@ exports.ClientResponse = class ClientResponse extends Stream
     @_buffer     = null
 
   _receiveData: (data) ->
+    debug "received #{data.length} bytes"
+
     return if !@readable or @completed
     @received = true
 
@@ -313,6 +332,8 @@ exports.ClientResponse = class ClientResponse extends Stream
             else
               vs
 
+          debug "response received: #{@statusCode}"
+
           # Emit response once we've received the status and headers
           @request.emit 'response', this
 
@@ -336,6 +357,8 @@ exports.ClientResponse = class ClientResponse extends Stream
         error       = new Error exception.message
         error.name  = exception.name
         error.stack = exception.stack
+
+      debug "response error", error
 
       # Mark as not readable to stop parsing
       @readable = false

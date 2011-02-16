@@ -2,6 +2,7 @@ client              = require './client'
 fs                  = require 'fs'
 {exists}            = require 'path'
 {pause, isFunction} = require './util'
+{debug}             = require './util'
 {LineBuffer}        = require './util'
 {spawn, exec}       = require 'child_process'
 {EventEmitter}      = require 'events'
@@ -129,6 +130,7 @@ exports.Process = class Process extends EventEmitter
     @heartbeat = new Stream
 
     @heartbeat.on 'connect', =>
+      debug "process spawned"
       @emit 'spawn'
 
     @heartbeat.on 'data', (data) =>
@@ -140,8 +142,11 @@ exports.Process = class Process extends EventEmitter
           error       = new Error exception.message
           error.name  = exception.name
           error.stack = exception.stack
+
+          debug "heartbeat error", error
           @emit 'error', error
         catch e
+          debug "heartbeat error", e
           @emit 'error', new Error "unknown process error"
 
     tryConnect @heartbeat, @sockPath, (err) =>
@@ -175,6 +180,8 @@ exports.Process = class Process extends EventEmitter
 
     # When the child process exists, clear out state and emit `exit`
     @child.on 'exit', (code, signal) =>
+      debug "process exited"
+
       @clearTimeout()
       @heartbeat.destroy() if @heartbeat
 
@@ -246,6 +253,8 @@ exports.Process = class Process extends EventEmitter
 
   # Proxies a `http.ServerRequest` and `http.ServerResponse` to the process
   proxyRequest: (req, res, args...) ->
+    debug "proxy #{req.method} #{req.url}"
+
     self = @
 
     if isFunction args[0]
@@ -277,6 +286,8 @@ exports.Process = class Process extends EventEmitter
   # Send `SIGKILL` to process.
   # This will kill it for sure.
   kill: ->
+    debug "process kill"
+
     if @child
       @changeState 'quitting'
       @child.kill 'SIGKILL'
@@ -285,6 +296,8 @@ exports.Process = class Process extends EventEmitter
   # Send `SIGTERM` to process.
   # This will immediately kill it.
   terminate: ->
+    debug "process terminate"
+
     if @child
       @changeState 'quitting'
       @child.kill 'SIGTERM'
@@ -299,6 +312,8 @@ exports.Process = class Process extends EventEmitter
   # Send `SIGTERM` to process.
   # The process will finish serving its request and gracefully quit.
   quit: ->
+    debug "process quit"
+
     if @child
       @changeState 'quitting'
       @child.kill 'SIGQUIT'
@@ -312,6 +327,8 @@ exports.Process = class Process extends EventEmitter
 
   # Quit and respawn process
   restart: ->
+    debug "process restart"
+
     @once 'exit', => @spawn()
     @quit()
 

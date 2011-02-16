@@ -1,5 +1,10 @@
 {Stream} = require 'stream'
 
+if process.env.NODE_DEBUG and /nack/.test process.env.NODE_DEBUG
+  exports.debug = (args...) -> console.error 'NACK:', args...
+else
+  exports.debug = ->
+
 # Is a given value a function?
 exports.isFunction = (obj) ->
   if obj and obj.constructor and obj.call and obj.apply then true else false
