@@ -102,7 +102,7 @@ exports.testClientRequestAfterConnect = (test) ->
     test.done()
 
 exports.testClientMultipleRequest = (test) ->
-  test.expect 8
+  test.expect 10
 
   process = createProcess config
   process.spawn()
@@ -119,7 +119,7 @@ exports.testClientMultipleRequest = (test) ->
       response.on 'end', ->
         receivedRequests++
 
-        if receivedRequests is 3
+        if receivedRequests is 4
           process.quit()
 
     request1 = client.request 'GET', '/foo', {}
@@ -136,6 +136,11 @@ exports.testClientMultipleRequest = (test) ->
     request3.write "baz=biz"
     request3.end()
     request3.on 'response', handleResponse
+
+    request4 = client.request 'GET', '/bar', {}
+    request4.write "baz=bang"
+    request4.end()
+    request4.on 'response', handleResponse
 
   process.on 'exit', ->
     test.ok true

@@ -78,7 +78,7 @@ exports.testCreateConnection = (test) ->
         process.quit()
 
 exports.testCreateMultipleConnections = (test) ->
-  test.expect 10
+  test.expect 18
 
   process = createProcess config
 
@@ -89,7 +89,7 @@ exports.testCreateMultipleConnections = (test) ->
     test.ok true
     test.done()
 
-  count = 2
+  count = 4
   quit = ->
     count--
     if count is 0
@@ -97,35 +97,26 @@ exports.testCreateMultipleConnections = (test) ->
 
   openConnections = 0
 
-  process.createConnection (err, client) ->
-    test.ifError err
+  connect = (path) ->
+    process.createConnection (err, client) ->
+      test.ifError err
 
-    openConnections++
-    client.on 'close', -> openConnections--
-    test.same 1, openConnections
+      openConnections++
+      client.on 'close', -> openConnections--
+      test.same 1, openConnections
 
-    test.ok client
-    request = client.request 'GET', '/foo', {}
-    request.end()
+      test.ok client
+      request = client.request 'GET', path, {}
+      request.end()
 
-    request.on 'response', (response) ->
-      test.ok response
-      response.on 'end', -> quit()
+      request.on 'response', (response) ->
+        test.ok response
+        response.on 'end', -> quit()
 
-  process.createConnection (err, client) ->
-    test.ifError err
-
-    openConnections++
-    client.on 'close', -> openConnections--
-    test.same 1, openConnections
-
-    test.ok client
-    request = client.request 'GET', '/bar', {}
-    request.end()
-
-    request.on 'response', (response) ->
-      test.ok response
-      response.on 'end', -> quit()
+  connect '/foo'
+  connect '/bar'
+  connect '/baz'
+  connect '/biz'
 
 exports.testCreateConnectionWithClientException = (test) ->
   test.expect 6
