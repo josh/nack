@@ -367,27 +367,3 @@ exports.ClientResponse = class ClientResponse extends Stream
 
       # Catch and emit as a socket error
       @socket.emit 'error', error
-
-  _emit: ClientResponse.prototype.emit
-
-  emit: (args...) ->
-    type = args[0]
-    if (type is 'data' or type is 'end') and @_buffer
-      @_buffer.push args
-    else
-      super
-
-  pause: ->
-    @_buffer = []
-    @socket.pause()
-    @emit 'pause'
-
-  resume: ->
-    @socket.resume()
-
-    while @_buffer and @_buffer.length
-      args = @_buffer.shift()
-      @_emit args...
-
-    @_buffer = null
-    @emit 'resume'
