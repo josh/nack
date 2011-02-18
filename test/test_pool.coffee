@@ -1,6 +1,6 @@
 http = require 'http'
 
-{createPool} = require 'nack/pool'
+{createPool} = require '..'
 
 config = __dirname + "/fixtures/hello.ru"
 

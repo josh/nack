@@ -1,8 +1,7 @@
 http = require 'http'
 net  = require 'net'
 
-{createProcess}    = require 'nack/process'
-{createConnection} = require 'nack/client'
+{createProcess, createConnection} = require '..'
 
 config = __dirname + "/fixtures/hello.ru"
 

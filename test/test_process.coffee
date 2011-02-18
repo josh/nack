@@ -1,7 +1,7 @@
 fs   = require 'fs'
 http = require 'http'
 
-{createProcess} = require 'nack/process'
+{createProcess} = require '..'
 
 config = __dirname + "/fixtures/hello.ru"
 

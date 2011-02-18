@@ -1,6 +1,6 @@
 http = require 'http'
 
-{createServer} = require 'nack/server'
+{createServer} = require '..'
 
 exports.testProxyRequest = (test) ->
   test.expect 2
