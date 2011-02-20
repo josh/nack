@@ -21,14 +21,44 @@ task 'man', "Build manuals", ->
         throw err if err
 
 task 'pages', "Build pages", ->
-  exec "mkdir -p pages/annotations", ->
-    exec "cp README.md doc/index.md", ->
-      exec "ronn -stoc -5 doc/*.md", (err) ->
-        throw err if err
-        exec "mv doc/*.html pages/", ->
-          fs.unlink "doc/index.md", ->
+  {series, parallel} = require 'async'
+  sh = (command) -> (k) -> exec command, k
 
-    exec "docco src/**/*.coffee", (err) ->
-      throw err if err
-      exec "mv docs/* pages/annotations", (err) ->
-        exec "rm -r docs/", ->
+  buildMan = (callback) ->
+    series [
+      (sh "cp README.md doc/index.md")
+      (sh "ronn -stoc -5 doc/*.md")
+      (sh "mv doc/*.html pages/")
+      (sh "rm doc/index.md")
+    ], callback
+
+  buildAnnotations = (callback) ->
+    series [
+      (sh "docco src/**/*.coffee")
+      (sh "mv docs/* pages/annotations")
+      (sh "rm -rf docs/")
+    ], callback
+
+  build = (callback) ->
+    parallel [buildMan, buildAnnotations], callback
+
+  checkoutBranch = (callback) ->
+    series [
+      (sh "rm -rf pages/")
+      (sh "git clone -q -b gh-pages git@github.com:josh/nack.git pages")
+      (sh "rm -rf pages/*")
+    ], callback
+
+  publish = (callback) ->
+    series [
+      (sh "cd pages/ && git commit -am 'rebuild manual' || true")
+      (sh "cd pages/ && git push git@github.com:josh/nack.git gh-pages")
+      (sh "rm -rf pages/")
+    ], callback
+
+  series [
+    checkoutBranch
+    (sh "mkdir -p pages/annotations")
+    build
+    publish
+  ], (err) -> throw err if err
