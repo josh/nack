@@ -8,19 +8,6 @@ Rake::TestTask.new do |t|
   t.warning = true
 end
 
-require 'rake/clean'
-
-CLOBBER.include('man/*')
-
-desc 'Build the manual'
-task :man => ([:clobber] + Dir["doc/*.md"].map { |doc|
-  man = File.join("man", File.basename(doc, '.md'))
-  file man do
-    sh "ronn --pipe --roff #{doc} > #{man}"
-  end
-  man
-})
-
 task :pages => "pages:build"
 
 namespace :pages do
