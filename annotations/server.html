@@ -1,6 +1,12 @@
-<!DOCTYPE html>  <html> <head>   <title>server.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>            <div id="jump_to">         Jump To &hellip;         <div id="jump_wrapper">           <div id="jump_page">                                           <a class="source" href="client.html">                 client.coffee               </a>                                           <a class="source" href="index.html">                 index.coffee               </a>                                           <a class="source" href="pool.html">                 pool.coffee               </a>                                           <a class="source" href="process.html">                 process.coffee               </a>                                           <a class="source" href="server.html">                 server.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                        </div>         </div>       </div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               server.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="octowrap">                 <a class="octothorpe" href="#section-1">#</a>               </div>                            </td>             <td class="code">               <div class="highlight"><pre><span class="p">{</span><span class="nx">createServer</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;connect&#39;</span>
+<!DOCTYPE html>  <html> <head>   <title>server.coffee</title>   <meta http-equiv="content-type" content="text/html; charset=UTF-8">   <link rel="stylesheet" media="all" href="docco.css" /> </head> <body>   <div id="container">     <div id="background"></div>            <div id="jump_to">         Jump To &hellip;         <div id="jump_wrapper">           <div id="jump_page">                                           <a class="source" href="client.html">                 client.coffee               </a>                                           <a class="source" href="pool.html">                 pool.coffee               </a>                                           <a class="source" href="process.html">                 process.coffee               </a>                                           <a class="source" href="server.html">                 server.coffee               </a>                                           <a class="source" href="util.html">                 util.coffee               </a>                        </div>         </div>       </div>          <table cellpadding="0" cellspacing="0">       <thead>         <tr>           <th class="docs">             <h1>               server.coffee             </h1>           </th>           <th class="code">           </th>         </tr>       </thead>       <tbody>                               <tr id="section-1">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-1">&#182;</a>               </div>                            </td>             <td class="code">               <div class="highlight"><pre><span class="p">{</span><span class="nx">createServer</span><span class="p">}</span> <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;connect&#39;</span>
 <span class="p">{</span><span class="nx">createPool</span><span class="p">}</span>   <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;./pool&#39;</span>
-<span class="p">{</span><span class="nx">dirname</span><span class="p">}</span>      <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;path&#39;</span></pre></div>             </td>           </tr>                               <tr id="section-2">             <td class="docs">               <div class="octowrap">                 <a class="octothorpe" href="#section-2">#</a>               </div>               <p>Creates a <a href="http://senchalabs.github.com/connect/">Connect</a>
+<span class="p">{</span><span class="nx">dirname</span><span class="p">}</span>      <span class="o">=</span> <span class="nx">require</span> <span class="s1">&#39;path&#39;</span>
+<span class="nv">http           = </span><span class="nx">require</span> <span class="s1">&#39;http&#39;</span>
+
+<span class="nv">poolEvents = </span><span class="p">[</span>
+  <span class="s1">&#39;error&#39;</span><span class="p">,</span> <span class="s1">&#39;ready&#39;</span><span class="p">,</span> <span class="s1">&#39;exit&#39;</span><span class="p">,</span>
+  <span class="s1">&#39;worker:ready&#39;</span><span class="p">,</span> <span class="s1">&#39;worker:spawn&#39;</span><span class="p">,</span> <span class="s1">&#39;worker:busy&#39;</span><span class="p">,</span> <span class="s1">&#39;worker:exit&#39;</span>
+<span class="p">]</span></pre></div>             </td>           </tr>                               <tr id="section-2">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-2">&#182;</a>               </div>               <p>Creates a <a href="http://senchalabs.github.com/connect/">Connect</a>
 compatible server.</p>
 
 <p>You can use it similar to <strong>http.createServer</strong></p>
@@ -17,21 +23,32 @@ var server = connect.createServer(
   nack.createServer("/path/to/app/config.ru"),
   connect.errorHandler({ dumpExceptions: true })
 );
-</code></pre>             </td>             <td class="code">               <div class="highlight"><pre><span class="nx">exports</span><span class="p">.</span><span class="nx">createServer</span> <span class="o">=</span> <span class="p">(</span><span class="nx">config</span><span class="p">,</span> <span class="nx">options</span><span class="p">)</span> <span class="o">-&gt;</span>
+</code></pre>             </td>             <td class="code">               <div class="highlight"><pre><span class="nv">exports.createServer = </span><span class="nf">(config, options) -&gt;</span>
   <span class="nx">options</span> <span class="o">?=</span> <span class="p">{}</span>
   <span class="nx">options</span><span class="p">.</span><span class="nx">size</span> <span class="o">?=</span> <span class="mi">3</span>
   <span class="nx">options</span><span class="p">.</span><span class="nx">idle</span> <span class="o">?=</span> <span class="mi">15</span> <span class="o">*</span> <span class="mi">60</span> <span class="o">*</span> <span class="mi">1000</span>
   <span class="nx">options</span><span class="p">.</span><span class="nx">cwd</span>  <span class="o">?=</span> <span class="nx">dirname</span><span class="p">(</span><span class="nx">config</span><span class="p">)</span>
 
-  <span class="nx">pool</span> <span class="o">=</span> <span class="nx">createPool</span> <span class="nx">config</span><span class="p">,</span> <span class="nx">options</span>
+  <span class="nv">pool = </span><span class="nx">createPool</span> <span class="nx">config</span><span class="p">,</span> <span class="nx">options</span>
 
-  <span class="nx">server</span> <span class="o">=</span> <span class="nx">createServer</span> <span class="p">(</span><span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">next</span><span class="p">)</span> <span class="o">-&gt;</span>
-    <span class="nx">pool</span><span class="p">.</span><span class="nx">proxyRequest</span> <span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="p">(</span><span class="nx">err</span><span class="p">)</span> <span class="o">-&gt;</span>
+  <span class="nv">server = </span><span class="nx">createServer</span> <span class="nf">(req, res, next) -&gt;</span>
+    <span class="nx">pool</span><span class="p">.</span><span class="nx">proxyRequest</span> <span class="nx">req</span><span class="p">,</span> <span class="nx">res</span><span class="p">,</span> <span class="nx">req</span><span class="p">.</span><span class="nx">proxyMetaVariables</span><span class="p">,</span> <span class="nf">(err) -&gt;</span>
       <span class="k">if</span> <span class="nx">err</span>
         <span class="nx">next</span> <span class="nx">err</span>
 
-  <span class="nx">origClose</span> <span class="o">=</span> <span class="nx">server</span><span class="p">.</span><span class="nx">close</span>
-  <span class="nx">server</span><span class="p">.</span><span class="nx">close</span> <span class="o">=</span> <span class="p">()</span> <span class="o">-&gt;</span>
+  <span class="nx">poolEvents</span><span class="p">.</span><span class="nx">forEach</span> <span class="nf">(type) -&gt;</span>
+    <span class="nx">pool</span><span class="p">.</span><span class="kc">on</span> <span class="nx">type</span><span class="p">,</span> <span class="nf">(args...) -&gt;</span>
+      <span class="nx">server</span><span class="p">.</span><span class="nx">emit</span> <span class="nx">type</span><span class="p">,</span> <span class="nx">args</span><span class="p">...</span></pre></div>             </td>           </tr>                               <tr id="section-3">             <td class="docs">               <div class="pilwrap">                 <a class="pilcrow" href="#section-3">&#182;</a>               </div>               <p>DEPRECATED</p>             </td>             <td class="code">               <div class="highlight"><pre>  <span class="nv">server.pool = </span><span class="nx">pool</span>
+
+  <span class="nv">server.stdout = </span><span class="nx">pool</span><span class="p">.</span><span class="nx">stdout</span>
+  <span class="nv">server.stderr = </span><span class="nx">pool</span><span class="p">.</span><span class="nx">stderr</span>
+
+  <span class="nv">server.listen = </span><span class="o">-&gt;</span>
+    <span class="nx">http</span><span class="p">.</span><span class="nx">Server</span><span class="p">.</span><span class="nx">prototype</span><span class="p">.</span><span class="nx">listen</span><span class="p">.</span><span class="nx">apply</span> <span class="err">@</span><span class="p">,</span> <span class="nx">arguments</span>
+    <span class="err">@</span>
+
+  <span class="nv">origClose = </span><span class="nx">server</span><span class="p">.</span><span class="nx">close</span>
+  <span class="nv">server.close = </span><span class="o">-&gt;</span>
     <span class="k">try</span>
       <span class="nx">origClose</span><span class="p">.</span><span class="nx">apply</span> <span class="k">this</span>
     <span class="k">catch</span> <span class="nx">error</span>
@@ -41,9 +58,14 @@ var server = connect.createServer(
         <span class="k">throw</span> <span class="nx">error</span>
 
   <span class="nx">server</span><span class="p">.</span><span class="kc">on</span> <span class="s1">&#39;close&#39;</span><span class="p">,</span> <span class="o">-&gt;</span>
-    <span class="nx">pool</span><span class="p">.</span><span class="nx">terminate</span><span class="p">()</span>
+    <span class="nx">pool</span><span class="p">.</span><span class="nx">quit</span><span class="p">()</span>
 
-  <span class="nx">server</span><span class="p">.</span><span class="nx">pool</span> <span class="o">=</span> <span class="nx">pool</span>
+  <span class="nv">server.restart = </span><span class="nf">(callback) -&gt;</span>
+    <span class="k">if</span> <span class="nx">pool</span><span class="p">.</span><span class="nx">getAliveWorkerCount</span><span class="p">()</span> <span class="o">is</span> <span class="mi">0</span>
+      <span class="nx">callback</span><span class="p">()</span> <span class="k">if</span> <span class="nx">callback</span><span class="o">?</span>
+    <span class="k">else</span>
+      <span class="nx">pool</span><span class="p">.</span><span class="nx">once</span> <span class="s1">&#39;worker:ready&#39;</span><span class="p">,</span> <span class="o">-&gt;</span> <span class="nx">callback</span><span class="p">()</span> <span class="k">if</span> <span class="nx">callback</span><span class="o">?</span>
+      <span class="nx">pool</span><span class="p">.</span><span class="nx">restart</span><span class="p">()</span>
 
   <span class="nx">server</span>
 
