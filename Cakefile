@@ -19,3 +19,16 @@ task 'man', "Build manuals", ->
       target = join "man", basename source, ".md"
       exec "ronn --pipe --roff #{source} > #{target}", (err) ->
         throw err if err
+
+task 'pages', "Build pages", ->
+  exec "mkdir -p pages/annotations", ->
+    exec "cp README.md doc/index.md", ->
+      exec "ronn -stoc -5 doc/*.md", (err) ->
+        throw err if err
+        exec "mv doc/*.html pages/", ->
+          fs.unlink "doc/index.md", ->
+
+    exec "docco src/**/*.coffee", (err) ->
+      throw err if err
+      exec "mv docs/* pages/annotations", (err) ->
+        exec "rm -r docs/", ->

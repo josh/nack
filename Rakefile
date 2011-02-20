@@ -11,26 +11,6 @@ end
 task :pages => "pages:build"
 
 namespace :pages do
-  task :build => ["pages:man", "pages:annotations"]
-
-  task :man do
-    mkdir_p "pages"
-
-    sh "cp README.md doc/index.md"
-    sh "ronn -stoc -5 doc/*.md"
-    sh "mv doc/*.html pages/"
-    sh "rm doc/index.md"
-  end
-
-  task :annotations do
-    mkdir_p "pages/annotations"
-
-    sh "docco src/**/*.coffee"
-    sh "mv docs/* pages/annotations"
-
-    rm_r "docs/"
-  end
-
   task :publish do
     rm_rf "pages"
 
