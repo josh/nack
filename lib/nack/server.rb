@@ -39,8 +39,8 @@ module Nack
       trap('INT')  { exit }
       trap('QUIT') { close }
 
-      load_json_lib!
       self.app = load_config
+      load_json_lib!
     rescue Exception => e
       handle_exception(e)
     end
@@ -52,6 +52,11 @@ module Nack
         require 'rubygems'
         require 'json'
       end
+    end
+
+    def try_load_json_lib
+      load_json_lib!
+    rescue LoadError
     end
 
     def load_config
@@ -189,6 +194,8 @@ module Nack
     end
 
     def exception_to_json(e)
+      try_load_json_lib
+
       exception = exception_as_json(e)
       if exception.respond_to?(:to_json)
         exception.to_json
