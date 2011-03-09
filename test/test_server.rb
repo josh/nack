@@ -101,7 +101,7 @@ class TestNackWorker < Test::Unit::TestCase
 
       assert error
       assert_equal "JSON::ParserError", error['name']
-      assert_equal "source did not contain any JSON!", error['message']
+      assert_equal "A JSON text must at least contain two octets!", error['message']
     end
   end
 
