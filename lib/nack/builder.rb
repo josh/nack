@@ -5,9 +5,16 @@ module Nack
     end
 
     def _builder
-      require 'rack'
-      require 'rack/builder'
-      @_builder ||= Rack::Builder.new
+      @_builder ||= begin
+        require 'rack'
+        require 'rack/builder'
+        Rack::Builder.new
+      rescue LoadError
+        require 'rubygems'
+        require 'rack'
+        require 'rack/builder'
+        Rack::Builder.new
+      end
     end
 
     def method_missing(*args, &block)
