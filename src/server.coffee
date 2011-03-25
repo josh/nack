@@ -48,10 +48,6 @@ exports.createServer = (config, options) ->
   server.stdout = pool.stdout
   server.stderr = pool.stderr
 
-  server.listen = ->
-    http.Server.prototype.listen.apply @, arguments
-    @
-
   origClose = server.close
   server.close = ->
     try
