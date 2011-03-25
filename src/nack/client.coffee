@@ -1,5 +1,5 @@
 assert = require 'assert'
-ns     = require './ns'
+ns     = require 'netstring'
 url    = require 'url'
 
 {Socket} = require 'net'

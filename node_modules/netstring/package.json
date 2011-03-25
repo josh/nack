@@ -1,0 +1,22 @@
+{
+    "name" : "netstring",
+    "version" : "0.1.0",
+    "description" : "A netstring implementation",
+    "author" : "Peter Griess <pg@std.in>",
+    "engines" : {
+        "node" : ">=0.1.98"
+    },
+    "repositories" : [
+        {
+            "type" : "git",
+            "url" : "http://github.com/pgriess/node-netstring"
+        }
+    ],
+    "licenses" : [
+        {
+            "type" : "BSD",
+            "url" : "http://github.com/pgriess/node-netstring/blob/master/LICENSE"
+        }
+    ],
+    "main" : "./lib/ns.js"
+}
