@@ -1,7 +1,7 @@
-{createConnection} = require './nack/client'
-{createPool}       = require './nack/pool'
-{createProcess}    = require './nack/process'
-{createServer}     = require './nack/server'
+{createConnection} = require './client'
+{createPool}       = require './pool'
+{createProcess}    = require './process'
+{createServer}     = require './server'
 
 module.exports.createConnection = createConnection
 module.exports.createPool       = createPool

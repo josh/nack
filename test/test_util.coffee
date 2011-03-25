@@ -1,6 +1,6 @@
 {EventEmitter} = require 'events'
 
-{LineBuffer} = require '../lib/nack/util'
+{LineBuffer} = require '../lib/util'
 
 class MockReadBuffer extends EventEmitter
   constructor: ->

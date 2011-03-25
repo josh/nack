@@ -11,7 +11,7 @@
   , "url": "http://github.com/josh/nack.git"
   }
 , "directories": { "man": "./man", "lib": "./lib" }
-, "main": "./lib/nack"
+, "main": "./lib"
 , "bin": { "nack": "./bin/nack" }
 , "dependencies": {
     "connect": ">= 1.0.0"

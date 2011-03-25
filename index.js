@@ -1,1 +1,1 @@
-module.exports = require('./lib/nack');
+module.exports = require('./lib');

@@ -8,8 +8,8 @@ fs                  = require 'fs'
 {EventEmitter}      = require 'events'
 {Stream}            = require 'net'
 
-packageBin = fs.realpathSync "#{__dirname}/../../bin"
-packageLib = fs.realpathSync "#{__dirname}/.."
+packageLib = fs.realpathSync __dirname
+packageBin = fs.realpathSync "#{__dirname}/../bin"
 
 # **Process** manages a single Ruby worker process.
 #
