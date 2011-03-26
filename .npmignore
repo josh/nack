@@ -1,5 +1,4 @@
 *.md
-.git*
 Cakefile
 Rakefile
 doc/
