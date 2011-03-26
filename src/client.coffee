@@ -38,6 +38,11 @@ exports.Client = class Client extends Socket
 
     # Once we've made the connect, process the next request
     @on 'connect', -> self._processRequest()
+
+    @on 'error', (err) ->
+      if req = self._outgoing[0]
+        req.emit 'error', err
+
     # Finalize the request on close
     @on 'close', -> self._finishRequest()
 
@@ -78,16 +83,16 @@ exports.Client = class Client extends Socket
   _finishRequest: ->
     debug "finishing request"
 
-    request = @_outgoing.shift()
-    request.detachSocket @
+    req = @_outgoing.shift()
+    req.detachSocket @
 
     res = @_incoming
     @_incoming = null
 
     if res is null or res.received is false
-      @emit 'error', new Error "Response was not received"
+      req.emit 'error', new Error "Response was not received"
     else if res.completed is false and res.readable is true
-      @emit 'error', new Error "Response was not completed"
+      req.emit 'error', new Error "Response was not completed"
 
     # Anymore requests, continue processing
     if @_outgoing.length > 0
@@ -108,17 +113,19 @@ exports.Client = class Client extends Socket
 
   # Proxy a `http.ServerRequest` and `http.serverResponse` between
   # the `Client`.
-  proxyRequest: (serverRequest, serverResponse, metaVariables = {}) ->
-    metaVariables["REMOTE_ADDR"] ?= serverRequest.connection.remoteAddress
-    metaVariables["REMOTE_PORT"] ?= serverRequest.connection.remotePort
+  proxy: (serverRequest, serverResponse, next) =>
+    metaVariables = serverRequest.proxyMetaVariables ? {}
+    metaVariables['REMOTE_ADDR'] ?= serverRequest.connection.remoteAddress
+    metaVariables['REMOTE_PORT'] ?= serverRequest.connection.remotePort
 
-    clientRequest = @request serverRequest.method, serverRequest.url, serverRequest.headers, metaVariables
+    clientRequest = @request serverRequest.method, serverRequest.url,
+      serverRequest.headers, metaVariables
 
     serverRequest.on 'data', (data) -> clientRequest.write data
     serverRequest.on 'end', -> clientRequest.end()
     serverRequest.on 'error', -> clientRequest.end()
-    clientRequest.on 'error', -> serverRequest.destroy()
 
+    clientRequest.on 'error', next
     clientRequest.on 'response', (clientResponse) ->
       serverResponse.writeHead clientResponse.statusCode, clientResponse.headers
       clientResponse.pipe serverResponse
@@ -149,6 +156,12 @@ END_OF_FILE = ns.nsWrite ""
 # > Emitted when a response is received to this request. This event is
 # > emitted only once. The response argument will be an instance of
 # > `ClientResponse`.
+# >
+# > **Event: 'error'**
+# >
+# > `function (exception) { }`
+# >
+# > Emitted when an error occurs.
 #
 exports.ClientRequest = class ClientRequest extends Stream
   constructor: (@method, @path, headers, metaVariables) ->

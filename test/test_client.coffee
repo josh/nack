@@ -180,7 +180,7 @@ exports.testClientRequestWithCookies = (test) ->
     test.ok true
     test.done()
 
-exports.testProxyRequest = (test) ->
+exports.testProxy = (test) ->
   test.expect 9
 
   process = createProcess config
@@ -193,7 +193,9 @@ exports.testProxyRequest = (test) ->
     client = createConnection process.sockPath
     test.ok client
 
-    request = client.proxyRequest req, res
+    request = client.proxy req, res, (err) ->
+      test.ifError err
+
     test.ok request
     test.ok request.writeable
 
@@ -215,7 +217,7 @@ exports.testProxyRequest = (test) ->
     test.done()
 
 exports.testClientUncompletedResponse = (test) ->
-  test.expect 3
+  test.expect 2
 
   worker = createDuplexServer (conn) ->
     worker.close()
@@ -230,17 +232,16 @@ exports.testClientUncompletedResponse = (test) ->
     client.on 'close', ->
       test.done()
 
-    client.on 'error', (exception) ->
-      test.ok exception
-
     test.ok client
 
     request = client.request 'GET', '/', {}
-    test.ok request
+    request.on 'error', (exception) ->
+      test.ok exception
+
     request.end()
 
 exports.testClientUncompletedRequest = (test) ->
-  test.expect 3
+  test.expect 2
 
   worker = createDuplexServer (conn) ->
     worker.close()
@@ -254,17 +255,16 @@ exports.testClientUncompletedRequest = (test) ->
     client.on 'close', ->
       test.done()
 
-    client.on 'error', (exception) ->
-      test.ok exception
-
     test.ok client
 
     request = client.request 'GET', '/', {}
-    test.ok request
+    request.on 'error', (exception) ->
+      test.ok exception
+
     request.end()
 
 exports.testClientInvalidStatusResponse = (test) ->
-  test.expect 3
+  test.expect 2
 
   worker = createDuplexServer (conn) ->
     worker.close()
@@ -281,17 +281,16 @@ exports.testClientInvalidStatusResponse = (test) ->
     client.on 'close', ->
       test.done()
 
-    client.on 'error', (exception) ->
-      test.ok exception
-
     test.ok client
 
     request = client.request 'GET', '/', {}
-    test.ok request
+    request.on 'error', (exception) ->
+      test.ok exception
+
     request.end()
 
 exports.testClientInvalidHeadersResponse = (test) ->
-  test.expect 3
+  test.expect 2
 
   worker = createDuplexServer (conn) ->
     worker.close()
@@ -308,17 +307,16 @@ exports.testClientInvalidHeadersResponse = (test) ->
     client.on 'close', ->
       test.done()
 
-    client.on 'error', (exception) ->
-      test.ok exception
-
     test.ok client
 
     request = client.request 'GET', '/', {}
-    test.ok request
+    request.on 'error', (exception) ->
+      test.ok exception
+
     request.end()
 
 exports.testClientMissingHeadersResponse = (test) ->
-  test.expect 3
+  test.expect 2
 
   worker = createDuplexServer (conn) ->
     worker.close()
@@ -334,17 +332,16 @@ exports.testClientMissingHeadersResponse = (test) ->
     client.on 'close', ->
       test.done()
 
-    client.on 'error', (exception) ->
-      test.ok exception
-
     test.ok client
 
     request = client.request 'GET', '/', {}
-    test.ok request
+    request.on 'error', (exception) ->
+      test.ok exception
+
     request.end()
 
 exports.testClientException = (test) ->
-  test.expect 4
+  test.expect 3
 
   process = createProcess __dirname + "/fixtures/error.ru"
   process.spawn()
@@ -356,11 +353,10 @@ exports.testClientException = (test) ->
     client.on 'close', ->
       process.quit()
 
-    client.on 'error', (exception) ->
+    request = client.request 'GET', '/', {}
+    request.on 'error', (exception) ->
       test.same "b00m", exception.message
 
-    request = client.request 'GET', '/', {}
-    test.ok request
     request.end()
 
   process.on 'exit', ->

@@ -89,41 +89,7 @@ exports.testCloseUnstartedServer = (test) ->
 
   server = createServer __dirname + "/fixtures/hello.ru"
 
-  server.on 'close', ->
-    test.ok true
-    test.done()
+  test.throws ->
+    server.close()
 
-  server.close()
-
-exports.testRestartServerWithActiveWorkers = (test) ->
-  test.expect 3
-
-  server = createServer __dirname + "/fixtures/echo.ru"
-
-  server.on 'exit', ->
-    test.ok true
-    test.done()
-
-  server.listen 0
-  server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.ifError err
-
-      server.restart ->
-        test.ok true
-        server.close()
-
-exports.testRestartServerWithNoActiveWorkers = (test) ->
-  test.expect 2
-
-  server = createServer __dirname + "/fixtures/hello.ru"
-
-  server.on 'close', ->
-    test.ok true
-    test.done()
-
-  server.listen 0
-  server.on 'listening', ->
-    server.restart ->
-      test.ok true
-      server.close()
+  test.done()

@@ -1,6 +1,6 @@
 client              = require './client'
 fs                  = require 'fs'
-{exists}            = require 'path'
+{exists, dirname}   = require 'path'
 {pause, isFunction} = require './util'
 {debug}             = require './util'
 {LineBuffer}        = require './util'
@@ -71,7 +71,7 @@ exports.Process = class Process extends EventEmitter
 
     options ?= {}
     @idle  = options.idle
-    @cwd   = options.cwd
+    @cwd   = options.cwd ? dirname(@config)
     @env   = options.env ? {}
 
     # Set initial state to `null`
@@ -254,32 +254,17 @@ exports.Process = class Process extends EventEmitter
     @
 
   # Proxies a `http.ServerRequest` and `http.ServerResponse` to the process
-  proxyRequest: (req, res, args...) ->
+  proxy: (req, res, next) =>
     debug "proxy #{req.method} #{req.url}"
-
-    self = @
-
-    if isFunction args[0]
-      callback = args[0]
-    else
-      metaVariables = args[0]
-      callback = args[1]
 
     # Pause request so we don't miss any `data` or `end` events.
     resume = pause req
 
     @createConnection (err, connection) ->
       if err
-        if callback then callback err
-        else self.emit 'error', err
+        next err
       else
-        if callback
-          connection.on 'close', callback
-          connection.on 'error', (error) ->
-            connection.removeListener 'close', callback
-            callback error
-
-        connection.proxyRequest req, res, metaVariables
+        connection.proxy req, res, next
 
       # Flush any events captured while we were establishing
       # our client connection

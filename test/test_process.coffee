@@ -119,7 +119,7 @@ exports.testCreateMultipleConnections = (test) ->
   connect '/biz'
 
 exports.testCreateConnectionWithClientException = (test) ->
-  test.expect 6
+  test.expect 5
 
   process = createProcess "#{__dirname}/fixtures/error.ru"
 
@@ -137,15 +137,14 @@ exports.testCreateConnectionWithClientException = (test) ->
     client.on 'close', ->
       process.quit()
 
-    client.on 'error', (exception) ->
+    request = client.request 'GET', '/', {}
+    request.on 'error', (exception) ->
       test.ok exception
 
-    request = client.request 'GET', '/', {}
-    test.ok request
     request.end()
 
-exports.testProxyRequest = (test) ->
-  test.expect 6
+exports.testProxy = (test) ->
+  test.expect 5
 
   process = createProcess config
 
@@ -165,16 +164,16 @@ exports.testProxyRequest = (test) ->
     process.once 'ready', ->
       test.ok true
 
-    process.proxyRequest req, res, ->
-      test.ok true
-      process.quit()
+    process.proxy req, res, (err) ->
+      test.ifError err
 
   server.listen 0
   server.on 'listening', ->
     http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
       test.ifError err
+      process.quit()
 
-exports.testProxyRequestWithClientException = (test) ->
+exports.testProxyWithClientException = (test) ->
   test.expect 6
 
   process = createProcess "#{__dirname}/fixtures/error.ru"
@@ -195,7 +194,7 @@ exports.testProxyRequestWithClientException = (test) ->
     process.once 'ready', ->
       test.ok true
 
-    process.proxyRequest req, res, (err) ->
+    process.proxy req, res, (err) ->
       test.ok err
       res.writeHead 500
       res.end()
@@ -351,7 +350,7 @@ exports.testErrorCreatingProcessOnProxy = (test) ->
   server = http.createServer (req, res) ->
     server.close()
 
-    process.proxyRequest req, res, (err) ->
+    process.proxy req, res, (err) ->
       test.ok err
       res.writeHead 500
       res.end()

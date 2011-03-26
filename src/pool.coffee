@@ -168,14 +168,19 @@ exports.Pool = class Pool extends EventEmitter
       worker.quit()
 
   # Restart active workers
-  restart: ->
-    for worker in @workers when worker.state
-      worker.restart()
+  restart: (callback) ->
+    if @getAliveWorkerCount() is 0
+      callback?()
+    else
+      @once 'worker:ready', -> callback() if callback?
+
+      for worker in @workers when worker.state
+        worker.restart()
 
   # Proxies `http.ServerRequest` and `http.ServerResponse` to a worker.
-  proxyRequest: (args...) ->
+  proxy: (req, res, next) =>
     worker = @nextWorker()
-    worker.proxyRequest args...
+    worker.proxy req, res, next
 
 # Public API for creating a **Pool*
 exports.createPool = (args...) ->

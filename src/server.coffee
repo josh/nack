@@ -1,12 +1,5 @@
 {createServer} = require 'connect'
 {createPool}   = require './pool'
-{dirname}      = require 'path'
-http           = require 'http'
-
-poolEvents = [
-  'error', 'ready', 'exit',
-  'worker:ready', 'worker:spawn', 'worker:busy', 'worker:exit'
-]
 
 # Creates a [Connect](http://senchalabs.github.com/connect/)
 # compatible server.
@@ -29,43 +22,10 @@ exports.createServer = (config, options) ->
   options ?= {}
   options.size ?= 3
   options.idle ?= 15 * 60 * 1000
-  options.cwd  ?= dirname(config)
 
   pool = createPool config, options
 
-  server = createServer (req, res, next) ->
-    pool.proxyRequest req, res, req.proxyMetaVariables, (err) ->
-      if err
-        next err
-
-  poolEvents.forEach (type) ->
-    pool.on type, (args...) ->
-      server.emit type, args...
-
-  # DEPRECATED
-  server.pool = pool
-
-  server.stdout = pool.stdout
-  server.stderr = pool.stderr
-
-  origClose = server.close
-  server.close = ->
-    try
-      origClose.apply this
-    catch error
-      if error.message is "Not running"
-        @emit 'close'
-      else
-        throw error
-
-  server.on 'close', ->
-    pool.quit()
-
-  server.restart = (callback) ->
-    if pool.getAliveWorkerCount() is 0
-      callback() if callback?
-    else
-      pool.once 'worker:ready', -> callback() if callback?
-      pool.restart()
+  server = createServer pool.proxy
+  server.on 'close', -> pool.quit()
 
   server

@@ -57,7 +57,7 @@ exports.testCreatePoolWorkerEvents = (test) ->
   pool.spawn()
 
 exports.testPoolRestart = (test) ->
-  test.expect 2
+  test.expect 3
 
   pool = createPool config, size: 2
 
@@ -70,16 +70,27 @@ exports.testPoolRestart = (test) ->
 
   onAllReady ->
     test.ok true
-    pool.restart()
+    pool.restart ->
+      test.ok true
 
     onAllReady ->
       test.ok true
 
       pool.on 'exit', ->
         test.done()
+
       pool.quit()
 
   pool.spawn()
+
+exports.testRestartWithNoActiveWorkers = (test) ->
+  test.expect 1
+
+  pool = createPool config, size: 2
+
+  pool.restart ->
+    test.ok true
+    test.done()
 
 exports.testPoolIncrement = (test) ->
   test.expect 3
@@ -98,7 +109,7 @@ exports.testPoolIncrement = (test) ->
 
   test.done()
 
-exports.testProxyRequest = (test) ->
+exports.testProxy = (test) ->
   test.expect 2
 
   pool = createPool config
@@ -106,17 +117,19 @@ exports.testProxyRequest = (test) ->
   server = http.createServer (req, res) ->
     server.close()
 
-    pool.proxyRequest req, res, (err) ->
+    pool.proxy req, res, (err) ->
       test.ifError err
-      pool.quit()
-      test.done()
 
   server.listen 0
   server.on 'listening', ->
     http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
       test.ifError err
+      test.same "Hello World\n", data
 
-exports.testProxyRequestWithClientException = (test) ->
+      pool.quit()
+      test.done()
+
+exports.testProxyWithClientException = (test) ->
   test.expect 2
 
   pool = createPool "#{__dirname}/fixtures/error.ru"
@@ -124,7 +137,7 @@ exports.testProxyRequestWithClientException = (test) ->
   server = http.createServer (req, res) ->
     server.close()
 
-    pool.proxyRequest req, res, (err) ->
+    pool.proxy req, res, (err) ->
       test.ok err
       res.writeHead 500
       res.end()
@@ -167,7 +180,7 @@ exports.testErrorCreatingProcessOnProxy = (test) ->
   server = http.createServer (req, res) ->
     server.close()
 
-    pool.proxyRequest req, res, (err) ->
+    pool.proxy req, res, (err) ->
       test.ok err
       res.writeHead 500
       res.end()
