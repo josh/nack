@@ -50,16 +50,13 @@ exports.LineBuffer = class LineBuffer extends Stream
     @readable = true
     @_buffer = ""
 
-    # Buffer `data` and `end` events from `@stream`
     self = this
     @stream.on 'data', (args...) -> self.write args...
     @stream.on 'end',  (args...) -> self.end args...
 
   write: (chunk) ->
-    # Write chunk to string buffer
     @_buffer += chunk
 
-    # Check for `\n` in buffer
     while (index = @_buffer.indexOf("\n")) != -1
       line     = @_buffer[0...index]
       @_buffer = @_buffer[index+1...@_buffer.length]

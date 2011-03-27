@@ -83,7 +83,6 @@ exports.Process = class Process extends EventEmitter
     raiseConfigError = ->
       self.emit 'error', new Error "configuration \"#{@config}\" doesn't exist"
 
-    # Raise an exception unless `config` exists
     if @config?
       exists @config, (ok) ->
         raiseConfigError() if !ok
@@ -124,7 +123,6 @@ exports.Process = class Process extends EventEmitter
 
     @sockPath = "#{tmpFile()}.sock"
 
-    # Copy process environment
     env = {}
     for key, value of process.env
       env[key] = value
@@ -163,12 +161,10 @@ exports.Process = class Process extends EventEmitter
       else if err
         @emit 'error', err
 
-    # Spawn a Ruby server connecting to our `@sockPath`
     @child = spawn "nack_worker", [@config, @sockPath],
       cwd: @cwd
       env: env
 
-    # Expose `stdout` and `stderr` on Process
     @stdout = @child.stdout
     @stderr = @child.stderr
 
@@ -185,7 +181,6 @@ exports.Process = class Process extends EventEmitter
       @stdout.removeListener 'data', logData
       @stderr.removeListener 'data', logData
 
-    # When the child process exists, clear out state and emit `exit`
     @child.on 'exit', (code, signal) =>
       debug "process exited"
 
@@ -220,14 +215,12 @@ exports.Process = class Process extends EventEmitter
   deferTimeout: ->
     self = this
     if @idle
-      # Clear the current timer
       @clearTimeout()
 
       callback = ->
         self.emit 'idle'
         self.quit()
 
-      # Register a new timer
       @_timeoutId = setTimeout callback, @idle
 
   _processConnections: ->
@@ -237,13 +230,10 @@ exports.Process = class Process extends EventEmitter
       @_activeConnection = @_connectionQueue.shift()
 
     if @_activeConnection and @state is 'ready'
-      # Immediately flag process as `busy`
       @changeState 'busy'
 
-      # Create a connection to our sock path
       connection = client.createConnection @sockPath
 
-      # When the connection closes, change the state back to ready.
       connection.on 'close', ->
         self._activeConnection = null
         self.changeState 'ready'

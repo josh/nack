@@ -85,7 +85,6 @@ exports.Pool = class Pool extends EventEmitter
       if self.getAliveWorkerCount() is 0
         self.emit 'exit'
 
-    # Add `options.size` workers to the pool
     for n in [1..options.size]
       @increment()
 
@@ -117,16 +116,13 @@ exports.Pool = class Pool extends EventEmitter
 
   # Add a process to the pool
   increment: ->
-    # Create a new process
     process = createProcess @config, @processOptions
 
-    # Push it onto the workers list
     @workers.push process
 
     self = this
 
     process.on 'spawn', ->
-      # Add the processes stdout and stderr to aggregate streams
       self.stdout.add process.stdout, process
       self.stderr.add process.stderr, process
       self.emit 'worker:spawn', process
@@ -147,9 +143,7 @@ exports.Pool = class Pool extends EventEmitter
 
   # Remove a process from the pool
   decrement: ->
-    # Remove a process from the worker list
     if worker = @workers.shift()
-      # and tell it to quit
       worker.quit()
 
   # Eager spawn all the workers in the pool

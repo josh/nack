@@ -52,15 +52,12 @@ exports.Client = class Client extends Socket
   _initResponseParser: ->
     self = this
 
-    # Initialize a Netstring stream parser
     nsStream = new ns.Stream this
 
-    # Listen for data and hand it to our parser
     nsStream.on 'data', (data) ->
       if self._incoming
         self._incoming._receiveData data
 
-    # Bubble any errors
     nsStream.on 'error', (exception) ->
       self._incoming = null
       self.emit 'error', exception
@@ -173,44 +170,33 @@ exports.ClientRequest = class ClientRequest extends Stream
     # net.Stream will buffer on connecting in node 0.3.x
     @_writeQueue = []
 
-    # Build an `@env` obj from headers and metaVariables
     @_parseEnv headers, metaVariables
 
-    # Then write it to the socket
     @write JSON.stringify @env
 
   _parseEnv: (headers, metaVariables) ->
     @env = {}
 
-    # Set `REQUEST_METHOD`
     @env['REQUEST_METHOD'] = @method
 
-    # Parse the request path an assign its parts to the env
     {pathname, query} = url.parse @path
     @env['PATH_INFO']    = pathname
     @env['QUERY_STRING'] = query
     @env['SCRIPT_NAME']  = ""
 
-    # Initialize `REMOTE_ADDR` and `SERVER_ADDR` to "0.0.0.0"
-    # They can be overridden by `metaVariables`
     @env['REMOTE_ADDR'] = "0.0.0.0"
     @env['SERVER_ADDR'] = "0.0.0.0"
 
-    # Parse the `HTTP_HOST` header and set `SERVER_NAME` and `SERVER_PORT`
     if host = headers.host
       if {name, port} = headers.host.split ':'
         @env['SERVER_NAME'] = name
         @env['SERVER_PORT'] = port
 
     for key, value of headers
-      # Upcase all header key values
       key = key.toUpperCase().replace /-/g, '_'
-      # Prepend `HTTP_` to them
       key = "HTTP_#{key}" unless key == 'CONTENT_TYPE' or key == 'CONTENT_LENGTH'
-      # And merge them into the `@env` obj
       @env[key] = value
 
-    # Merge all `metaVariables` into the `@env` obj
     for key, value of metaVariables
       @env[key] = value
 
@@ -225,7 +211,6 @@ exports.ClientRequest = class ClientRequest extends Stream
 
   # Write chunk to client
   write: (chunk, encoding) ->
-    # Netstring encode chunk
     nsChunk = ns.nsWrite chunk, 0, chunk.length, null, 0, encoding
 
     if @_writeQueue
@@ -270,10 +255,8 @@ exports.ClientRequest = class ClientRequest extends Stream
         debug "flushing #{data.length} bytes"
         @socket.write data
 
-    # Clear queue, remaining writes won't buffer
     @_writeQueue = null
 
-    # Buffer is empty, let the world know!
     @emit 'drain'
 
     true
@@ -330,7 +313,6 @@ exports.ClientResponse = class ClientResponse extends Stream
         else if !@headers
           @headers = {}
 
-          # Parse the headers
           rawHeaders = JSON.parse data
           assert.ok rawHeaders, "Headers can not be null"
           assert.equal typeof rawHeaders, 'object', "Headers must be an object"
@@ -375,8 +357,6 @@ exports.ClientResponse = class ClientResponse extends Stream
 
       debug "response error", error
 
-      # Mark as not readable to stop parsing
       @readable = false
 
-      # Catch and emit as a socket error
       @socket.emit 'error', error
