@@ -181,7 +181,7 @@ exports.ClientRequest = class ClientRequest extends Stream
 
     {pathname, query} = url.parse @path
     @env['PATH_INFO']    = pathname
-    @env['QUERY_STRING'] = query
+    @env['QUERY_STRING'] = query ? ""
     @env['SCRIPT_NAME']  = ""
 
     @env['REMOTE_ADDR'] = "0.0.0.0"
