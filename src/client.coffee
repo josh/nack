@@ -188,9 +188,12 @@ exports.ClientRequest = class ClientRequest extends Stream
     @env['SERVER_ADDR'] = "0.0.0.0"
 
     if host = headers.host
-      if {name, port} = headers.host.split ':'
-        @env['SERVER_NAME'] = name
-        @env['SERVER_PORT'] = port
+      parts = headers.host.split ':'
+      @env['SERVER_NAME'] = parts[0]
+      @env['SERVER_PORT'] = parts[1]
+
+    @env['SERVER_NAME'] ?= "localhost"
+    @env['SERVER_PORT'] ?= "80"
 
     for key, value of headers
       key = key.toUpperCase().replace /-/g, '_'
