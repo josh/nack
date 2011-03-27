@@ -15,7 +15,7 @@ Simple proxy
     var app = nack.createProcess("/path/to/app/config.ru");
 
     http.createServer(function (req, res) {
-      app.proxyRequest(req, res);
+      app.proxy(req, res);
     }).listen(8124, "127.0.0.1");
 
 You can spawn up a pool of workers with:
