@@ -145,6 +145,34 @@ exports.testClientMultipleRequest = (test) ->
     test.ok true
     test.done()
 
+exports.testClientEnvLint = (test) ->
+  test.expect 4
+
+  process = createProcess __dirname + "/fixtures/lint.ru"
+
+  process.once 'ready', ->
+    client = createConnection process.sockPath
+    test.ok client
+
+    request = client.request 'GET', '/foo', {}
+    request.end()
+
+    request.on 'error', (err) ->
+      test.ifError err
+      test.done()
+
+    request.on 'response', (response) ->
+      test.ok response
+      test.same 200, response.statusCode
+
+      process.quit()
+
+  process.on 'exit', ->
+    test.ok true
+    test.done()
+
+  process.spawn()
+
 exports.testClientRequestWithCookies = (test) ->
   test.expect 8
 
