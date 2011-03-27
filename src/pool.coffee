@@ -172,10 +172,12 @@ exports.Pool = class Pool extends EventEmitter
     if @getAliveWorkerCount() is 0
       callback?()
     else
-      @once 'worker:ready', -> callback() if callback?
-
+      notified = false
       for worker in @workers when worker.state
-        worker.restart()
+        worker.restart (err) ->
+          if notified is false
+            notified = true
+            callback? err
 
   # Proxies `http.ServerRequest` and `http.ServerResponse` to a worker.
   proxy: (req, res, next) =>

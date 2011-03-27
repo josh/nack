@@ -106,16 +106,22 @@ exports.Process = class Process extends EventEmitter
     @on 'busy', ->
       self.deferTimeout()
 
-  spawn: ->
-    # Do nothing if the process is already started
+  spawn: (callback) ->
     return if @state
 
     debug "spawning process"
 
-    # Change start to `spawning` and fire an event
+    if callback?
+      onSpawn = (err) =>
+        @removeListener 'ready', onSpawn
+        @removeListener 'error', onSpawn
+        callback err
+
+      @on 'ready', onSpawn
+      @on 'error', onSpawn
+
     @changeState 'spawning'
 
-    # Generate a random sock path
     @sockPath = "#{tmpFile()}.sock"
 
     # Copy process environment
@@ -178,7 +184,6 @@ exports.Process = class Process extends EventEmitter
       out = null
       @stdout.removeListener 'data', logData
       @stderr.removeListener 'data', logData
-
 
     # When the child process exists, clear out state and emit `exit`
     @child.on 'exit', (code, signal) =>
@@ -313,10 +318,10 @@ exports.Process = class Process extends EventEmitter
       @once 'exit', -> clearTimeout timeout
 
   # Quit and respawn process
-  restart: ->
+  restart: (callback) ->
     debug "process restart"
 
-    @once 'exit', => @spawn()
+    @once 'exit', => @spawn callback
     @quit()
 
 # Public API for creating a **Process**

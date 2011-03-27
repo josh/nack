@@ -12,7 +12,7 @@ fileExist = (path) ->
     false
 
 exports.testCreateProcess = (test) ->
-  test.expect 9
+  test.expect 10
 
   sockPath = null
 
@@ -40,7 +40,8 @@ exports.testCreateProcess = (test) ->
 
       test.done()
 
-  process.spawn()
+  process.spawn (err) ->
+    test.ifError err
 
 exports.testCreateConnection = (test) ->
   test.expect 7
@@ -291,7 +292,7 @@ exports.testRestart = (test) ->
   process.spawn()
 
 exports.testErrorCreatingProcess = (test) ->
-  test.expect 4
+  test.expect 5
 
   count = 2
   done = ->
@@ -312,7 +313,8 @@ exports.testErrorCreatingProcess = (test) ->
     test.ok !process.child
     done()
 
-  process.spawn()
+  process.spawn (err) ->
+    test.ok err
 
 exports.testErrorCreatingProcessOnConnection = (test) ->
   test.expect 3
