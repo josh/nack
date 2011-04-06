@@ -1,5 +1,5 @@
 require 'nack/server'
-require 'json'
+require 'nack/json'
 
 require 'test/unit'
 
@@ -42,7 +42,7 @@ class TestNackWorker < Test::Unit::TestCase
   def request(env = {}, body = nil)
     socket = UNIXSocket.open(sock)
 
-    NetString.write(socket, env.to_json)
+    NetString.write(socket, Nack::JSON.encode(env))
     NetString.write(socket, body) if body
     NetString.write(socket, "")
 
@@ -54,7 +54,7 @@ class TestNackWorker < Test::Unit::TestCase
       if status.nil?
         status = data.to_i
       elsif headers.nil?
-        headers = JSON.parse(data)
+        headers = Nack::JSON.decode(data)
       elsif data.length > 0
         body << data
       else
@@ -96,12 +96,18 @@ class TestNackWorker < Test::Unit::TestCase
       error = nil
 
       NetString.read(socket) do |data|
-        error = JSON.parse(data)
+        error = Nack::JSON.decode(data)
       end
 
       assert error
-      assert_equal "JSON::ParserError", error['name']
-      assert_equal "A JSON text must at least contain two octets!", error['message']
+
+      if error['name'] == "OkJson::Error"
+        assert_equal "OkJson::Error", error['name']
+        assert_equal "unexpected nil", error['message']
+      else
+        assert_equal "JSON::ParserError", error['name']
+        assert_equal "A JSON text must at least contain two octets!", error['message']
+      end
     end
   end
 
@@ -117,7 +123,7 @@ class TestNackWorker < Test::Unit::TestCase
       error = nil
 
       NetString.read(socket) do |data|
-        error = JSON.parse(data)
+        error = Nack::JSON.decode(data)
       end
 
       assert error
@@ -140,7 +146,7 @@ class TestNackWorker < Test::Unit::TestCase
     start :error do
       socket = UNIXSocket.open(sock)
 
-      NetString.write(socket, {}.to_json)
+      NetString.write(socket, Nack::JSON.encode({}))
       NetString.write(socket, "foo=bar")
       NetString.write(socket, "")
 
@@ -149,7 +155,7 @@ class TestNackWorker < Test::Unit::TestCase
       error = nil
 
       NetString.read(socket) do |data|
-        error = JSON.parse(data)
+        error = Nack::JSON.decode(data)
       end
 
       assert error
@@ -160,7 +166,7 @@ class TestNackWorker < Test::Unit::TestCase
 
   def test_spawn_error
     out = spawn :crash
-    error = JSON.parse(heartbeat.read)
+    error = Nack::JSON.decode(heartbeat.read)
 
     assert error
     assert_equal "RuntimeError", error['name']
