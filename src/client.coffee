@@ -321,8 +321,12 @@ exports.ClientResponse = class ClientResponse extends Stream
           assert.equal typeof rawHeaders, 'object', "Headers must be an object"
 
           for k, vs of rawHeaders
+            # Support legacy Array headers
+            vs = vs.join "\n" if vs.join
+
             # Split multiline Rack headers
             v = vs.split "\n"
+
             @headers[k] = if v.length > 0
               # Hack for node 0.2 headers
               # http://github.com/ry/node/commit/6560ab9
