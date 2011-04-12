@@ -112,8 +112,8 @@ exports.Client = class Client extends Socket
   # the `Client`.
   proxy: (serverRequest, serverResponse, next) =>
     metaVariables = serverRequest.proxyMetaVariables ? {}
-    metaVariables['REMOTE_ADDR'] ?= serverRequest.connection.remoteAddress
-    metaVariables['REMOTE_PORT'] ?= serverRequest.connection.remotePort
+    metaVariables['REMOTE_ADDR'] ?= "#{serverRequest.connection.remoteAddress}"
+    metaVariables['REMOTE_PORT'] ?= "#{serverRequest.connection.remotePort}"
 
     clientRequest = @request serverRequest.method, serverRequest.url,
       serverRequest.headers, metaVariables
