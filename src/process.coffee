@@ -89,9 +89,6 @@ exports.Process = class Process extends EventEmitter
     else
       raiseConfigError()
 
-    @on 'ready', ->
-      self._processConnections()
-
     @on 'error', (error) ->
       callback = self._activeConnection
       self._activeConnection = null
@@ -100,10 +97,6 @@ exports.Process = class Process extends EventEmitter
         callback error
       else if self.listeners('error').length <= 1
         throw error
-
-    # Push back the idle time everytime a request is handled
-    @on 'busy', ->
-      self.deferTimeout()
 
   spawn: (callback) ->
     return if @state
@@ -142,6 +135,7 @@ exports.Process = class Process extends EventEmitter
     @heartbeat.on 'data', (data) =>
       if "#{@child.pid}\n" is data.toString()
         @changeState 'ready'
+        @_processConnections()
       else
         try
           exception   = JSON.parse data
@@ -229,16 +223,19 @@ exports.Process = class Process extends EventEmitter
       @_activeConnection = @_connectionQueue.shift()
 
     if @_activeConnection and @state is 'ready'
+      # Push back the idle time everytime a request is handled
+      @deferTimeout()
+
       @changeState 'busy'
 
       connection = client.createConnection @sockPath
 
-      @_activeConnection null, connection
-
       connection.on 'close', ->
         self._activeConnection = null
         self.changeState 'ready'
+        self._processConnections()
 
+      @_activeConnection null, connection
     else
       @spawn()
 

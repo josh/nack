@@ -103,7 +103,7 @@ exports.testCreateMultipleConnections = (test) ->
       test.ifError err
 
       openConnections++
-      client.on 'close', -> openConnections--
+      client.on 'end', -> openConnections--
       test.same 1, openConnections
 
       test.ok client
