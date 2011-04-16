@@ -207,13 +207,18 @@ exports.testProxyWithClientException = (test) ->
       test.same 500, err
 
 exports.testKill = (test) ->
-  test.expect 3
+  test.expect 5
 
   process = createProcess config
 
   process.once 'ready', ->
     test.ok true
-    process.kill()
+    test.ok sockPath = process.sockPath
+
+    process.kill ->
+      test.ok sockPath
+      fs.unlinkSync sockPath
+      test.done()
 
   process.once 'quitting', () ->
     test.ok true
@@ -223,26 +228,6 @@ exports.testKill = (test) ->
 
   process.once 'exit', ->
     test.ok true
-    test.done()
-
-  process.spawn()
-
-exports.testKillCallback = (test) ->
-  test.expect 3
-
-  process = createProcess config
-
-  process.once 'ready', ->
-    test.ok true
-    process.kill ->
-      test.ok true
-      test.done()
-
-  process.once 'quitting', () ->
-    test.ok true
-
-  process.on 'error', (error) ->
-    test.ifError error
 
   process.spawn()
 
