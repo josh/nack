@@ -108,7 +108,7 @@ exports.Process = class Process extends EventEmitter
   spawn: (callback) ->
     return if @state
 
-    debug "spawning process"
+    debug "spawning process ##{@id}"
 
     if callback?
       onSpawn = (err) =>
@@ -136,7 +136,7 @@ exports.Process = class Process extends EventEmitter
     @heartbeat = new Stream
 
     @heartbeat.on 'connect', =>
-      debug "process spawned"
+      debug "process spawned ##{@id}"
       @emit 'spawn'
 
     @heartbeat.on 'data', (data) =>
@@ -182,7 +182,7 @@ exports.Process = class Process extends EventEmitter
       @stderr.removeListener 'data', logData
 
     @child.on 'exit', (code, signal) =>
-      debug "process exited"
+      debug "process exited ##{@id}"
 
       @clearTimeout()
       @heartbeat.destroy() if @heartbeat
@@ -250,7 +250,7 @@ exports.Process = class Process extends EventEmitter
 
   # Proxies a `http.ServerRequest` and `http.ServerResponse` to the process
   proxy: (req, res, next) =>
-    debug "proxy #{req.method} #{req.url}"
+    debug "proxy #{req.method} #{req.url} to ##{@id}"
 
     # Pause request so we don't miss any `data` or `end` events.
     resume = pause req
@@ -268,7 +268,7 @@ exports.Process = class Process extends EventEmitter
   # Send `SIGKILL` to process.
   # This will kill it for sure.
   kill: (callback) ->
-    debug "process kill"
+    debug "process kill ##{@id}"
 
     if @child
       @changeState 'quitting'
@@ -281,7 +281,7 @@ exports.Process = class Process extends EventEmitter
   # Send `SIGTERM` to process.
   # This will immediately kill it.
   terminate: (callback) ->
-    debug "process terminate"
+    debug "process terminate ##{@id}"
 
     if @child
       @changeState 'quitting'
@@ -293,7 +293,7 @@ exports.Process = class Process extends EventEmitter
       # exit after 10 seconds.
       timeout = setTimeout =>
         if @state is 'quitting'
-          debug "process is hung, sending kill"
+          debug "process is hung, sending kill to ##{@id}"
           @kill()
       , 10000
       @once 'exit', -> clearTimeout timeout
@@ -303,7 +303,7 @@ exports.Process = class Process extends EventEmitter
   # Send `SIGQUIT` to process.
   # The process will finish serving its request and gracefully quit.
   quit: (callback) ->
-    debug "process quit"
+    debug "process quit ##{@id}"
 
     if @child
       @changeState 'quitting'
@@ -323,7 +323,7 @@ exports.Process = class Process extends EventEmitter
 
   # Quit and respawn process
   restart: (callback) ->
-    debug "process restart"
+    debug "process restart ##{@id}"
     @quit => @spawn callback
 
 # Public API for creating a **Process**
