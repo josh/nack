@@ -13,15 +13,15 @@
 , "directories": { "man": "./man", "lib": "./lib" }
 , "main": "./lib"
 , "bin": { "nack": "./bin/nack" }
-, "dependencies": {
-    "async": ">= 0.1.8"
+, "dependencies":
+  { "async": ">= 0.1.8"
   , "connect": ">= 1.0.0"
   , "netstring": ">= 0.1.1"
   }
 , "bundleDependencies": [ "netstring" ]
-, "devDependencies" : {
-    "coffee-script" : ">= 1.0.0"
-,   "nodeunit" : ">= 0.5.0"
+, "devDependencies" :
+  { "coffee-script" : ">= 1.0.0"
+  , "nodeunit" : ">= 0.5.0"
   }
 , "engines" : { "node" : ">=0.4.0" }
 }
