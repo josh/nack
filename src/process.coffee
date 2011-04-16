@@ -129,11 +129,14 @@ exports.Process = class Process extends EventEmitter
     @heartbeat = new Stream
 
     @heartbeat.on 'connect', =>
-      debug "process spawned ##{@id}"
-      @emit 'spawn'
+      if @child.pid
+        debug "process spawned ##{@id}"
+        @emit 'spawn'
+      else
+        @emit 'error', new Error "unknown process error"
 
     @heartbeat.on 'data', (data) =>
-      if "#{@child.pid}\n" is data.toString()
+      if @child.pid and "#{@child.pid}\n" is data.toString()
         @changeState 'ready'
         @_processConnections()
       else
