@@ -267,52 +267,64 @@ exports.Process = class Process extends EventEmitter
 
   # Send `SIGKILL` to process.
   # This will kill it for sure.
-  kill: ->
+  kill: (callback) ->
     debug "process kill"
 
     if @child
       @changeState 'quitting'
+      @once 'exit', callback if callback
       @child.kill 'SIGKILL'
       @heartbeat.destroy() if @heartbeat
+    else
+      callback?()
 
   # Send `SIGTERM` to process.
   # This will immediately kill it.
-  terminate: ->
+  terminate: (callback) ->
     debug "process terminate"
 
     if @child
       @changeState 'quitting'
+      @once 'exit', callback if callback
       @child.kill 'SIGTERM'
       @heartbeat.destroy() if @heartbeat
 
+      # Setup a timer to send SIGKILL if the process doesn't
+      # exit after 10 seconds.
       timeout = setTimeout =>
         if @state is 'quitting'
+          debug "process is hung, sending kill"
           @kill()
       , 10000
       @once 'exit', -> clearTimeout timeout
+    else
+      callback?()
 
-  # Send `SIGTERM` to process.
+  # Send `SIGQUIT` to process.
   # The process will finish serving its request and gracefully quit.
-  quit: ->
+  quit: (callback) ->
     debug "process quit"
 
     if @child
       @changeState 'quitting'
+      @once 'exit', callback if callback
       @child.kill 'SIGQUIT'
       @heartbeat.destroy() if @heartbeat
 
+      # Setup a timer to send SIGTERM if the process doesn't
+      # gracefully quit after 3 seconds.
       timeout = setTimeout =>
         if @state is 'quitting'
           @terminate()
       , 3000
       @once 'exit', -> clearTimeout timeout
+    else
+      callback?()
 
   # Quit and respawn process
   restart: (callback) ->
     debug "process restart"
-
-    @once 'exit', => @spawn callback
-    @quit()
+    @quit => @spawn callback
 
 # Public API for creating a **Process**
 exports.createProcess = (args...) ->

@@ -192,3 +192,41 @@ exports.testErrorCreatingProcessOnProxy = (test) ->
     http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
       test.same 500, err
       done()
+
+exports.testTerminate = (test) ->
+  test.expect 3
+
+  pool = createPool config, size: 2
+
+  pool.once 'ready', ->
+    test.ok true
+    pool.terminate ->
+      test.ok true
+      test.done()
+
+  pool.on 'error', (error) ->
+    test.ifError error
+
+  pool.once 'exit', ->
+    test.ok true
+
+  pool.spawn()
+
+exports.testQuit = (test) ->
+  test.expect 3
+
+  pool = createPool config, size: 2
+
+  pool.once 'ready', ->
+    test.ok true
+    pool.quit ->
+      test.ok true
+      test.done()
+
+  pool.on 'error', (error) ->
+    test.ifError error
+
+  pool.once 'exit', ->
+    test.ok true
+
+  pool.spawn()

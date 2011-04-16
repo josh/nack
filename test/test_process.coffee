@@ -206,6 +206,55 @@ exports.testProxyWithClientException = (test) ->
     http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
       test.same 500, err
 
+exports.testKill = (test) ->
+  test.expect 3
+
+  process = createProcess config
+
+  process.once 'ready', ->
+    test.ok true
+    process.kill()
+
+  process.once 'quitting', () ->
+    test.ok true
+
+  process.on 'error', (error) ->
+    test.ifError error
+
+  process.once 'exit', ->
+    test.ok true
+    test.done()
+
+  process.spawn()
+
+exports.testKillCallback = (test) ->
+  test.expect 3
+
+  process = createProcess config
+
+  process.once 'ready', ->
+    test.ok true
+    process.kill ->
+      test.ok true
+      test.done()
+
+  process.once 'quitting', () ->
+    test.ok true
+
+  process.on 'error', (error) ->
+    test.ifError error
+
+  process.spawn()
+
+exports.testKillUnspawned = (test) ->
+  test.expect 1
+
+  process = createProcess config
+
+  process.kill ->
+    test.ok true
+    test.done()
+
 exports.testTerminate = (test) ->
   test.expect 3
 
@@ -226,6 +275,34 @@ exports.testTerminate = (test) ->
     test.done()
 
   process.spawn()
+
+exports.testTerminateCallback = (test) ->
+  test.expect 3
+
+  process = createProcess config
+
+  process.once 'ready', ->
+    test.ok true
+    process.terminate ->
+      test.ok true
+      test.done()
+
+  process.once 'quitting', () ->
+    test.ok true
+
+  process.on 'error', (error) ->
+    test.ifError error
+
+  process.spawn()
+
+exports.testTerminateUnspawned = (test) ->
+  test.expect 1
+
+  process = createProcess config
+
+  process.terminate ->
+    test.ok true
+    test.done()
 
 exports.testQuitSpawned = (test) ->
   test.expect 4
@@ -251,8 +328,24 @@ exports.testQuitSpawned = (test) ->
 
   process.spawn()
 
+exports.testQuitCallback = (test) ->
+  test.expect 3
+
+  process = createProcess config
+
+  process.once 'ready', ->
+    test.ok true
+    process.quit ->
+      test.ok true
+      test.done()
+
+  process.once 'quitting', ->
+    test.ok true
+
+  process.spawn()
+
 exports.testQuitUnspawned = (test) ->
-  test.expect 0
+  test.expect 1
 
   process = createProcess config
 
@@ -265,8 +358,9 @@ exports.testQuitUnspawned = (test) ->
   process.on 'exit', ->
     test.ok false
 
-  process.quit()
-  test.done()
+  process.quit ->
+    test.ok true
+    test.done()
 
 exports.testRestart = (test) ->
   test.expect 3

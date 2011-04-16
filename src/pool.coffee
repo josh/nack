@@ -1,3 +1,5 @@
+async = require 'async'
+
 {EventEmitter}  = require 'events'
 {createProcess} = require './process'
 {isFunction}    = require './util'
@@ -148,30 +150,23 @@ exports.Pool = class Pool extends EventEmitter
 
   # Eager spawn all the workers in the pool
   spawn: ->
-    for worker in @workers
-      worker.spawn()
+    spawn = (worker, callback) -> worker.spawn callback
+    async.forEach @workers, spawn, callback ? ->
 
   # Tell everyone to terminate
-  terminate: ->
-    for worker in @workers
-      worker.terminate()
+  terminate: (callback) ->
+    terminate = (worker, callback) -> worker.terminate callback
+    async.forEach @workers, terminate, callback ? ->
 
-  # Tell everyone to die
-  quit: ->
-    for worker in @workers
-      worker.quit()
+  # Tell everyone to gracefully quit
+  quit: (callback) ->
+    quit = (worker, callback) -> worker.quit callback
+    async.forEach @workers, quit, callback ? ->
 
   # Restart active workers
   restart: (callback) ->
-    if @getAliveWorkerCount() is 0
-      callback?()
-    else
-      notified = false
-      for worker in @workers when worker.state
-        worker.restart (err) ->
-          if notified is false
-            notified = true
-            callback? err
+    restart = (worker, callback) -> worker.restart callback
+    async.forEach @workers, restart, callback ? ->
 
   # Proxies `http.ServerRequest` and `http.ServerResponse` to a worker.
   proxy: (req, res, next) =>
