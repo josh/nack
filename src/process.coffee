@@ -203,8 +203,7 @@ exports.Process = class Process extends EventEmitter
     self = this
     if @state != state
       @state = state
-      # State change events are always asynchronous
-      process.nextTick -> self.emit state
+      self.emit state
 
   # Clear current timeout handler.
   clearTimeout: ->
@@ -234,11 +233,12 @@ exports.Process = class Process extends EventEmitter
 
       connection = client.createConnection @sockPath
 
+      @_activeConnection null, connection
+
       connection.on 'close', ->
         self._activeConnection = null
         self.changeState 'ready'
 
-      @_activeConnection null, connection
     else
       @spawn()
 
