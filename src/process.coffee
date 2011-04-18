@@ -70,9 +70,10 @@ exports.Process = class Process extends EventEmitter
     @id = Math.floor Math.random() * 1000
 
     options ?= {}
-    @idle  = options.idle
-    @cwd   = options.cwd ? dirname(@config)
-    @env   = options.env ? {}
+    @runOnce = options.runOnce ? false
+    @idle    = options.idle
+    @cwd     = options.cwd ? dirname(@config)
+    @env     = options.env ? {}
 
     # Set initial state to `null`
     @state = null
@@ -188,9 +189,6 @@ exports.Process = class Process extends EventEmitter
       @child = @heartbeat = null
       @stdout = @stderr = null
 
-      @_connectionQueue = []
-      @_activeConnection = null
-
       @emit 'exit'
 
     @
@@ -220,9 +218,8 @@ exports.Process = class Process extends EventEmitter
       @_timeoutId = setTimeout callback, @idle
 
   _processConnections: ->
-    self = @
-
-    unless @_activeConnection
+    if not @_activeConnection and @_connectionQueue.length
+      debug "accepted connection 1/#{@_connectionQueue.length} ##{@id}"
       @_activeConnection = @_connectionQueue.shift()
 
     if @_activeConnection and @state is 'ready'
@@ -233,10 +230,14 @@ exports.Process = class Process extends EventEmitter
 
       connection = client.createConnection @sockPath
 
-      connection.on 'close', ->
-        self._activeConnection = null
-        self.changeState 'ready'
-        self._processConnections()
+      connection.on 'close', =>
+        delete @_activeConnection
+
+        if @runOnce
+          @restart()
+        else
+          @changeState 'ready'
+          @_processConnections()
 
       @_activeConnection null, connection
     else
@@ -259,6 +260,9 @@ exports.Process = class Process extends EventEmitter
       if err
         next err
       else
+        req.proxyMetaVariables ?= {}
+        req.proxyMetaVariables['rack.run_once'] = @runOnce
+
         connection.proxy req, res, next
 
       # Flush any events captured while we were establishing

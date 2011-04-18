@@ -133,7 +133,7 @@ module Nack
 
       method, path = env['REQUEST_METHOD'], env['PATH_INFO']
 
-      env = env.merge({
+      env = {
         "rack.version" => Rack::VERSION,
         "rack.input" => input,
         "rack.errors" => $stderr,
@@ -141,7 +141,7 @@ module Nack
         "rack.multiprocess" => true,
         "rack.run_once" => false,
         "rack.url_scheme" => ["yes", "on", "1"].include?(env["HTTPS"]) ? "https" : "http"
-      })
+      }.merge(env)
 
       status, headers, body = app.call(env)
 

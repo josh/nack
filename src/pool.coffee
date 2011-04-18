@@ -63,9 +63,10 @@ exports.Pool = class Pool extends EventEmitter
     @round = 0
 
     @processOptions =
-      idle:  options.idle
-      cwd:   options.cwd
-      env:   options.env
+      runOnce: options.runOnce
+      idle:    options.idle
+      cwd:     options.cwd
+      env:     options.env
 
     # Initialize aggregate streams
     @stdout = new AggregateStream
@@ -89,6 +90,14 @@ exports.Pool = class Pool extends EventEmitter
 
     for n in [1..options.size]
       @increment()
+
+  @::__defineGetter__ 'runOnce', ->
+    @processOptions.runOnce
+
+  @::__defineSetter__ 'runOnce', (value) ->
+    for worker in @workers
+      worker.runOnce = value
+    @processOptions.runOnce = value
 
   # Get number of workers whose state is not null
   getAliveWorkerCount: ->

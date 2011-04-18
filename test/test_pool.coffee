@@ -1,4 +1,5 @@
-http = require 'http'
+async = require 'async'
+http  = require 'http'
 
 {createPool} = require '..'
 
@@ -126,6 +127,52 @@ exports.testProxy = (test) ->
       test.ifError err
       test.same "Hello World\n", data
 
+      pool.quit()
+      test.done()
+
+exports.testProxyRunOnce = (test) ->
+  test.expect 9
+
+  pool = createPool "#{__dirname}/fixtures/once.ru", runOnce: true
+  test.ok pool.runOnce
+
+  server = http.createServer (req, res) ->
+    pool.proxy req, res, (err) ->
+      test.ifError err
+
+  request = (callback) ->
+    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
+      test.ifError err
+      test.same "true", data
+      callback()
+
+  server.listen 0
+  server.on 'listening', ->
+    async.series [request, request, request, request], ->
+      server.close()
+      pool.quit()
+      test.done()
+
+exports.testProxyRunOnceMultiple = (test) ->
+  test.expect 9
+
+  pool = createPool "#{__dirname}/fixtures/once.ru", runOnce: true, size: 2
+  test.ok pool.runOnce
+
+  server = http.createServer (req, res) ->
+    pool.proxy req, res, (err) ->
+      test.ifError err
+
+  request = (callback) ->
+    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
+      test.ifError err
+      test.same "true", data
+      callback()
+
+  server.listen 0
+  server.on 'listening', ->
+    async.parallel [request, request, request, request], ->
+      server.close()
       pool.quit()
       test.done()
 

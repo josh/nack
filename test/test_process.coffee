@@ -1,5 +1,6 @@
-fs   = require 'fs'
-http = require 'http'
+async = require 'async'
+fs    = require 'fs'
+http  = require 'http'
 
 {createProcess} = require '..'
 
@@ -118,6 +119,66 @@ exports.testCreateMultipleConnections = (test) ->
   connect '/bar'
   connect '/baz'
   connect '/biz'
+
+exports.testCreateConnectionWithRunOnce = (test) ->
+  test.expect 9
+
+  process = createProcess "#{__dirname}/fixtures/once.ru", runOnce: true
+
+  request = (callback) ->
+    process.createConnection (err, client) ->
+      test.ifError err
+
+      client.on 'error', (err) ->
+        test.ifError err
+
+      request = client.request 'GET', '/foo', {}, 'rack.run_once': true
+      request.end()
+
+      request.on 'response', (response) ->
+        test.same 200, response.statusCode
+
+        body = ""
+        response.on 'data', (chunk) ->
+          body += chunk
+
+        response.on 'end', ->
+          test.same "true", body
+          callback()
+
+  async.series [request, request, request], ->
+    process.quit ->
+      test.done()
+
+exports.testCreateConnectionWithRunOnceMultiple = (test) ->
+  test.expect 9
+
+  process = createProcess "#{__dirname}/fixtures/once.ru", runOnce: true
+
+  request = (callback) ->
+    process.createConnection (err, client) ->
+      test.ifError err
+
+      client.on 'error', (err) ->
+        test.ifError err
+
+      request = client.request 'GET', '/foo', {}, 'rack.run_once': true
+      request.end()
+
+      request.on 'response', (response) ->
+        test.same 200, response.statusCode
+
+        body = ""
+        response.on 'data', (chunk) ->
+          body += chunk
+
+        response.on 'end', ->
+          test.same "true", body
+          callback()
+
+  async.parallel [request, request, request], ->
+    process.quit ->
+      test.done()
 
 exports.testCreateConnectionWithClientException = (test) ->
   test.expect 5
