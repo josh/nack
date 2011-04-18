@@ -66,7 +66,6 @@ packageBin = fs.realpathSync "#{__dirname}/../bin"
 #
 exports.Process = class Process extends EventEmitter
   constructor: (@config, options) ->
-    self = @
     @id = Math.floor Math.random() * 1000
 
     options ?= {}
@@ -81,23 +80,14 @@ exports.Process = class Process extends EventEmitter
     @_connectionQueue = []
     @_activeConnection = null
 
-    raiseConfigError = ->
-      self.emit 'error', new Error "configuration \"#{@config}\" doesn't exist"
+    raiseConfigError = =>
+      @_handleError new Error "configuration \"#{@config}\" doesn't exist"
 
     if @config?
       exists @config, (ok) ->
         raiseConfigError() if !ok
     else
       raiseConfigError()
-
-    @on 'error', (error) ->
-      callback = self._activeConnection
-      self._activeConnection = null
-
-      if callback
-        callback error
-      else if self.listeners('error').length <= 1
-        throw error
 
   spawn: (callback) ->
     return if @state
@@ -134,7 +124,7 @@ exports.Process = class Process extends EventEmitter
         debug "process spawned ##{@id}"
         @emit 'spawn'
       else
-        @emit 'error', new Error "unknown process error"
+        @_handleError new Error "unknown process error"
 
     @heartbeat.on 'data', (data) =>
       if @child.pid and "#{@child.pid}\n" is data.toString()
@@ -148,16 +138,16 @@ exports.Process = class Process extends EventEmitter
           error.stack = exception.stack
 
           debug "heartbeat error", error
-          @emit 'error', error
+          @_handleError error
         catch e
           debug "heartbeat error", e
-          @emit 'error', new Error "unknown process error"
+          @_handleError new Error "unknown process error"
 
     tryConnect @heartbeat, @sockPath, (err) =>
       if err and out
-        @emit 'error', new Error out
+        @_handleError new Error out
       else if err
-        @emit 'error', err
+        @_handleError err
 
     @child = spawn "nack_worker", [@config, @sockPath],
       cwd: @cwd
@@ -195,10 +185,9 @@ exports.Process = class Process extends EventEmitter
 
   # Change the current state and fire a corresponding event
   changeState: (state) ->
-    self = this
     if @state != state
       @state = state
-      self.emit state
+      @emit state
 
   # Clear current timeout handler.
   clearTimeout: ->
@@ -242,6 +231,15 @@ exports.Process = class Process extends EventEmitter
       @_activeConnection null, connection
     else
       @spawn()
+
+  _handleError: (error) ->
+    callback = @_activeConnection
+    delete @_activeConnection
+
+    if callback
+      callback error
+    else
+      @emit 'error', error
 
   # Create a new **Client** connection
   createConnection: (callback) ->
