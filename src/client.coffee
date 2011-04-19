@@ -1,4 +1,5 @@
 assert = require 'assert'
+fs     = require 'fs'
 ns     = require 'netstring'
 url    = require 'url'
 
@@ -88,8 +89,10 @@ exports.Client = class Client extends Socket
 
     if res is null or res.received is false
       req.emit 'error', new Error "Response was not received"
-    else if res.completed is false and res.readable is true
-      req.emit 'error', new Error "Response was not completed"
+    else if res.readable and not res.statusCode
+      req.emit 'error', new Error "Missing status code"
+    else if res.readable and not res.headers
+      req.emit 'error', new Error "Missing headers"
 
     # Anymore requests, continue processing
     if @_outgoing.length > 0
@@ -292,6 +295,7 @@ exports.ClientResponse = class ClientResponse extends Stream
   constructor: (@socket, @request) ->
     @client      = @socket
     @readable    = true
+    @writable    = true
     @received    = false
     @completed   = false
     @statusCode  = null
@@ -336,23 +340,33 @@ exports.ClientResponse = class ClientResponse extends Stream
 
           debug "response received: #{@statusCode}"
 
-          # Emit response once we've received the status and headers
-          @request.emit 'response', this
+          if @_path = @headers['X-Sendfile']
+            delete @headers['X-Sendfile']
+
+            fs.stat @_path, (err, stat) =>
+              unless stat.isFile()
+                err = new Error "#{@_path} is not a file"
+
+              if err
+                @onError err
+              else
+                @headers['Content-Length'] = "#{stat.size}"
+                @headers['Last-Modified']  = "#{stat.mtime.toUTCString()}"
+
+                @request.emit 'response', this
+
+                fs.createReadStream(@_path).pipe @
+          else
+            # Emit response once we've received the status and headers
+            @request.emit 'response', this
 
         # Else its body parts
-        else if data.length > 0
-          @emit 'data', data
+        else if data.length > 0 and not @_path
+          @write data
 
       # Empty string means EOF
-      else
-        debug "response complete"
-
-        assert.ok @statusCode, "Missing status code"
-        assert.ok @headers, "Missing headers"
-
-        @readable  = false
-        @completed = true
-        @emit 'end'
+      else if not @_path
+        @end()
 
     catch error
       # See if payload is an exception backtrace
@@ -362,8 +376,29 @@ exports.ClientResponse = class ClientResponse extends Stream
         error.name  = exception.name
         error.stack = exception.stack
 
-      debug "response error", error
+      @onError error
 
-      @readable = false
+  onError: (error) ->
+    debug "response error", error
 
-      @socket.emit 'error', error
+    @readable = false
+    @socket.emit 'error', error
+
+  write: (data) ->
+    return if not @readable or @completed
+    @emit 'data', data
+
+  end: (data) ->
+    return if not @readable or @completed
+
+    @emit 'data', data if data
+
+    assert.ok @statusCode, "Missing status code"
+    assert.ok @headers, "Missing headers"
+
+    debug "response complete"
+
+    @readable  = false
+    @completed = true
+
+    @emit 'end'
