@@ -234,13 +234,13 @@ exports.Process = class Process extends EventEmitter
         delete @_activeConnection
 
         if @runOnce
-          @restart()
+          @quit => @_processConnections()
         else
           @changeState 'ready'
           @_processConnections()
 
       @_activeConnection null, connection
-    else
+    else if @_activeConnection or @_connectionQueue.length
       @spawn()
 
   _handleError: (error) ->
