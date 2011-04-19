@@ -145,6 +145,12 @@ module Nack
 
       status, headers, body = app.call(env)
 
+      if body.respond_to?(:to_path)
+        headers['Content-Length'] = '0'
+        headers['X-Sendfile'] = File.expand_path(body.to_path)
+        body = []
+      end
+
       begin
         NetString.write(sock, status.to_s)
         NetString.write(sock, JSON.encode(headers))

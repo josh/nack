@@ -236,6 +236,34 @@ exports.testClientResponseSendFile = (test) ->
 
   process.spawn()
 
+exports.testClientResponseToPath = (test) ->
+  test.expect 5
+
+  process = createProcess __dirname + "/fixtures/file.ru"
+
+  process.once 'ready', ->
+    client  = createConnection process.sockPath
+    request = client.request 'GET', '/file.ru', {}
+    request.end()
+
+    request.on 'response', (response) ->
+      test.same 200, response.statusCode
+      test.same "text/x-script.ruby", response.headers['Content-Type']
+      test.same "82", response.headers['Content-Length']
+      test.ok !response.headers['X-Sendfile']
+
+      body = ""
+      response.on 'data', (chunk) ->
+        body += chunk
+
+      response.on 'end', ->
+        test.same 82, body.length
+
+        process.quit ->
+          test.done()
+
+  process.spawn()
+
 exports.testProxy = (test) ->
   test.expect 9
 
