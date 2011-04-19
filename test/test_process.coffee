@@ -132,6 +132,8 @@ exports.testCreateConnectionWithRunOnce = (test) ->
       client.on 'error', (err) ->
         test.ifError err
 
+      client.once 'close', callback
+
       request = client.request 'GET', '/foo', {}, 'rack.run_once': true
       request.end()
 
@@ -144,11 +146,44 @@ exports.testCreateConnectionWithRunOnce = (test) ->
 
         response.on 'end', ->
           test.same "true", body
-          callback()
 
   async.series [request, request, request], ->
     process.quit ->
       test.done()
+
+exports.testAssigningRunOnceRestartsProcess = (test) ->
+  test.expect 9
+
+  process = createProcess "#{__dirname}/fixtures/once.ru"
+
+  request = (callback) ->
+    process.createConnection (err, client) ->
+      test.ifError err
+
+      client.on 'error', (err) ->
+        test.ifError err
+
+      client.once 'close', callback
+
+      request = client.request 'GET', '/foo', {}, 'rack.run_once': true
+      request.end()
+
+      request.on 'response', (response) ->
+        test.same 200, response.statusCode
+
+        body = ""
+        response.on 'data', (chunk) ->
+          body += chunk
+
+        response.on 'end', ->
+          test.same "true", body
+
+  request ->
+    process.runOnce = true
+    request ->
+      request ->
+        process.quit ->
+          test.done()
 
 exports.testCreateConnectionWithRunOnceMultiple = (test) ->
   test.expect 9
@@ -162,6 +197,8 @@ exports.testCreateConnectionWithRunOnceMultiple = (test) ->
       client.on 'error', (err) ->
         test.ifError err
 
+      client.once 'close', callback
+
       request = client.request 'GET', '/foo', {}, 'rack.run_once': true
       request.end()
 
@@ -174,7 +211,6 @@ exports.testCreateConnectionWithRunOnceMultiple = (test) ->
 
         response.on 'end', ->
           test.same "true", body
-          callback()
 
   async.parallel [request, request, request], ->
     process.quit ->

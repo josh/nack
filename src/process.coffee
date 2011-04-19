@@ -89,6 +89,17 @@ exports.Process = class Process extends EventEmitter
     else
       raiseConfigError()
 
+  @::__defineGetter__ 'runOnce', ->
+    @_runOnce
+
+  @::__defineSetter__ 'runOnce', (value) ->
+    # If runOnce is beening changed from false to true and there is a
+    # process spawned, restart it.
+    if @_runOnce is false and value is true and @child
+      debug "enabling runOnce on process ##{@id}"
+      @restart()
+    @_runOnce = value
+
   spawn: (callback) ->
     return if @state
 
