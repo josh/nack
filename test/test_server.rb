@@ -6,10 +6,26 @@ require 'test/unit'
 class TestNackWorker < Test::Unit::TestCase
   include Nack
 
-  attr_accessor :sock, :pid, :heartbeat
+  attr_accessor :sock, :pid, :heartbeat, :bundle
+  
+  def in_bundle?
+    !bundle.nil?
+  end
+  
+  def in_bundle bundle
+    @bundle = bundle
+    Dir.chdir File.join(File.dirname(__FILE__), "fixtures", bundle) do
+      yield
+    end
+    @bundle = nil
+  end
 
-  def spawn(fixture)
-    config = File.expand_path("../fixtures/#{fixture}.ru", __FILE__)
+  def spawn(fixture = nil)
+    config = if in_bundle?
+      "config.ru"
+    else
+      File.expand_path("../fixtures/#{fixture}.ru", __FILE__)
+    end
 
     pid  = Process.pid
     rand = (rand() * 10000000000).floor
@@ -31,10 +47,13 @@ class TestNackWorker < Test::Unit::TestCase
   rescue Errno::ESRCH
   end
 
-  def start(fixture = :echo)
+  def start(fixture = nil)
+    fixture ||= :echo unless in_bundle?
+    
     spawn(fixture)
     assert_equal "#{self.pid}\n", heartbeat.readline
-    yield
+    
+    yield if block_given?
   ensure
     wait
   end
@@ -171,5 +190,27 @@ class TestNackWorker < Test::Unit::TestCase
     assert error
     assert_equal "RuntimeError", error['name']
     assert_equal "b00m", error['message']
+  end
+  
+  def test_no_bundle
+    in_bundle "no-bundle" do
+      start # assert inside®
+    end
+  end
+  
+  def test_working_bundle
+    in_bundle "working-bundle" do
+      start # assert inside®
+    end
+  end
+  
+  def test_broken_bundle
+    in_bundle "broken-bundle" do
+      out = spawn
+      error = Nack::JSON.decode(heartbeat.read)
+      
+      assert error
+      assert_equal "Bundler::GemNotFound", error['name']
+    end
   end
 end
