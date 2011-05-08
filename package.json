@@ -1,6 +1,6 @@
 { "name": "nack"
 , "description": "Node powered Rack server"
-, "version": "0.12.0"
+, "version": "0.12.1"
 , "author": "Joshua Peek"
 , "licenses": [
   { "type": "MIT"
