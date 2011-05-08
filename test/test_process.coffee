@@ -125,7 +125,7 @@ exports.testCreateConnectionWithRunOnce = (test) ->
 
   process = createProcess "#{__dirname}/fixtures/once.ru", runOnce: true
 
-  request = (callback) ->
+  createRequest = (callback) ->
     process.createConnection (err, client) ->
       test.ifError err
 
@@ -147,7 +147,7 @@ exports.testCreateConnectionWithRunOnce = (test) ->
         response.on 'end', ->
           test.same "true", body
 
-  async.series [request, request, request], ->
+  async.series [createRequest, createRequest, createRequest], ->
     process.quit ->
       test.done()
 
@@ -156,7 +156,7 @@ exports.testAssigningRunOnceRestartsProcess = (test) ->
 
   process = createProcess "#{__dirname}/fixtures/once.ru"
 
-  request = (callback) ->
+  createRequest = (callback) ->
     process.createConnection (err, client) ->
       test.ifError err
 
@@ -178,10 +178,10 @@ exports.testAssigningRunOnceRestartsProcess = (test) ->
         response.on 'end', ->
           test.same "true", body
 
-  request ->
+  createRequest ->
     process.runOnce = true
-    request ->
-      request ->
+    createRequest ->
+      createRequest ->
         process.quit ->
           test.done()
 
@@ -190,7 +190,7 @@ exports.testCreateConnectionWithRunOnceMultiple = (test) ->
 
   process = createProcess "#{__dirname}/fixtures/once.ru", runOnce: true
 
-  request = (callback) ->
+  createRequest = (callback) ->
     process.createConnection (err, client) ->
       test.ifError err
 
@@ -212,7 +212,7 @@ exports.testCreateConnectionWithRunOnceMultiple = (test) ->
         response.on 'end', ->
           test.same "true", body
 
-  async.parallel [request, request, request], ->
+  async.parallel [createRequest, createRequest, createRequest], ->
     process.quit ->
       test.done()
 
