@@ -16,9 +16,8 @@
 , "dependencies":
   { "async": ">= 0.1.8"
   , "connect": ">= 1.0.0"
-  , "netstring": ">= 0.1.1"
+  , "netstring": ">= 0.2.0"
   }
-, "bundleDependencies": [ "netstring" ]
 , "devDependencies" :
   { "coffee-script" : ">= 1.0.0"
   , "nodeunit" : ">= 0.5.0"
