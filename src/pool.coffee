@@ -1,6 +1,7 @@
 async = require 'async'
 
 {EventEmitter}  = require 'events'
+{Stream}        = require 'stream'
 {createProcess} = require './process'
 {isFunction}    = require './util'
 
@@ -189,7 +190,7 @@ exports.createPool = (args...) ->
 # **AggregateStream** takes multiple read stream and aggregates them into a
 # single stream to listen on. Its used to aggregate all the workers stdout and
 # stderr into one pool stdout and stderr streams.
-class AggregateStream extends EventEmitter
+class AggregateStream extends Stream
   # Register a new stream and process
   add: (stream, process) ->
     self = this
