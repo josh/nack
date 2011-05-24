@@ -338,6 +338,10 @@ exports.ClientResponse = class ClientResponse extends Stream
             else
               vs
 
+          # Set chunked if there is no explicit length
+          if not @headers['Content-Length']
+            @headers['Transfer-Encoding'] = 'chunked'
+
           debug "response received: #{@statusCode}"
 
           if @_path = @headers['X-Sendfile']
