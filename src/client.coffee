@@ -390,6 +390,15 @@ exports.ClientResponse = class ClientResponse extends Stream
 
   write: (data) ->
     return if not @readable or @completed
+
+    # If we're transferring chunked data, then the raw data received in still in
+    # then chunked HTTP format. This means that we need to strip off the size
+    # of the chunk and the trailing \r\n to get the actual chunk which was just
+    # written to this stream.
+    if @headers['Transfer-Encoding'] is 'chunked'
+      data = data.toString().replace(/^[0-9a-f]+\r\n/mi, '')
+      data = data.replace(/\r\n$/m, '')
+
     @emit 'data', data
 
   end: (data) ->
