@@ -540,3 +540,99 @@ exports.testErrorCreatingProcessOnProxy = (test) ->
     http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
       test.same 500, err
       done()
+
+exports.testProxyWithClientResponseLength = (test) ->
+  test.expect 7
+
+  process = createProcess "#{__dirname}/fixtures/length.ru"
+
+  process.on 'exit', ->
+    test.done()
+
+  server = http.createServer (req, res) ->
+    server.close()
+
+    process.proxy req, res, (err) ->
+      test.ifError err
+
+  server.listen 0
+  server.on 'listening', ->
+    http.get host: '127.0.0.1', port: server.address().port, (res) ->
+      test.same 200,          res.statusCode
+      test.same 'close',      res.headers['connection']
+      test.same 'text/plain', res.headers['content-type']
+      test.same '10', res.headers['content-length']
+      test.ok !res.headers['transfer-encoding']
+
+      body = ""
+      res.on 'data', (chunk) ->
+        body += chunk
+
+      res.on 'end', ->
+        test.same "foobar\nbaz", body
+        test.same true, res.complete
+        process.quit()
+
+exports.testProxyWithClientResponseNoLength = (test) ->
+  test.expect 7
+
+  process = createProcess "#{__dirname}/fixtures/nolength.ru"
+
+  process.on 'exit', ->
+    test.done()
+
+  server = http.createServer (req, res) ->
+    server.close()
+
+    process.proxy req, res, (err) ->
+      test.ifError err
+
+  server.listen 0
+  server.on 'listening', ->
+    http.get host: '127.0.0.1', port: server.address().port, (res) ->
+      test.same 200,          res.statusCode
+      test.same 'close',      res.headers['connection']
+      test.same 'text/plain', res.headers['content-type']
+      test.ok !res.headers['content-length']
+      test.ok !res.headers['transfer-encoding']
+
+      body = ""
+      res.on 'data', (chunk) ->
+        body += chunk
+
+      res.on 'end', ->
+        test.same "foobar\nbaz", body
+        test.same true, res.complete
+        process.quit()
+
+exports.testProxyWithClientResponseChunked = (test) ->
+  test.expect 7
+
+  process = createProcess "#{__dirname}/fixtures/chunked.ru"
+
+  process.on 'exit', ->
+    test.done()
+
+  server = http.createServer (req, res) ->
+    server.close()
+
+    process.proxy req, res, (err) ->
+      test.ifError err
+
+  server.listen 0
+  server.on 'listening', ->
+    http.get host: '127.0.0.1', port: server.address().port, (res) ->
+      test.same 200,          res.statusCode
+      test.same 'close',      res.headers['connection']
+      test.same 'chunked',    res.headers['transfer-encoding']
+      test.same 'text/plain', res.headers['content-type']
+      test.ok !res.headers['content-length']
+
+      body = ""
+      res.on 'data', (chunk) ->
+        body += chunk
+
+      res.on 'end', ->
+        test.same "foobar\nbaz", body
+        test.same true, res.complete
+        process.quit()

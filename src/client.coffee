@@ -127,7 +127,14 @@ exports.Client = class Client extends Socket
 
     clientRequest.on 'error', next
     clientRequest.on 'response', (clientResponse) ->
+      # Don't enable chunked encoding
+      serverResponse.useChunkedEncodingByDefault = false
+
       serverResponse.writeHead clientResponse.statusCode, clientResponse.headers
+
+      # Force chunkedEncoding off and pass through whatever data comes from the client
+      serverResponse.chunkedEncoding = false
+
       clientResponse.pipe serverResponse
 
     clientRequest
@@ -338,10 +345,6 @@ exports.ClientResponse = class ClientResponse extends Stream
             else
               vs
 
-          # Set chunked if there is no explicit length
-          if not @headers['Content-Length']
-            @headers['Transfer-Encoding'] = 'chunked'
-
           debug "response received: #{@statusCode}"
 
           if @_path = @headers['X-Sendfile']
@@ -390,14 +393,6 @@ exports.ClientResponse = class ClientResponse extends Stream
 
   write: (data) ->
     return if not @readable or @completed
-
-    # If we're transferring chunked data, then the raw data received in still in
-    # then chunked HTTP format. This means that we need to strip off the size
-    # of the chunk and the trailing \r\n to get the actual chunk which was just
-    # written to this stream.
-    if @headers['Transfer-Encoding'] is 'chunked'
-      data = data.toString().replace(/^[0-9a-f]+\r\n/mi, '')
-      data = data.replace(/\r\n$/m, '')
 
     @emit 'data', data
 

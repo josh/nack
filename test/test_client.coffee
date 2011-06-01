@@ -446,33 +446,3 @@ exports.testClientException = (test) ->
   process.on 'exit', ->
     test.ok true
     test.done()
-
-exports.testClientRequestWithChunkedResponse = (test) ->
-  process = createProcess __dirname + "/fixtures/chunked.ru"
-  process.spawn()
-
-  process.once 'ready', ->
-    client = createConnection process.sockPath
-    test.ok client
-
-    request = client.request 'GET', '/foo', {}
-    request.end()
-
-    request.on 'response', (response) ->
-      test.ok response
-      test.same 200, response.statusCode
-      test.same 'text/plain', response.headers['Content-Type']
-      test.same 'chunked', response.headers['Transfer-Encoding']
-
-      body = ""
-      response.on 'data', (chunk) ->
-        body += chunk
-
-      response.on 'end', ->
-        test.same "foobar\nbaz", body
-
-        process.quit()
-
-  process.on 'exit', ->
-    test.ok true
-    test.done()
