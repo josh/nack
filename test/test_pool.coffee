@@ -85,13 +85,16 @@ exports.testPoolRestart = (test) ->
   pool.spawn()
 
 exports.testRestartWithNoActiveWorkers = (test) ->
-  test.expect 1
+  test.expect 2
 
   pool = createPool config, size: 2
 
   pool.restart ->
     test.ok true
-    test.done()
+
+    pool.quit ->
+      test.ok true
+      test.done()
 
 exports.testPoolIncrement = (test) ->
   test.expect 3

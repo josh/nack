@@ -445,7 +445,7 @@ exports.testQuitUnspawned = (test) ->
     test.done()
 
 exports.testRestart = (test) ->
-  test.expect 3
+  test.expect 4
 
   process = createProcess config
 
@@ -456,12 +456,15 @@ exports.testRestart = (test) ->
     process.once 'quitting', ->
       test.ok true
 
-    process.on 'exit', ->
+    process.once 'exit', ->
       test.ok true
 
-    process.on 'ready', ->
+    process.once 'ready', ->
       test.ok true
-      test.done()
+
+      process.quit ->
+        test.ok true
+        test.done()
 
     process.restart()
 
