@@ -11,7 +11,7 @@ createDuplexServer = (listener) ->
   server
 
 exports.testClientRequestBeforeConnect = (test) ->
-  test.expect 15
+  test.expect 14
 
   process = createProcess config
   process.spawn()
@@ -23,8 +23,7 @@ exports.testClientRequestBeforeConnect = (test) ->
     request = client.request 'GET', '/foo', {}
     test.ok request
     test.same "GET", request.method
-    test.same "/foo", request.path
-    test.same "/foo", request.env['PATH_INFO']
+    test.same "/foo", request.url
 
     test.ok request.writeable
     test.same false, request.write "foo=bar"
@@ -55,7 +54,7 @@ exports.testClientRequestBeforeConnect = (test) ->
     test.done()
 
 exports.testClientRequestAfterConnect = (test) ->
-  test.expect 13
+  test.expect 12
 
   process = createProcess config
   process.spawn()
@@ -68,8 +67,7 @@ exports.testClientRequestAfterConnect = (test) ->
       request = client.request 'GET', '/foo', {}
       test.ok request
       test.same "GET", request.method
-      test.same "/foo", request.path
-      test.same "/foo", request.env['PATH_INFO']
+      test.same "/foo", request.url
 
       test.ok request.writeable
       test.same true, request.write "foo=bar"
@@ -264,7 +262,7 @@ exports.testClientResponseToPath = (test) ->
 
   process.spawn()
 
-exports.testProxy = (test) ->
+exports.testRequestPipe = (test) ->
   test.expect 9
 
   process = createProcess config
@@ -277,16 +275,21 @@ exports.testProxy = (test) ->
     client = createConnection process.sockPath
     test.ok client
 
-    request = client.proxy req, res, (err) ->
-      test.ifError err
+    request = client.request()
 
     test.ok request
     test.ok request.writeable
 
+    request.on 'error', (err) -> test.ifError err
+
     request.on 'response', (response) ->
+      response.pipe res
+
       response.on 'end', ->
         test.ok true
         process.quit()
+
+    req.pipe request
 
   process.once 'ready', ->
     server.listen 0
@@ -300,48 +303,6 @@ exports.testProxy = (test) ->
         res.on 'end', ->
           test.same "Hello World\n", data
           server.close()
-      req.end()
-
-  process.on 'exit', ->
-    test.ok true
-    test.done()
-
-exports.testProxyDoesntEmitDuplicateDataEvents = (test) ->
-  test.expect 8
-
-  process = createProcess config
-  process.spawn()
-
-  server = http.createServer (req, res) ->
-    test.ok req
-    test.ok res
-
-    client = createConnection process.sockPath
-    test.ok client
-
-    data = ""
-    req.on 'data', (chunk) -> data += chunk
-    req.on 'end', ->
-      test.same "foo=bar", data
-
-    request = client.proxy req, res, (err) ->
-      test.ifError err
-
-    test.ok request
-
-    request.on 'response', (response) ->
-      response.on 'end', ->
-        test.ok true
-        process.quit()
-
-  process.once 'ready', ->
-    server.listen 0
-    server.on 'listening', ->
-      req = http.request method: 'POST', host: '127.0.0.1', port: server.address().port, (res) ->
-        test.same 200, res.statusCode
-        server.close()
-      req.write "foo="
-      req.write "bar"
       req.end()
 
   process.on 'exit', ->

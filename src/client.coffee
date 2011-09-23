@@ -7,6 +7,8 @@ url    = require 'url'
 {Stream} = require 'stream'
 {debug}  = require './util'
 
+{BufferedRequest} = require './util'
+
 # A **Client** establishes a connection to a worker process.
 #
 # It takes a `port` and `host` or a UNIX socket path.
@@ -111,43 +113,12 @@ exports.Client = class Client extends Socket
     @_processRequest()
     request
 
-  # Proxy a `http.ServerRequest` and `http.serverResponse` between
-  # the `Client`.
-  proxy: (serverRequest, serverResponse, next) =>
-    metaVariables = serverRequest.proxyMetaVariables ? {}
-    metaVariables['REMOTE_ADDR'] ?= "#{serverRequest.connection.remoteAddress}"
-    metaVariables['REMOTE_PORT'] ?= "#{serverRequest.connection.remotePort}"
-
-    clientRequest = @request serverRequest.method, serverRequest.url,
-      serverRequest.headers, metaVariables
-
-    serverRequest.on 'data', (data) -> clientRequest.write data
-    serverRequest.on 'end', -> clientRequest.end()
-    serverRequest.on 'error', -> clientRequest.end()
-
-    clientRequest.on 'error', next
-    clientRequest.on 'response', (clientResponse) ->
-      # Don't enable chunked encoding
-      serverResponse.useChunkedEncodingByDefault = false
-
-      serverResponse.writeHead clientResponse.statusCode, clientResponse.headers
-
-      # Force chunkedEncoding off and pass through whatever data comes from the client
-      serverResponse.chunkedEncoding = false
-
-      clientResponse.pipe serverResponse
-
-    clientRequest
-
 # Public API for creating a **Client**
 exports.createConnection = (port, host) ->
   client = new Client
   client.port = port
   client.host = host
   client
-
-# Empty netstring signals EOF
-END_OF_FILE = ns.nsWrite ""
 
 # A **ClientRequest** is returned when `Client.request()` is called.
 #
@@ -170,109 +141,58 @@ END_OF_FILE = ns.nsWrite ""
 # >
 # > Emitted when an error occurs.
 #
-exports.ClientRequest = class ClientRequest extends Stream
-  constructor: (@method, @path, headers, metaVariables) ->
-    debug "requesting #{@method} #{@path}"
+exports.ClientRequest = class ClientRequest extends BufferedRequest
+  _buildEnv: ->
+    env = {}
 
-    @writeable = true
+    env['REQUEST_METHOD'] = @method
 
-    # Initialize writeQueue since socket is still connecting
-    # net.Stream will buffer on connecting in node 0.3.x
-    @_writeQueue = []
+    {pathname, query} = url.parse @url
+    env['PATH_INFO']    = pathname
+    env['QUERY_STRING'] = query ? ""
+    env['SCRIPT_NAME']  = ""
 
-    @_parseEnv headers, metaVariables
+    env['REMOTE_ADDR'] = "0.0.0.0"
+    env['SERVER_ADDR'] = "0.0.0.0"
 
-    @write JSON.stringify @env
+    if host = @headers.host
+      parts = @headers.host.split ':'
+      env['SERVER_NAME'] = parts[0]
+      env['SERVER_PORT'] = parts[1]
 
-  _parseEnv: (headers, metaVariables) ->
-    @env = {}
+    env['SERVER_NAME'] ?= "localhost"
+    env['SERVER_PORT'] ?= "80"
 
-    @env['REQUEST_METHOD'] = @method
-
-    {pathname, query} = url.parse @path
-    @env['PATH_INFO']    = pathname
-    @env['QUERY_STRING'] = query ? ""
-    @env['SCRIPT_NAME']  = ""
-
-    @env['REMOTE_ADDR'] = "0.0.0.0"
-    @env['SERVER_ADDR'] = "0.0.0.0"
-
-    if host = headers.host
-      parts = headers.host.split ':'
-      @env['SERVER_NAME'] = parts[0]
-      @env['SERVER_PORT'] = parts[1]
-
-    @env['SERVER_NAME'] ?= "localhost"
-    @env['SERVER_PORT'] ?= "80"
-
-    for key, value of headers
+    for key, value of @headers
       key = key.toUpperCase().replace /-/g, '_'
       key = "HTTP_#{key}" unless key == 'CONTENT_TYPE' or key == 'CONTENT_LENGTH'
-      @env[key] = value
+      env[key] = value
 
-    for key, value of metaVariables
-      @env[key] = value
+    for key, value of @proxyMetaVariables
+      env[key] = value
 
-  assignSocket: (socket) ->
-    debug "socket assigned, flushing request"
-    @socket = @connection = socket
-    @_flush()
-
-  detachSocket: (socket) ->
-    @writeable = false
-    @socket = @connection = null
+    env
 
   # Write chunk to client
   write: (chunk, encoding) ->
-    nsChunk = ns.nsWrite chunk, 0, chunk.length, null, 0, encoding
-
-    if @_writeQueue
-      debug "queueing #{nsChunk.length} bytes"
-      @_writeQueue.push nsChunk
-      # Return false because data was buffered
-      false
-    else if @connection
-      debug "writing #{nsChunk.length} bytes"
-      @connection.write nsChunk
+    super ns.nsWrite chunk, 0, chunk.length, null, 0, encoding
 
   # Closes writting socket.
   end: (chunk, encoding) ->
     if (chunk)
       @write chunk, encoding
-
-    flushed = if @_writeQueue
-      debug "queueing close"
-      @_writeQueue.push END_OF_FILE
-      # Return false because data was buffered
-      false
-    else if @connection
-      debug "closing connection"
-      @connection.end END_OF_FILE
-
-    @detachSocket @socket
-
-    flushed
-
-  destroy: ->
-    @detachSocket @socket
-    @socket.destroy()
+    super ""
 
   _flush: ->
-    while @_writeQueue and @_writeQueue.length
-      data = @_writeQueue.shift()
+    # Write Env header if queue hasn't been flushed
+    if @_writeQueue
+      debug "requesting #{@method} #{@url}"
+      chunk   = JSON.stringify @_buildEnv()
+      nsChunk = ns.nsWrite chunk, 0, chunk.length, null, 0, 'utf8'
+      debug "writing header #{nsChunk.length} bytes"
+      @connection.write nsChunk
 
-      # Close write socket when we see an empty netstring `0:,`
-      if data is END_OF_FILE
-        @socket.end data
-      else
-        debug "flushing #{data.length} bytes"
-        @socket.write data
-
-    @_writeQueue = null
-
-    @emit 'drain'
-
-    true
+    super
 
 # A **ClientResponse** is emitted from the client request's
 # `response` event.
@@ -410,3 +330,16 @@ exports.ClientResponse = class ClientResponse extends Stream
     @completed = true
 
     @emit 'end'
+
+  pipe: (dest, options) ->
+    # Detect when we are piping to another HttpResponse and copy over headers
+    if dest.writeHead
+      # Don't enable chunked encoding
+      dest.useChunkedEncodingByDefault = false
+
+      dest.writeHead @statusCode, @headers
+
+      # Force chunkedEncoding off and pass through whatever data comes from the client
+      dest.chunkedEncoding = false
+
+    super

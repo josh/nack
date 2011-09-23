@@ -3,6 +3,7 @@ fs                  = require 'fs'
 {exists, dirname}   = require 'path'
 {pause, isFunction} = require './util'
 {debug}             = require './util'
+{BufferedRequest}   = require './util'
 {LineBuffer}        = require './util'
 {spawn, exec}       = require 'child_process'
 {EventEmitter}      = require 'events'
@@ -258,25 +259,31 @@ exports.Process = class Process extends EventEmitter
     @_processConnections()
     @
 
+  request: (args...) ->
+    req = new BufferedRequest args...
+    req.proxyMetaVariables['rack.run_once'] = @runOnce
+
+    @createConnection (err, connection) =>
+      if err
+        req.emit 'error', err
+      else
+        debug "proxy #{req.method} #{req.url} to ##{@id}"
+        clientRequest = connection.request()
+        clientRequest.on 'error', (err) ->
+          req.emit 'error', err
+        clientRequest.on 'response', (response) ->
+          req.emit 'response', response
+        req.assignSocket clientRequest
+
+    req
+
   # Proxies a `http.ServerRequest` and `http.ServerResponse` to the process
   proxy: (req, res, next) =>
-    debug "proxy #{req.method} #{req.url} to ##{@id}"
-
-    # Pause request so we don't miss any `data` or `end` events.
-    resume = pause req
-
-    @createConnection (err, connection) ->
-      if err
-        next err
-      else
-        req.proxyMetaVariables ?= {}
-        req.proxyMetaVariables['rack.run_once'] = @runOnce
-
-        connection.proxy req, res, next
-
-      # Flush any events captured while we were establishing
-      # our client connection
-      resume()
+    clientRequest = @request()
+    clientRequest.on 'error', next
+    clientRequest.on 'response', (clientResponse) ->
+      clientResponse.pipe res
+    req.pipe clientRequest
 
   # Send `SIGKILL` to process.
   # This will kill it for sure.

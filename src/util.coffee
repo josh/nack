@@ -1,9 +1,9 @@
 {Stream} = require 'stream'
 
 if process.env.NODE_DEBUG and /nack/.test process.env.NODE_DEBUG
-  exports.debug = (args...) -> console.error 'NACK:', args...
+  debug = exports.debug = (args...) -> console.error 'NACK:', args...
 else
-  exports.debug = ->
+  debug = exports.debug = ->
 
 # Is a given value a function?
 exports.isFunction = (obj) ->
@@ -69,3 +69,86 @@ exports.LineBuffer = class LineBuffer extends Stream
       @write args...
 
     @emit 'end'
+
+class exports.BufferedReadStream extends Stream
+  constructor: ->
+    @writeable = true
+
+    @_writeQueue = []
+    @_writeEnded = false
+
+  assignSocket: (socket) ->
+    debug "socket assigned, flushing request"
+    @socket = @connection = socket
+    @socket.emit 'pipe', this
+    @_flush()
+
+  detachSocket: (socket) ->
+    @writeable = false
+    @socket = @connection = null
+
+  write: (chunk, encoding) ->
+    if @_writeQueue
+      debug "queueing #{chunk.length} bytes"
+      @_writeQueue.push [chunk, encoding]
+      # Return false because data was buffered
+      false
+    else if @socket
+      debug "writing #{chunk.length} bytes"
+      @socket.write chunk, encoding
+
+  # Closes writting socket.
+  end: (chunk, encoding) ->
+    if (chunk)
+      @write chunk, encoding
+
+    flushed = if @_writeQueue
+      debug "queueing close"
+      @_writeEnded = true
+      # Return false because data was buffered
+      false
+    else if @socket
+      debug "closing connection"
+      @socket.end()
+
+    @detachSocket @socket
+
+    flushed
+
+  destroy: ->
+    @detachSocket @socket
+    @socket.destroy()
+
+  _flush: ->
+    while @_writeQueue and @_writeQueue.length
+      [chunk, encoding] = @_writeQueue.shift()
+      debug "flushing #{chunk.length} bytes"
+      @connection.write chunk, encoding
+
+    if @_writeEnded
+      debug "closing connection"
+      @socket.end()
+
+    @_writeQueue = null
+
+    @emit 'drain'
+
+    true
+
+class exports.BufferedRequest extends exports.BufferedReadStream
+  constructor: (@method, @url, @headers = {}, @proxyMetaVariables = {}) ->
+    super
+
+    # If another HttpRequest pipe is started, copy over its meta variables
+    @once 'pipe', (src) =>
+      @method ?= src.method
+      @url    ?= src.url
+
+      for key, value of src.headers
+        @headers[key] ?= value
+
+      for key, value of src.proxyMetaVariables
+        @proxyMetaVariables[key] ?= value
+
+      @proxyMetaVariables['REMOTE_ADDR'] ?= "#{src.connection?.remoteAddress}"
+      @proxyMetaVariables['REMOTE_PORT'] ?= "#{src.connection?.remotePort}"
