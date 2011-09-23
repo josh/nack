@@ -117,6 +117,7 @@ module Nack
       body    = ["Internal Server Error"]
 
       env, input = nil, StringIO.new
+      input.set_encoding('ASCII-8BIT')
 
       NetString.read(buf) do |data|
         if env.nil?
