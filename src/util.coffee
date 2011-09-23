@@ -16,6 +16,12 @@ exports.isFunction = (obj) ->
 # ry says it will be fixed soonish
 exports.pause = (stream) ->
   queue = []
+  dataListeners = []
+
+  # Ensure we're the only one listening for the 'data' event
+  for listener in stream.listeners 'data'
+    dataListeners.push listener
+  stream.removeAllListeners 'data'
 
   onData  = (args...) -> queue.push ['data', args...]
   onEnd   = (args...) -> queue.push ['end', args...]
@@ -32,6 +38,10 @@ exports.pause = (stream) ->
 
   ->
     removeListeners()
+
+    # Restore the 'data' event listeners
+    for listener in dataListeners
+      stream.on 'data', listener
 
     for args in queue
       stream.emit args...
