@@ -549,7 +549,7 @@ exports.testErrorCreatingProcessOnProxy = (test) ->
     req.end()
 
 exports.testProxyWithClientResponseLength = (test) ->
-  test.expect 7
+  test.expect 6
 
   process = createProcess "#{__dirname}/fixtures/length.ru"
 
@@ -566,7 +566,6 @@ exports.testProxyWithClientResponseLength = (test) ->
   server.on 'listening', ->
     http.get host: '127.0.0.1', port: server.address().port, (res) ->
       test.same 200,          res.statusCode
-      test.same 'close',      res.headers['connection']
       test.same 'text/plain', res.headers['content-type']
       test.same '10', res.headers['content-length']
       test.ok !res.headers['transfer-encoding']
