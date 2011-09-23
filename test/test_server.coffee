@@ -13,9 +13,10 @@ exports.testProxyRequest = (test) ->
 
   server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.ok !err
+    req = http.request host: '127.0.0.1', port: server.address().port, (res) ->
+      test.same 200, res.statusCode
       server.close()
+    req.end()
 
 exports.testProxyRequestWithClientException = (test) ->
   test.expect 3
@@ -32,9 +33,10 @@ exports.testProxyRequestWithClientException = (test) ->
 
   server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.ok err
+    req = http.request host: '127.0.0.1', port: server.address().port, (res) ->
+      test.same 500, res.statusCode
       server.close()
+    req.end()
 
 exports.testProxyRequestWithErrorCreatingProcess = (test) ->
   test.expect 3
@@ -51,9 +53,10 @@ exports.testProxyRequestWithErrorCreatingProcess = (test) ->
 
   server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.ok err
+    req = http.request host: '127.0.0.1', port: server.address().port, (res) ->
+      test.same 500, res.statusCode
       server.close()
+    req.end()
 
 exports.testProxyCookies = (test) ->
   test.expect 2
@@ -66,9 +69,10 @@ exports.testProxyCookies = (test) ->
 
   server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.ifError err
+    req = http.request host: '127.0.0.1', port: server.address().port, (res) ->
+      test.same 200, res.statusCode
       server.close()
+    req.end()
 
 exports.testCloseServer = (test) ->
   test.expect 2
