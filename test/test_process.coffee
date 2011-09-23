@@ -273,6 +273,35 @@ exports.testProxy = (test) ->
       res.on 'end', -> process.quit()
     req.end()
 
+exports.testProxyDoesntEmitDuplicateDataEvents = (test) ->
+  test.expect 3
+
+  process = createProcess config
+
+  process.on 'exit', ->
+    test.ok true
+    test.done()
+
+  server = http.createServer (req, res) ->
+    server.close()
+
+    data = ""
+    req.on 'data', (chunk) -> data += chunk
+    req.on 'end', ->
+      test.same "foo=bar", data
+
+    process.proxy req, res, (err) ->
+      test.ifError err
+
+  server.listen 0
+  server.on 'listening', ->
+    req = http.request method: 'POST', host: '127.0.0.1', port: server.address().port, (res) ->
+      test.same 200, res.statusCode
+      process.quit()
+    req.write "foo="
+    req.write "bar"
+    req.end()
+
 exports.testProxyWithClientException = (test) ->
   test.expect 6
 
