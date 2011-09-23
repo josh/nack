@@ -291,10 +291,16 @@ exports.testProxy = (test) ->
   process.once 'ready', ->
     server.listen 0
     server.on 'listening', ->
-      http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-        test.ifError err
-        test.same "Hello World\n", data
-        server.close()
+      req = http.request host: '127.0.0.1', port: server.address().port, (res) ->
+        test.same 200, res.statusCode
+        data = ""
+        res.setEncoding 'utf8'
+        res.on 'error', (err) -> test.ifError err
+        res.on 'data', (chunk) -> data += chunk
+        res.on 'end', ->
+          test.same "Hello World\n", data
+          server.close()
+      req.end()
 
   process.on 'exit', ->
     test.ok true

@@ -126,12 +126,17 @@ exports.testProxy = (test) ->
 
   server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.ifError err
-      test.same "Hello World\n", data
-
-      pool.quit()
-      test.done()
+    req = http.request host: '127.0.0.1', port: server.address().port, (res) ->
+      test.same 200, res.statusCode
+      data = ""
+      res.setEncoding 'utf8'
+      res.on 'error', (err) -> test.ifError err
+      res.on 'data', (chunk) -> data += chunk
+      res.on 'end', ->
+        test.same "Hello World\n", data
+        pool.quit()
+        test.done()
+    req.end()
 
 exports.testProxyRunOnce = (test) ->
   test.expect 9
@@ -144,10 +149,16 @@ exports.testProxyRunOnce = (test) ->
       test.ifError err
 
   request = (callback) ->
-    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.ifError err
-      test.same "true", data
-      callback()
+    req = http.request host: '127.0.0.1', port: server.address().port, (res) ->
+      test.same 200, res.statusCode
+      data = ""
+      res.setEncoding 'utf8'
+      res.on 'error', (err) -> test.ifError err
+      res.on 'data', (chunk) -> data += chunk
+      res.on 'end', ->
+        test.same "true", data
+        callback()
+    req.end()
 
   server.listen 0
   server.on 'listening', ->
@@ -167,10 +178,16 @@ exports.testProxyRunOnceMultiple = (test) ->
       test.ifError err
 
   request = (callback) ->
-    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.ifError err
-      test.same "true", data
-      callback()
+    req = http.request host: '127.0.0.1', port: server.address().port, (res) ->
+      test.same 200, res.statusCode
+      data = ""
+      res.setEncoding 'utf8'
+      res.on 'error', (err) -> test.ifError err
+      res.on 'data', (chunk) -> data += chunk
+      res.on 'end', ->
+        test.same "true", data
+        callback()
+    req.end()
 
   server.listen 0
   server.on 'listening', ->
@@ -195,9 +212,10 @@ exports.testProxyWithClientException = (test) ->
 
   server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.same 500, err
+    req = http.request host: '127.0.0.1', port: server.address().port, (res) ->
+      test.same 500, res.statusCode
       test.done()
+    req.end()
 
 exports.testErrorCreatingPool = (test) ->
   test.expect 2
@@ -239,9 +257,10 @@ exports.testErrorCreatingProcessOnProxy = (test) ->
 
   server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.same 500, err
+    req = http.request host: '127.0.0.1', port: server.address().port, (res) ->
+      test.same 500, res.statusCode
       done()
+    req.end()
 
 exports.testTerminate = (test) ->
   test.expect 3

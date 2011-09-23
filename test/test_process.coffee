@@ -267,9 +267,11 @@ exports.testProxy = (test) ->
 
   server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.ifError err
-      process.quit()
+    req = http.request host: '127.0.0.1', port: server.address().port, (res) ->
+      test.same 200, res.statusCode
+      res.on 'error', (err) -> test.ifError err
+      res.on 'end', -> process.quit()
+    req.end()
 
 exports.testProxyWithClientException = (test) ->
   test.expect 6
@@ -300,8 +302,9 @@ exports.testProxyWithClientException = (test) ->
 
   server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.same 500, err
+    req = http.request host: '127.0.0.1', port: server.address().port, (res) ->
+      test.same 500, res.statusCode
+    req.end()
 
 exports.testKill = (test) ->
   test.expect 5
@@ -540,9 +543,10 @@ exports.testErrorCreatingProcessOnProxy = (test) ->
 
   server.listen 0
   server.on 'listening', ->
-    http.cat "http://127.0.0.1:#{server.address().port}/", "utf8", (err, data) ->
-      test.same 500, err
+    req = http.request host: '127.0.0.1', port: server.address().port, (res) ->
+      test.same 500, res.statusCode
       done()
+    req.end()
 
 exports.testProxyWithClientResponseLength = (test) ->
   test.expect 7
