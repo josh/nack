@@ -9,33 +9,6 @@ else
 exports.isFunction = (obj) ->
   if obj and obj.constructor and obj.call and obj.apply then true else false
 
-# Pauses Event Emitter
-#
-# Hack for http.ServerRequest#pause
-#
-# ry says it will be fixed soonish
-exports.pause = (stream) ->
-  queue = []
-
-  onData  = (args...) -> queue.push ['data', args...]
-  onEnd   = (args...) -> queue.push ['end', args...]
-  onClose = -> removeListeners()
-
-  removeListeners = ->
-    stream.removeListener 'data', onData
-    stream.removeListener 'end', onEnd
-    stream.removeListener 'close', onClose
-
-  stream.on 'data', onData
-  stream.on 'end', onEnd
-  stream.on 'close', onClose
-
-  ->
-    removeListeners()
-
-    for args in queue
-      stream.emit args...
-
 # **LineBuffer** wraps any readable stream and buffers data until
 # it encounters a `\n` line break. It will emit `data` events as lines
 # instead of arbitrarily chunked text.
