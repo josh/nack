@@ -239,7 +239,9 @@ exports.Process = class Process extends EventEmitter
           @changeState 'ready'
           @_processConnections()
 
-      @_activeConnection null, connection
+      setTimeout =>
+        @_activeConnection null, connection
+      , 0
     else if @_activeConnection or @_connectionQueue.length
       @spawn()
 
