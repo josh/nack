@@ -272,7 +272,8 @@ exports.Process = class Process extends EventEmitter
           req.emit 'error', err
         clientRequest.on 'response', (response) ->
           req.emit 'response', response
-        req.assignSocket clientRequest
+        req.pipe clientRequest
+        req.flush()
 
     req
 

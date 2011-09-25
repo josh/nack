@@ -25,7 +25,7 @@ exports.testClientRequestBeforeConnect = (test) ->
     test.same "GET", request.method
     test.same "/foo", request.url
 
-    test.ok request.writeable
+    test.ok request.writable
     test.same false, request.write "foo=bar"
 
     request.end()
@@ -69,7 +69,7 @@ exports.testClientRequestAfterConnect = (test) ->
       test.same "GET", request.method
       test.same "/foo", request.url
 
-      test.ok request.writeable
+      test.ok request.writable
       test.same true, request.write "foo=bar"
 
       request.end()
@@ -278,7 +278,7 @@ exports.testRequestPipe = (test) ->
     request = client.request()
 
     test.ok request
-    test.ok request.writeable
+    test.ok request.writable
 
     request.on 'error', (err) -> test.ifError err
 

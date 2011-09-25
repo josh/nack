@@ -43,72 +43,69 @@ exports.LineBuffer = class LineBuffer extends Stream
 
     @emit 'end'
 
-class exports.BufferedReadStream extends Stream
+class exports.BufferedPipe extends Stream
   constructor: ->
-    @writeable = true
+    @writable = true
+    @readable = true
+    @paused   = true
 
-    @_writeQueue = []
-    @_writeEnded = false
+    @_queue = []
+    @_ended = false
 
-  assignSocket: (socket) ->
-    debug "socket assigned, flushing request"
-    @socket = @connection = socket
-    @socket.emit 'pipe', this
-    @_flush()
+  pause: ->
+    @paused  = true
+    @_queue ?= []
+    return
 
-  detachSocket: (socket) ->
-    @writeable = false
-    @socket = @connection = null
+  resume: ->
+    @paused = false
+    @flush()
+    return
 
   write: (chunk, encoding) ->
-    if @_writeQueue
+    if @_queue
       debug "queueing #{chunk.length} bytes"
-      @_writeQueue.push [chunk, encoding]
-      # Return false because data was buffered
+      @_queue.push [chunk, encoding]
       false
-    else if @socket
+    else
       debug "writing #{chunk.length} bytes"
-      @socket.write chunk, encoding
+      @emit 'data', chunk, encoding
+      true
 
-  # Closes writting socket.
   end: (chunk, encoding) ->
-    if (chunk)
+    if chunk
       @write chunk, encoding
 
-    flushed = if @_writeQueue
-      debug "queueing close"
-      @_writeEnded = true
-      # Return false because data was buffered
+    if @_queue
+      @_ended = true
       false
-    else if @socket
+    else
       debug "closing connection"
-      @socket.end()
-
-    @detachSocket @socket
-
-    flushed
+      @emit 'end'
+      true
 
   destroy: ->
-    @detachSocket @socket
-    @socket.destroy()
+    @writable = false
 
-  _flush: ->
-    while @_writeQueue and @_writeQueue.length
-      [chunk, encoding] = @_writeQueue.shift()
-      debug "flushing #{chunk.length} bytes"
-      @connection.write chunk, encoding
+  flush: ->
+    return unless @_queue
 
-    if @_writeEnded
+    while @_queue and @_queue.length
+      [chunk, encoding] = @_queue.shift()
+      debug "writing #{chunk.length} bytes"
+      @emit 'data', chunk, encoding
+
+    if @_ended
       debug "closing connection"
-      @socket.end()
+      @emit 'end'
 
-    @_writeQueue = null
+    @_queue = null
 
     @emit 'drain'
 
-    true
+    return
 
-class exports.BufferedRequest extends exports.BufferedReadStream
+class exports.BufferedRequest extends exports.BufferedPipe
   constructor: (@method, @url, @headers = {}, @proxyMetaVariables = {}) ->
     super
 

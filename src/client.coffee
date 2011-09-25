@@ -75,7 +75,8 @@ exports.Client = class Client extends Socket
         @_incoming = new ClientResponse this, request
 
         # Flush the request buffer into socket
-        request.assignSocket @
+        request.pipe this
+        request.flush()
     else
       # Try to reconnect and try again soon
       @reconnect()
@@ -84,7 +85,7 @@ exports.Client = class Client extends Socket
     debug "finishing request"
 
     req = @_outgoing.shift()
-    req.detachSocket @
+    req.destroy()
 
     res = @_incoming
     @_incoming = null
@@ -183,14 +184,14 @@ exports.ClientRequest = class ClientRequest extends BufferedRequest
       @write chunk, encoding
     super ""
 
-  _flush: ->
+  flush: ->
     # Write Env header if queue hasn't been flushed
-    if @_writeQueue
+    if @_queue
       debug "requesting #{@method} #{@url}"
       chunk   = JSON.stringify @_buildEnv()
       nsChunk = ns.nsWrite chunk, 0, chunk.length, null, 0, 'utf8'
       debug "writing header #{nsChunk.length} bytes"
-      @connection.write nsChunk
+      @emit 'data', nsChunk
 
     super
 
