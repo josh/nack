@@ -192,7 +192,7 @@ exports.Process = class Process extends EventEmitter
 
       @emit 'exit'
 
-    @
+    this
 
   # Change the current state and fire a corresponding event
   changeState: (state) ->
@@ -256,7 +256,7 @@ exports.Process = class Process extends EventEmitter
   createConnection: (callback) ->
     @_connectionQueue.push callback
     @_processConnections()
-    @
+    this
 
   request: (args...) ->
     req = new BufferedRequest args...

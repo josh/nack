@@ -73,7 +73,7 @@ exports.Pool = class Pool extends EventEmitter
     @stdout = new AggregateStream
     @stderr = new AggregateStream
 
-    self = @
+    self = this
 
     # When a worker becomes ready, check if the ready worker count moved
     # from 0 to 1

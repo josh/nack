@@ -283,7 +283,7 @@ exports.ClientResponse = class ClientResponse extends Stream
 
                 @request.emit 'response', this
 
-                fs.createReadStream(@_path).pipe @
+                fs.createReadStream(@_path).pipe this
           else
             # Emit response once we've received the status and headers
             @request.emit 'response', this
