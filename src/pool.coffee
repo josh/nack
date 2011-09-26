@@ -178,6 +178,10 @@ exports.Pool = class Pool extends EventEmitter
     restart = (worker, callback) -> worker.restart callback
     async.forEach @workers, restart, callback ? ->
 
+  request: (args...) ->
+    worker = @nextWorker()
+    worker.request args...
+
   # Proxies `http.ServerRequest` and `http.ServerResponse` to a worker.
   proxy: (req, res, next) =>
     worker = @nextWorker()
