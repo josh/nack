@@ -82,28 +82,3 @@ exports.testBufferedPipePiping = (test) ->
   test.same ["1", "2", "3"], data
 
   test.done()
-
-exports.testBufferedPipePause = (test) ->
-  buf = new BufferedPipe
-
-  data = []
-  buf.on 'data', (chunk) ->
-    data.push chunk
-
-  buf.write "1"
-  test.same [], data
-
-  buf.write "2"
-  test.same [], data
-
-  buf.flush()
-  test.same ["1", "2"], data
-
-  buf.pause()
-  buf.write "3"
-  test.same ["1", "2"], data
-
-  buf.resume()
-  test.same ["1", "2", "3"], data
-
-  test.done()

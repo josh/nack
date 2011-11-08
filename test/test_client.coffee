@@ -11,7 +11,7 @@ createDuplexServer = (listener) ->
   server
 
 exports.testClientRequestBeforeConnect = (test) ->
-  test.expect 14
+  test.expect 12
 
   process = createProcess config
   process.spawn()
@@ -26,7 +26,7 @@ exports.testClientRequestBeforeConnect = (test) ->
     test.same "/foo", request.url
 
     test.ok request.writable
-    test.same false, request.write "foo=bar"
+    request.write "foo=bar"
 
     request.end()
 
@@ -54,7 +54,7 @@ exports.testClientRequestBeforeConnect = (test) ->
     test.done()
 
 exports.testClientRequestAfterConnect = (test) ->
-  test.expect 12
+  test.expect 11
 
   process = createProcess config
   process.spawn()
@@ -70,7 +70,7 @@ exports.testClientRequestAfterConnect = (test) ->
       test.same "/foo", request.url
 
       test.ok request.writable
-      test.same true, request.write "foo=bar"
+      request.write "foo=bar"
 
       request.end()
 

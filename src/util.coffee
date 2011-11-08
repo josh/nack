@@ -47,30 +47,19 @@ class exports.BufferedPipe extends Stream
   constructor: ->
     @writable = true
     @readable = true
-    @paused   = true
 
     @_queue = []
     @_ended = false
-
-  pause: ->
-    @paused  = true
-    @_queue ?= []
-    return
-
-  resume: ->
-    @paused = false
-    @flush()
-    return
 
   write: (chunk, encoding) ->
     if @_queue
       debug "queueing #{chunk.length} bytes"
       @_queue.push [chunk, encoding]
-      false
     else
       debug "writing #{chunk.length} bytes"
       @emit 'data', chunk, encoding
-      true
+
+    return
 
   end: (chunk, encoding) ->
     if chunk
@@ -78,11 +67,11 @@ class exports.BufferedPipe extends Stream
 
     if @_queue
       @_ended = true
-      false
     else
       debug "closing connection"
       @emit 'end'
-      true
+
+    return
 
   destroy: ->
     @writable = false
@@ -100,8 +89,6 @@ class exports.BufferedPipe extends Stream
       @emit 'end'
 
     @_queue = null
-
-    @emit 'drain'
 
     return
 
