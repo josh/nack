@@ -26,7 +26,7 @@ module Nack
       self.server = UNIXServer.open(file)
       self.server.fcntl(Fcntl::F_SETFD, Fcntl::FD_CLOEXEC)
 
-      readable, writable = IO.select([self.server], nil, nil, 3)
+      readable, _ = IO.select([self.server], nil, nil, 3)
 
       if readable && readable.first == self.server
         self.heartbeat = server.accept_nonblock
@@ -131,8 +131,6 @@ module Nack
 
       sock.close_read
       input.rewind
-
-      method, path = env['REQUEST_METHOD'], env['PATH_INFO']
 
       env = {
         "rack.version" => Rack::VERSION,

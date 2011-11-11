@@ -118,8 +118,6 @@ class TestNackWorker < Test::Unit::TestCase
       socket.write("1:{},")
       socket.close_write
 
-      status, headers, body = nil, nil, []
-
       error = nil
 
       NetString.read(socket) do |data|
@@ -134,7 +132,7 @@ class TestNackWorker < Test::Unit::TestCase
 
   def test_close_heartbeat
     start do
-      status, headers, body = request({}, "foo=bar")
+      status = request({}, "foo=bar")[0]
       assert_equal 200, status
 
       heartbeat.close
@@ -165,7 +163,7 @@ class TestNackWorker < Test::Unit::TestCase
   end
 
   def test_spawn_error
-    out = spawn :crash
+    spawn :crash
     error = Nack::JSON.decode(heartbeat.read)
 
     assert error
