@@ -1,3 +1,4 @@
+before_install: sudo apt-get install ruby -y
 language: node_js
 node_js:
   - 0.4
