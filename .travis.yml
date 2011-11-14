@@ -1,3 +1,4 @@
+env: NODE_DEBUG=nack
 language: node_js
 node_js:
   - 0.4
