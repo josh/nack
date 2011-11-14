@@ -8,9 +8,12 @@ task 'build', "Build CoffeeScript source files", ->
   coffee.stdout.on 'data', (data) -> process.stderr.write data.toString()
 
 task 'test', "Run test suite", ->
-  process.chdir __dirname
-  {reporters} = require 'nodeunit'
-  reporters.default.run ['test']
+  exec 'which ruby', (err) ->
+    throw "ruby not found" if err
+
+    process.chdir __dirname
+    {reporters} = require 'nodeunit'
+    reporters.default.run ['test']
 
 task 'man', "Build manuals", ->
   fs.readdir "doc/", (err, files) ->
