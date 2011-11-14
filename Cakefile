@@ -7,6 +7,15 @@ task 'build', "Build CoffeeScript source files", ->
   coffee = spawn 'coffee', ['-cw', '-o', 'lib', 'src']
   coffee.stdout.on 'data', (data) -> process.stderr.write data.toString()
 
+task 'pretest', "Install test dependencies", ->
+  exec 'which ruby gem', (err) ->
+    throw "ruby not found" if err
+
+    exec 'ruby -rubygems -e \'require "rack"\'', (err) ->
+      if err
+        exec 'gem install rack', (err, stdout, stderr) ->
+          throw err if err
+
 task 'test', "Run test suite", ->
   process.chdir __dirname
   {reporters} = require 'nodeunit'
