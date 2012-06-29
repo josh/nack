@@ -1,12 +1,14 @@
 client              = require './client'
 fs                  = require 'fs'
-{exists, dirname}   = require 'path'
+{dirname}           = require 'path'
 {debug, isFunction} = require './util'
 {BufferedRequest}   = require './util'
 {LineBuffer}        = require './util'
 {spawn, exec}       = require 'child_process'
 {EventEmitter}      = require 'events'
 {Stream}            = require 'net'
+
+exists = fs.exists ? require('path').exists
 
 packageLib = fs.realpathSync __dirname
 packageBin = fs.realpathSync "#{__dirname}/../bin"
