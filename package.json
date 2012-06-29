@@ -15,7 +15,7 @@
 , "bin": { "nack": "./bin/nack" }
 , "dependencies":
   { "async": ">= 0.1.8"
-  , "connect": ">= 1.0.0"
+  , "connect": ">= 1.0.0, < 2.0"
   , "netstring": ">= 0.2.0"
   }
 , "devDependencies" :
