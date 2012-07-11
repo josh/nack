@@ -1,4 +1,11 @@
 #!/usr/bin/env ruby
 
+# Make sure we get the right version of Rack, avoid gem conflicts.
+begin
+  require 'bundler/setup'
+rescue LoadError
+  retry if require 'rubygems'
+end
+
 require 'nack/server'
 Nack::Server.run(ARGV[0], :file => ARGV[1])
