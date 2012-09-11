@@ -129,7 +129,15 @@ module Nack
         end
       end
 
-      sock.close_read
+      if RUBY_PLATFORM=="java"
+        begin
+          sock.close_read
+        rescue IOError
+          # WORKAROUND: Ignore the error on JRuby (1.7.0-preview2 still doesn't fix all unix socket issues)
+        end
+      else
+        sock.close_read
+      end
       input.rewind
 
       env = {
