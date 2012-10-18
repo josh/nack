@@ -4,7 +4,6 @@ require 'stringio'
 
 require 'nack/builder'
 require 'nack/error'
-require 'nack/json'
 require 'nack/netstring'
 
 module Nack
@@ -41,7 +40,9 @@ module Nack
       trap('QUIT') { close }
 
       self.app = load_config
+      require 'nack/json'
     rescue Exception => e
+      require 'nack/json'
       handle_exception(e)
     end
 
