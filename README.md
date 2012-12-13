@@ -51,10 +51,10 @@ You can grab the package from npm.
 
 ### DEPENDENCIES
 
-* node >= 0.2.3
-* node-netstring
-* rack
-* json
+* node >= 0.6.0
+* async
+* connect
+* netstring
 
 ## CAVEATS
 
