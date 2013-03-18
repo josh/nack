@@ -51,7 +51,7 @@ You can grab the package from npm.
 
 ### DEPENDENCIES
 
-* node >= 0.2.3
+* node >= 0.6.x
 * node-netstring
 * rack
 * json
