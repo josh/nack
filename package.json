@@ -16,7 +16,7 @@
 , "dependencies":
   { "async": ">= 0.1.8"
   , "connect": ">= 1.0.0, < 2.0"
-  , "netstring": ">= 0.2.0"
+  , "netstring": ">= 0.3.0"
   }
 , "devDependencies" :
   { "coffee-script" : "1.6.2"
