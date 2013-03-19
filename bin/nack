@@ -4,17 +4,19 @@ var config = process.argv[2];
 var port   = process.argv[3] || 3000;
 
 var connect = require('connect');
+var http    = require('http');
 var nack    = require('..');
 var pool    = nack.createPool(config);
 
 pool.stdout.pipe(process.stdout);
 pool.stderr.pipe(process.stdout);
 
-var server = connect.createServer(
-  connect.logger(),
-  pool.proxy,
-  connect.errorHandler({ dumpExceptions: true })
-);
+var app = connect()
+  .use(connect.logger())
+  .use(pool.proxy)
+  .use(connect.errorHandler({dumpExceptions: true}));
+
+var server = http.createServer(app);
 
 server.listen(port, "127.0.0.1");
 console.log("Listening on http://127.0.0.1:" + port);
