@@ -283,8 +283,10 @@ exports.Process = class Process extends EventEmitter
 
   # Proxies a `http.ServerRequest` and `http.ServerResponse` to the process
   proxy: (req, res, next) =>
+    installOnce req.connection.server, 'close', @quit
+
     clientRequest = @request()
-    clientRequest.on 'error', next
+    clientRequest.on 'error', next if next?
     clientRequest.on 'response', (clientResponse) ->
       clientResponse.pipe res
     req.pipe clientRequest
@@ -326,7 +328,7 @@ exports.Process = class Process extends EventEmitter
 
   # Send `SIGQUIT` to process.
   # The process will finish serving its request and gracefully quit.
-  quit: (callback) ->
+  quit: (callback) =>
     debug "process quit ##{@id}"
 
     if @child
@@ -404,3 +406,10 @@ tryConnect = (connection, path, callback) ->
     callback null, connection
 
   reconnect()
+
+installOnce = (emitter, type, listener) ->
+  if events = emitter._events[type]
+    return if events is listener
+    return for event in events when event is listener
+
+  emitter.on type, listener
