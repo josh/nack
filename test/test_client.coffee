@@ -319,6 +319,8 @@ exports.testClientUncompletedResponse = (test) ->
       conn.write "3:200,"
       conn.end()
 
+    conn.resume()
+
   worker.listen 0, ->
     client = createConnection worker.address().port
 
@@ -368,6 +370,8 @@ exports.testClientInvalidStatusResponse = (test) ->
       conn.write "0:,"
       conn.end()
 
+    conn.resume()
+
   worker.listen 0, ->
     client = createConnection worker.address().port
 
@@ -394,6 +398,8 @@ exports.testClientInvalidHeadersResponse = (test) ->
       conn.write "0:,"
       conn.end()
 
+    conn.resume()
+
   worker.listen 0, ->
     client = createConnection worker.address().port
 
@@ -418,6 +424,8 @@ exports.testClientMissingHeadersResponse = (test) ->
       conn.write "3:200,"
       conn.write "0:,"
       conn.end()
+
+    conn.resume()
 
   worker.listen 0, ->
     client = createConnection worker.address().port
