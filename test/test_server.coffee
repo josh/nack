@@ -1,11 +1,17 @@
-http = require 'http'
+http    = require 'http'
+connect = require 'connect'
 
-{createServer} = require '..'
+{createPool} = require '..'
 
 exports.testProxyRequest = (test) ->
   test.expect 2
 
-  server = createServer __dirname + "/fixtures/hello.ru"
+  pool = createPool __dirname + "/fixtures/hello.ru"
+
+  app = connect()
+    .use(pool.proxy)
+
+  server = http.createServer app
 
   server.on 'close', ->
     test.ok true
@@ -21,11 +27,16 @@ exports.testProxyRequest = (test) ->
 exports.testProxyRequestWithClientException = (test) ->
   test.expect 3
 
-  server = createServer "#{__dirname}/fixtures/error.ru"
-  server.use (err, req, res, next) ->
-    test.ok err
-    res.writeHead 500, 'Content-Type': 'text/plain'
-    res.end()
+  pool = createPool __dirname + "/fixtures/error.ru"
+
+  app = connect()
+    .use(pool.proxy)
+    .use (err, req, res, next) ->
+      test.ok err
+      res.writeHead 500, 'Content-Type': 'text/plain'
+      res.end()
+
+  server = http.createServer app
 
   server.on 'close', ->
     test.ok true
@@ -41,11 +52,16 @@ exports.testProxyRequestWithClientException = (test) ->
 exports.testProxyRequestWithErrorCreatingProcess = (test) ->
   test.expect 3
 
-  server = createServer "#{__dirname}/fixtures/crash.ru"
-  server.use (err, req, res, next) ->
-    test.ok err
-    res.writeHead 500, 'Content-Type': 'text/plain'
-    res.end()
+  pool = createPool __dirname + "/fixtures/crash.ru"
+
+  app = connect()
+    .use(pool.proxy)
+    .use (err, req, res, next) ->
+      test.ok err
+      res.writeHead 500, 'Content-Type': 'text/plain'
+      res.end()
+
+  server = http.createServer app
 
   server.on 'close', ->
     test.ok true
@@ -61,7 +77,12 @@ exports.testProxyRequestWithErrorCreatingProcess = (test) ->
 exports.testProxyCookies = (test) ->
   test.expect 2
 
-  server = createServer __dirname + "/fixtures/echo.ru"
+  pool = createPool __dirname + "/fixtures/echo.ru"
+
+  app = connect()
+    .use(pool.proxy)
+
+  server = http.createServer app
 
   server.on 'close', ->
     test.ok true
@@ -77,7 +98,12 @@ exports.testProxyCookies = (test) ->
 exports.testCloseServer = (test) ->
   test.expect 2
 
-  server = createServer __dirname + "/fixtures/hello.ru"
+  pool = createPool __dirname + "/fixtures/hello.ru"
+
+  app = connect()
+    .use(pool.proxy)
+
+  server = http.createServer app
 
   server.on 'close', ->
     test.ok true
@@ -91,7 +117,12 @@ exports.testCloseServer = (test) ->
 exports.testCloseUnstartedServer = (test) ->
   test.expect 1
 
-  server = createServer __dirname + "/fixtures/hello.ru"
+  pool = createPool __dirname + "/fixtures/hello.ru"
+
+  app = connect()
+    .use(pool.proxy)
+
+  server = http.createServer app
 
   test.throws ->
     server.close()
