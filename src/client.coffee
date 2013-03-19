@@ -103,7 +103,7 @@ exports.Client = class Client extends Socket
 
   # Reconnect if the connection is closed.
   reconnect: ->
-    if @readyState is 'closed'
+    if @readyState is 'closed' or @readyState is 'readOnly'
       debug "connecting to #{@port}"
       @connect @port, @host
 
