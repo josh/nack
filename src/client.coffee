@@ -259,10 +259,8 @@ exports.ClientResponse = class ClientResponse extends Stream
             # Split multiline Rack headers
             v = vs.split "\n"
 
-            @headers[k] = if v.length > 0
-              # Hack for node 0.2 headers
-              # http://github.com/ry/node/commit/6560ab9
-              v.join "\r\n#{k}: "
+            @headers[k] = if v.length > 1
+              v
             else
               vs
 

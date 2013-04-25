@@ -172,7 +172,7 @@ exports.testClientEnvLint = (test) ->
   process.spawn()
 
 exports.testClientRequestWithCookies = (test) ->
-  test.expect 8
+  test.expect 9
 
   process = createProcess __dirname + "/fixtures/echo.ru"
   process.spawn()
@@ -191,7 +191,8 @@ exports.testClientRequestWithCookies = (test) ->
       test.ok response
       test.same 200, response.statusCode
       test.same 'text/plain', response.headers['Content-Type']
-      test.same "foo=1\r\nSet-Cookie: bar=2", response.headers['Set-Cookie']
+      test.same "foo=1", response.headers['Set-Cookie'][0]
+      test.same "bar=2", response.headers['Set-Cookie'][1]
 
       body = ""
       response.on 'data', (chunk) ->
