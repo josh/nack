@@ -1,12 +1,4 @@
-begin
-  # Avoid activating json gem
-  if defined? gem_original_require
-    gem_original_require 'json'
-  else
-    require 'json'
-  end
-rescue LoadError
-end
+require 'json'
 
 module Nack
   module JSON
