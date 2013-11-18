@@ -2,10 +2,10 @@
 
 require 'nack/netstring'
 
-require 'test/unit'
+require 'minitest/autorun'
 require 'stringio'
 
-class TestNetString < Test::Unit::TestCase
+class TestNetString < Minitest::Test
   include Nack::NetString
 
   def test_read
@@ -26,22 +26,22 @@ class TestNetString < Test::Unit::TestCase
     assert_equal ["a"], buf
 
     io = StringIO.new("4:abc,1:a,")
-    assert_raise(Nack::Error) { read(io) { |s| s } }
+    assert_raises(Nack::Error) { read(io) { |s| s } }
 
     io = StringIO.new("30")
-    assert_raise(Nack::Error) { read(io) { |s| s } }
+    assert_raises(Nack::Error) { read(io) { |s| s } }
 
     io = StringIO.new(":")
-    assert_raise(Nack::Error) { read(io) { |s| s } }
+    assert_raises(Nack::Error) { read(io) { |s| s } }
 
     io = StringIO.new("a:")
-    assert_raise(Nack::Error) { read(io) { |s| s } }
+    assert_raises(Nack::Error) { read(io) { |s| s } }
 
     io = StringIO.new("01:a")
-    assert_raise(Nack::Error) { read(io) { |s| s } }
+    assert_raises(Nack::Error) { read(io) { |s| s } }
 
     io = StringIO.new("1000000000:a")
-    assert_raise(Nack::Error) { read(io) { |s| s } }
+    assert_raises(Nack::Error) { read(io) { |s| s } }
   end
 
   def test_resume_reading

@@ -1,8 +1,8 @@
 require 'nack/builder'
 
-require 'test/unit'
+require 'minitest/autorun'
 
-class TestBuilder < Test::Unit::TestCase
+class TestBuilder < Minitest::Test
   def test_delegate_builder_methods
     assertProc = lambda { |*args| assert(*args) }
     builder = Nack::Builder.new {

@@ -1,9 +1,9 @@
 require 'nack/server'
 require 'nack/json'
 
-require 'test/unit'
+require 'minitest/autorun'
 
-class TestNackWorker < Test::Unit::TestCase
+class TestNackWorker < Minitest::Test
   include Nack
 
   attr_accessor :sock, :pid, :heartbeat
