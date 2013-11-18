@@ -3,7 +3,7 @@ require 'json'
 module Nack
   module JSON
     def self.encode(obj)
-      obj.to_json
+      ::JSON.generate(obj)
     end
 
     def self.decode(json)
