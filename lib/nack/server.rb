@@ -1,7 +1,6 @@
 require 'fcntl'
 require 'socket'
 require 'stringio'
-require 'json'
 
 require 'nack/builder'
 require 'nack/error'
@@ -41,13 +40,24 @@ module Nack
       trap('QUIT') { close }
 
       self.app = load_config
+      load_json!
     rescue Exception => e
+      load_json
       handle_exception(e)
     end
 
     def load_config
       cfgfile = File.read(config)
       eval("Nack::Builder.new {( #{cfgfile}\n )}.to_app", TOPLEVEL_BINDING, config)
+    end
+
+    def load_json
+      load_json!
+    rescue LoadError
+    end
+
+    def load_json!
+      require 'json' unless defined? ::JSON
     end
 
     def close
