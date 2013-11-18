@@ -167,11 +167,15 @@ module Nack
 
     def handle_exception(e)
       if heartbeat && !heartbeat.closed?
-        error = ::JSON.generate({
-          'name'    => e.class.name,
-          'message' => e.message,
-          'stack'   => e.backtrace.join("\n")
-        })
+        if defined? JSON
+          error = ::JSON.generate({
+            'name'    => e.class.name,
+            'message' => e.message,
+            'stack'   => e.backtrace.join("\n")
+          })
+        else
+          error = %({"name":#{e.class.name.inspect}, "message":#{e.message.inspect}, "stack":"" })
+        end
         heartbeat.write("#{error}\n")
         heartbeat.flush
         heartbeat.close
