@@ -10,24 +10,12 @@ end
 
 module Nack
   module JSON
-    if defined? ::JSON
-      def self.encode(obj)
-        obj.to_json
-      end
+    def self.encode(obj)
+      obj.to_json
+    end
 
-      def self.decode(json)
-        ::JSON.parse(json)
-      end
-    else
-      require 'okjson'
-
-      def self.encode(obj)
-        ::OkJson.encode(obj)
-      end
-
-      def self.decode(json)
-        ::OkJson.decode(json)
-      end
+    def self.decode(json)
+      ::JSON.parse(json)
     end
   end
 end
