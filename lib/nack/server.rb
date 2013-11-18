@@ -1,10 +1,10 @@
 require 'fcntl'
 require 'socket'
 require 'stringio'
+require 'json'
 
 require 'nack/builder'
 require 'nack/error'
-require 'nack/json'
 require 'nack/netstring'
 
 module Nack
