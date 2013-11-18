@@ -121,7 +121,7 @@ module Nack
 
       NetString.read(buf) do |data|
         if env.nil?
-          env = json_parse(data)
+          env = ::JSON.parse(data)
         elsif data.length > 0
           input.write(data)
         else
@@ -146,7 +146,7 @@ module Nack
 
       begin
         NetString.write(sock, status.to_s)
-        NetString.write(sock, json_generate(headers))
+        NetString.write(sock, ::JSON.generate(headers))
 
         body.each do |part|
           NetString.write(sock, part) if part.length > 0
@@ -156,7 +156,7 @@ module Nack
         body.close if body.respond_to?(:close)
       end
     rescue Exception => e
-      NetString.write(sock, json_generate({
+      NetString.write(sock, ::JSON.generate({
         'name'    => e.class.name,
         'message' => e.message,
         'stack'   => e.backtrace.join("\n")
@@ -167,7 +167,7 @@ module Nack
 
     def handle_exception(e)
       if heartbeat && !heartbeat.closed?
-        error = json_generate({
+        error = ::JSON.generate({
           'name'    => e.class.name,
           'message' => e.message,
           'stack'   => e.backtrace.join("\n")
@@ -179,14 +179,6 @@ module Nack
       else
         raise e
       end
-    end
-
-    def json_parse(str)
-      ::JSON.parse(str)
-    end
-
-    def json_generate(obj)
-      ::JSON.generate(obj)
     end
   end
 end
