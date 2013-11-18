@@ -1,6 +1,7 @@
 require 'nack/server'
 
 require 'minitest/autorun'
+require 'json'
 
 class TestNackWorker < Minitest::Test
   include Nack
