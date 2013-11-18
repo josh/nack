@@ -4,7 +4,6 @@ require 'stringio'
 
 require 'nack/builder'
 require 'nack/error'
-require 'nack/json'
 require 'nack/netstring'
 
 module Nack
@@ -41,13 +40,24 @@ module Nack
       trap('QUIT') { close }
 
       self.app = load_config
+      load_json!
     rescue Exception => e
+      load_json
       handle_exception(e)
     end
 
     def load_config
       cfgfile = File.read(config)
       eval("Nack::Builder.new {( #{cfgfile}\n )}.to_app", TOPLEVEL_BINDING, config)
+    end
+
+    def load_json
+      load_json!
+    rescue LoadError
+    end
+
+    def load_json!
+      require 'json' unless defined? ::JSON
     end
 
     def close
@@ -121,7 +131,7 @@ module Nack
 
       NetString.read(buf) do |data|
         if env.nil?
-          env = JSON.decode(data)
+          env = ::JSON.parse(data)
         elsif data.length > 0
           input.write(data)
         else
@@ -146,7 +156,7 @@ module Nack
 
       begin
         NetString.write(sock, status.to_s)
-        NetString.write(sock, JSON.encode(headers))
+        NetString.write(sock, ::JSON.generate(headers))
 
         body.each do |part|
           NetString.write(sock, part) if part.length > 0
@@ -156,7 +166,7 @@ module Nack
         body.close if body.respond_to?(:close)
       end
     rescue Exception => e
-      NetString.write(sock, JSON.encode({
+      NetString.write(sock, ::JSON.generate({
         'name'    => e.class.name,
         'message' => e.message,
         'stack'   => e.backtrace.join("\n")
@@ -167,11 +177,15 @@ module Nack
 
     def handle_exception(e)
       if heartbeat && !heartbeat.closed?
-        error = JSON.encode({
-          'name'    => e.class.name,
-          'message' => e.message,
-          'stack'   => e.backtrace.join("\n")
-        })
+        if defined? JSON
+          error = ::JSON.generate({
+            'name'    => e.class.name,
+            'message' => e.message,
+            'stack'   => e.backtrace.join("\n")
+          })
+        else
+          error = %({"name":#{e.class.name.inspect}, "message":#{e.message.inspect}, "stack":"" })
+        end
         heartbeat.write("#{error}\n")
         heartbeat.flush
         heartbeat.close

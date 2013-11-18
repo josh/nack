@@ -1,7 +1,7 @@
 require 'nack/server'
-require 'nack/json'
 
 require 'minitest/autorun'
+require 'json'
 
 class TestNackWorker < Minitest::Test
   include Nack
@@ -42,7 +42,7 @@ class TestNackWorker < Minitest::Test
   def request(env = {}, body = nil)
     socket = UNIXSocket.open(sock)
 
-    NetString.write(socket, Nack::JSON.encode(env))
+    NetString.write(socket, JSON.generate(env))
     NetString.write(socket, body) if body
     NetString.write(socket, "")
 
@@ -54,7 +54,7 @@ class TestNackWorker < Minitest::Test
       if status.nil?
         status = data.to_i
       elsif headers.nil?
-        headers = Nack::JSON.decode(data)
+        headers = JSON.parse(data)
       elsif data.length > 0
         body << data
       else
@@ -96,18 +96,13 @@ class TestNackWorker < Minitest::Test
       error = nil
 
       NetString.read(socket) do |data|
-        error = Nack::JSON.decode(data)
+        error = JSON.parse(data)
       end
 
       assert error
 
-      if error['name'] == "OkJson::Error"
-        assert_equal "OkJson::Error", error['name']
-        assert_equal "unexpected nil", error['message']
-      else
-        assert_equal "JSON::ParserError", error['name']
-        assert_equal "A JSON text must at least contain two octets!", error['message']
-      end
+      assert_equal "JSON::ParserError", error['name']
+      assert_equal "A JSON text must at least contain two octets!", error['message']
     end
   end
 
@@ -121,7 +116,7 @@ class TestNackWorker < Minitest::Test
       error = nil
 
       NetString.read(socket) do |data|
-        error = Nack::JSON.decode(data)
+        error = JSON.parse(data)
       end
 
       assert error
@@ -144,7 +139,7 @@ class TestNackWorker < Minitest::Test
     start :error do
       socket = UNIXSocket.open(sock)
 
-      NetString.write(socket, Nack::JSON.encode({}))
+      NetString.write(socket, JSON.generate({}))
       NetString.write(socket, "foo=bar")
       NetString.write(socket, "")
 
@@ -153,7 +148,7 @@ class TestNackWorker < Minitest::Test
       error = nil
 
       NetString.read(socket) do |data|
-        error = Nack::JSON.decode(data)
+        error = JSON.parse(data)
       end
 
       assert error
@@ -164,7 +159,7 @@ class TestNackWorker < Minitest::Test
 
   def test_spawn_error
     spawn :crash
-    error = Nack::JSON.decode(heartbeat.read)
+    error = JSON.parse(heartbeat.read)
 
     assert error
     assert_equal "RuntimeError", error['name']
