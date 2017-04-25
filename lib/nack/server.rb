@@ -1,8 +1,8 @@
 require 'fcntl'
 require 'socket'
 require 'stringio'
+require 'rack'
 
-require 'nack/builder'
 require 'nack/error'
 require 'nack/netstring'
 
@@ -48,7 +48,7 @@ module Nack
 
     def load_config
       cfgfile = File.read(config)
-      eval("Nack::Builder.new {( #{cfgfile}\n )}.to_app", TOPLEVEL_BINDING, config)
+      eval("Rack::Builder.new {( #{cfgfile}\n )}.to_app", TOPLEVEL_BINDING, config)
     end
 
     def load_json
