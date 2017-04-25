@@ -165,4 +165,13 @@ class TestNackWorker < Minitest::Test
     assert_equal "RuntimeError", error['name']
     assert_equal "b00m", error['message']
   end
+
+  def test_avoid_leaky_builder_scope
+    spawn :builder_scoped do
+      status, headers, body = request()
+
+      assert_equal 200, status
+      assert_equal ["Properly scoped"], body
+    end
+  end
 end
