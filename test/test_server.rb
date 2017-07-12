@@ -156,6 +156,31 @@ class TestNackWorker < Minitest::Test
     end
   end
 
+  ##
+  # Ensure that the server is not pulluting the Ruby exception nesting stack.
+  # There should be no `cause` placed in this stack by our Rack server.
+  def test_app_error_cause_not_polluted
+    start :error_cause do
+      socket = UNIXSocket.open(sock)
+
+      NetString.write(socket, JSON.generate({}))
+      NetString.write(socket, "foo=bar")
+      NetString.write(socket, "")
+
+      socket.close_write
+
+      error = nil
+
+      NetString.read(socket) do |data|
+        error = JSON.parse(data)
+      end
+
+      assert error
+      assert_equal "RuntimeError", error['name']
+      assert_equal "b00m", error['message']
+    end
+  end
+
   def test_spawn_error
     spawn :crash
     error = JSON.parse(heartbeat.read)
