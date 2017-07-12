@@ -157,7 +157,7 @@ class TestNackWorker < Minitest::Test
   end
 
   ##
-  # Ensure that the server is not pulluting the Ruby exception nesting stack.
+  # Ensure that the server is not pulluting Ruby exception nesting.
   # There should be no `cause` placed in this stack by our Rack server.
   def test_app_error_cause_not_polluted
     start :error_cause do
