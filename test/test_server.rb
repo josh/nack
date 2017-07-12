@@ -102,7 +102,6 @@ class TestNackWorker < Minitest::Test
       assert error
 
       assert_equal "JSON::ParserError", error['name']
-      assert_equal "A JSON text must at least contain two octets!", error['message']
     end
   end
 
@@ -137,6 +136,31 @@ class TestNackWorker < Minitest::Test
 
   def test_app_error
     start :error do
+      socket = UNIXSocket.open(sock)
+
+      NetString.write(socket, JSON.generate({}))
+      NetString.write(socket, "foo=bar")
+      NetString.write(socket, "")
+
+      socket.close_write
+
+      error = nil
+
+      NetString.read(socket) do |data|
+        error = JSON.parse(data)
+      end
+
+      assert error
+      assert_equal "RuntimeError", error['name']
+      assert_equal "b00m", error['message']
+    end
+  end
+
+  ##
+  # Ensure that the server is not pulluting Ruby exception nesting.
+  # There should be no `cause` placed in this stack by our Rack server.
+  def test_app_error_cause_not_polluted
+    start :error_cause do
       socket = UNIXSocket.open(sock)
 
       NetString.write(socket, JSON.generate({}))

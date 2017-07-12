@@ -103,9 +103,13 @@ module Nack
           else
             client, buf = sock, buffers[sock] ||= ''
 
+            buf_complete = false
             begin
               buf << client.read_nonblock(1024)
             rescue EOFError
+              buf_complete = true
+            end
+            if buf_complete
               handle sock, StringIO.new(buf)
               buffers.delete(client)
               clients.delete(client)
