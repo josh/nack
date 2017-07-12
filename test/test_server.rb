@@ -102,7 +102,6 @@ class TestNackWorker < Minitest::Test
       assert error
 
       assert_equal "JSON::ParserError", error['name']
-      assert_equal "A JSON text must at least contain two octets!", error['message']
     end
   end
 
